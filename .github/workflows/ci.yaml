@@ -71,7 +71,7 @@ jobs:
       test_type: unit-test
       upload-to-codecov: true
       codecov_flags: unit-test  # Required if 'upload-to-codecov' is true
-      codecov_name: <your lib name>  # Required if 'upload-to-codecov' is true
+      codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
 
 
   integration-test_codecov_finish:
@@ -85,7 +85,7 @@ jobs:
       test_type: integration-test
       upload-to-codecov: true
       codecov_flags: integration-test  # Required if 'upload-to-codecov' is true
-      codecov_name: <your lib name>  # Required if 'upload-to-codecov' is true
+      codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
 
 
   all-test_codecov_finish:
@@ -99,7 +99,7 @@ jobs:
       test_type: all-test
       upload-to-codecov: true
       codecov_flags: all-test  # Required if 'upload-to-codecov' is true
-      codecov_name: <your lib name>  # Required if 'upload-to-codecov' is true
+      codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
 
 
   sonarcloud_finish:
@@ -120,6 +120,6 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_pre-building_test.yaml@v7.3
     with:
       build-type: poetry
-      python_package_name: <your lib name>
+      python_package_name: slack-mcp
       test_shell_in_python: <the Python script you want to test>
       test_shell: <the shell you want to test>
