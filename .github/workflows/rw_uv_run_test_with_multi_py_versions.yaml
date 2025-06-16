@@ -7,6 +7,7 @@
 # Workflow input parameters:
 #     * test_type: The testing type. In generally, it only has 2 options: 'unit-test' and 'integration-test'.
 #     * all_test_items_paths: The target paths of test items under test.
+#     * install_dependency_with_group: Install the dependency by UV configuration with dependency group setting. This parameter receive the dependency group naming.
 #
 # Workflow running output:
 #     No, but it would save the testing coverage reports to provide after-process to organize and record.
@@ -30,6 +31,11 @@ on:
         description: "The target paths of test items under test."
         required: true
         type: string
+      install_dependency_with_group:
+        description: "Install the dependency by UV configuration with dependency group setting. This parameter receive the dependency group naming. (multiple values allowed)"
+        type: string
+        required: false
+        default: ''
 
 jobs:
   run_test_items:
@@ -46,3 +52,4 @@ jobs:
       python_version: ${{ matrix.python-version }}
       test_type: ${{ inputs.test_type }}
       all_test_items_paths: ${{ inputs.all_test_items_paths }}
+      install_dependency_with_group: ${{ inputs.install_dependency_with_group }}
