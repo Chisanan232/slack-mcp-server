@@ -29,7 +29,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-dependencies = []
+dependencies = [
+    "mcp[cli]>=1.9.4",
+]
 
 [project.urls]
 Homepage = "https://github.com/Chisanan232/slack-mcp-server"
