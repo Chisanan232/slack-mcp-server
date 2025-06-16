@@ -5,14 +5,14 @@ on:
   # For the push event, it only runs building and testing.
   push:
     branches:
-      - "sample_master_never_run"
+      - "master"
     paths:
 #     For GitHub Action
       - ".github/workflows/**ci.yaml"
       - ".github/workflows/rw_build_and_test.yaml"
       - ".github/workflows/rw_poetry_run_test_with_multi_py_versions.yaml"
 #     For source code and test
-      - "fake_api_server/**/*.py"
+      - "slack_mcp/**/*.py"
       - "!**/__pkg_info__.py"
       - "test/**/*.py"
 #     For shell script for CI
@@ -24,20 +24,20 @@ on:
       - "sonar-project.properties"
 #     For Python project configuration
       - "pyproject.toml"
-      - "poetry.lock"
+      - "uv.lock"
 
   # For the push event, in addition to build and test would be run, it would trigger other service to keep the reports
   # or other checking, i.e., record the test report by CodeCov and check the code quality by SonarQube.
   pull_request:
     branches:
-      - "sample_master_never_run"
+      - "master"
     paths:
 #     For GitHub Action
       - ".github/workflows/**ci.yaml"
       - ".github/workflows/rw_build_and_test.yaml"
       - ".github/workflows/rw_poetry_run_test_with_multi_py_versions.yaml"
 #     For source code and test
-      - "fake_api_server/**/*.py"
+      - "slack_mcp/**/*.py"
       - "!**/__pkg_info__.py"
       - "test/**/*.py"
 #     For shell script for CI
@@ -49,7 +49,7 @@ on:
       - "sonar-project.properties"
 #     For Python project configuration
       - "pyproject.toml"
-      - "poetry.lock"
+      - "uv.lock"
 
 jobs:
   build-and-test:
