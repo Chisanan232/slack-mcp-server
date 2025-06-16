@@ -1,17 +1,12 @@
 #################################################################################################################################
 #
 # Workflow Description:
-#     Use Poetry to run testing by specific type with all test items via PyTest and generate its testing
+#     Use UV to run testing by specific type with all test items via PyTest and generate its testing
 #     coverage report (it would save reports by 'actions/upload-artifact').
 #
 # Workflow input parameters:
 #     * test_type: The testing type. In generally, it only has 2 options: 'unit-test' and 'integration-test'.
 #     * all_test_items_paths: The target paths of test items under test.
-#     * setup_http_server: If it's true, it would set up and run HTTP server for testing.
-#     * http_server_host: The host IPv4 address of HTTP server.
-#     * http_server_port: The port number of HTTP server.
-#     * http_server_app_module: The module path of HTTP server.
-#     * http_server_enter_point: The object about the web application.
 #
 # Workflow running output:
 #     No, but it would save the testing coverage reports to provide after-process to organize and record.
@@ -35,49 +30,19 @@ on:
         description: "The target paths of test items under test."
         required: true
         type: string
-      setup_http_server:
-        description: "If it's true, it would set up and run HTTP server for testing."
-        type: boolean
-        required: false
-        default: false
-      http_server_host:
-        description: "The host IPv4 address of HTTP server."
-        type: string
-        required: false
-        default: 0.0.0.0
-      http_server_port:
-        description: "The port number of HTTP server."
-        type: string
-        required: false
-        default: 12345
-      http_server_app_module:
-        description: "The module path of HTTP server."
-        type: string
-        required: false
-        default: app
-      http_server_enter_point:
-        description: "The object about the web application."
-        type: string
-        required: false
-        default: app
 
 jobs:
   run_test_items:
     strategy:
       matrix:
-        python-version: [3.9,'3.10','3.11','3.12','3.13']
+        python-version: ['3.12','3.13','3.14']
         os: [ubuntu-latest,ubuntu-22.04,macos-latest,macos-14]
         test-path: ${{fromJson(inputs.all_test_items_paths)}}
       fail-fast: false    # Fix issue in GitHub Action: FailFast: cancelling since parallel instance has failed
 
-    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_poetry_run_test.yaml@v7.3
+    uses: ./.github/workflows/rw_uv_run_test.yaml
     with:
       runtime_os: ${{ matrix.os }}
       python_version: ${{ matrix.python-version }}
       test_type: ${{ inputs.test_type }}
       all_test_items_paths: ${{ inputs.all_test_items_paths }}
-      setup_http_server: ${{ inputs.setup_http_server }}
-      http_server_host: ${{ inputs.http_server_host }}
-      http_server_port: ${{ inputs.http_server_port }}
-      http_server_app_module: ${{ inputs.http_server_app_module }}
-      http_server_enter_point: ${{ inputs.http_server_enter_point }}
