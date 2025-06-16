@@ -24,7 +24,28 @@ SERVER_NAME: Final[str] = "SlackMCPServer"
 mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
 
 
-@mcp.tool()  # type: ignore[misc] – decorator runtime typing provided by FastMCP
+@mcp.tool("slack_post_message")  # type: ignore[misc] – explicit name for LLM clarity
+@mcp.prompt(
+    # ---------------------------------------------------------------------------
+    # Guidance prompt for LLMs
+    # ---------------------------------------------------------------------------
+    """
+    Use `slack_post_message` whenever you need to deliver a textual 
+    notification to a Slack channel on behalf of the user. Typical 
+    scenarios include:\n
+     • Alerting a team channel about build / deployment status.\n
+     • Sending reminders or summaries after completing an automated task.\n
+     • Broadcasting important events (e.g., incident reports, new blog post).\n\n
+    Input guidelines:\n
+     • **channel** — Slack channel ID (e.g., `C12345678`) or name with `#`.\n
+     • **text**    — The plain-text message to post (up to 40 kB).\n
+     • **token**   — *Optional.* Provide if the default bot token env var 
+       is unavailable.\n\n
+    The tool returns the raw JSON response from Slack. If the response's 
+    `ok` field is `false`, consider the operation failed and surface the 
+    `error` field to the user.
+    """
+)
 async def send_slack_message(
     channel: str,
     text: str,
