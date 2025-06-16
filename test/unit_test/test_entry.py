@@ -1,14 +1,13 @@
 """Unit tests for the CLI entry point ``slack_mcp.entry``."""
+
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import Any, Final
-
 import importlib
-import sys
-import pytest
 import threading
+from types import SimpleNamespace
+from typing import Any
 
+import pytest
 from mcp.server.fastmcp import FastMCP
 
 # ---------------------------------------------------------------------------
@@ -45,6 +44,7 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch):  # noqa: D401 – fixture
     monkeypatch.setattr(entry.logging, "basicConfig", lambda *a, **k: None, raising=True)
 
     return SimpleNamespace(entry=entry, dummy=dummy_server)
+
 
 # ---------------------------------------------------------------------------
 # Test cases
