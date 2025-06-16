@@ -38,6 +38,9 @@ dependencies = [
 Homepage = "https://github.com/Chisanan232/slack-mcp-server"
 Repository = "https://github.com/Chisanan232/slack-mcp-server"
 
+[project.scripts]
+slack-mcp-server = "slack_mcp.entry:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.1.1,<9",
