@@ -1,4 +1,5 @@
 """Command-line entry point to launch the Slack MCP server."""
+
 from __future__ import annotations
 
 import argparse
