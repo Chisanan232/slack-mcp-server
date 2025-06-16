@@ -55,7 +55,7 @@ def test_entry_default_args(_patch_entry):
     """Running with no CLI flags should default to *stdio* transport."""
 
     entry = _patch_entry.entry
-    dummy: _DummyServer = _patch_entry.dummy  # type: ignore[attr-defined]
+    dummy: _DummyServer = _patch_entry.dummy
 
     # Run with a timeout guard in case something blocks unexpectedly.
     def run_with_timeout():
@@ -73,7 +73,7 @@ def test_entry_custom_transport(_patch_entry):
     """Custom transport and mount path are forwarded to ``FastMCP.run``."""
 
     entry = _patch_entry.entry
-    dummy: _DummyServer = _patch_entry.dummy  # type: ignore[attr-defined]
+    dummy: _DummyServer = _patch_entry.dummy
 
     argv = ["--transport", "sse", "--mount-path", "/mcp", "--log-level", "DEBUG"]
 
