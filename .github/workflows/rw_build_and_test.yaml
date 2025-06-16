@@ -25,6 +25,7 @@ jobs:
     with:
       test_type: unit-test
       all_test_items_paths: ${{needs.prep_unit-test.outputs.all_test_items}}
+      install_dependency_with_group: 'dev'
 
 
 #  run_integration-test:
@@ -34,6 +35,7 @@ jobs:
 #    with:
 #      test_type: integration-test
 #      all_test_items_paths: ${{needs.prep_integration-test.outputs.all_test_items}}
+#      install_dependency_with_group: 'dev'
 
 
   unit-test_codecov:
