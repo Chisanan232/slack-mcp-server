@@ -7,6 +7,7 @@ from typing import Any, Final
 import pytest
 
 import slack_mcp.server as srv
+from slack_mcp.model import SlackPostMessageInput
 
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]
@@ -49,7 +50,7 @@ async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: 
 
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
-    result = await srv.send_slack_message(channel="#general", text="Hello")
+    result = await srv.send_slack_message(input_params=SlackPostMessageInput(channel="#general", text="Hello"))
     assert result == {"ok": True, "channel": "#general", "text": "Hello"}
 
 
@@ -60,7 +61,8 @@ async def test_send_slack_message_param(monkeypatch: pytest.MonkeyPatch) -> None
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    result = await srv.send_slack_message(channel="C123", text="Hi", token="xoxb-param")
+    result = await srv.send_slack_message(
+        input_params=SlackPostMessageInput(channel="C123", text="Hi", token="xoxb-param"))
     assert result == {"ok": True, "channel": "C123", "text": "Hi"}
 
 
@@ -71,4 +73,4 @@ async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch)
         monkeypatch.delenv(var, raising=False)
 
     with pytest.raises(ValueError):
-        await srv.send_slack_message(channel="C123", text="Hi")
+        await srv.send_slack_message(input_params=SlackPostMessageInput(channel="C123", text="Hi"))
