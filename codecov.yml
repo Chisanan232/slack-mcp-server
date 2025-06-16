@@ -1,2 +1,4 @@
 codecov:
   token: $CODECOV_TOKEN
+  branch: master
+  strict_yaml_branch: master
