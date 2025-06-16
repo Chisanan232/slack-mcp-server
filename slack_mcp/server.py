@@ -5,13 +5,14 @@ MCP *tool* for sending a message to a Slack channel.  The implementation follows
 PEP 484/585 typing conventions and can be imported directly so that external
 applications or test-suites may interact with the exported ``mcp`` instance.
 """
+
 from __future__ import annotations
 
-from typing import Any, Final
 import os
+from typing import Any, Final
 
-from slack_sdk.web.async_client import AsyncWebClient
 from mcp.server.fastmcp import FastMCP
+from slack_sdk.web.async_client import AsyncWebClient
 
 __all__: list[str] = [
     "mcp",
@@ -69,6 +70,7 @@ async def send_slack_message(
 # ---------------------------------------------------------------------------
 # Guidance prompt for LLMs
 # ---------------------------------------------------------------------------
+
 
 @mcp.prompt("slack_post_message_usage")  # type: ignore[misc]
 def _slack_post_message_usage() -> str:  # noqa: D401 – imperative style acceptable for prompt

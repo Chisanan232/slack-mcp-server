@@ -1,7 +1,7 @@
 """Unit tests for :pymod:`slack_mcp.server`."""
+
 from __future__ import annotations
 
-import os
 from typing import Any, Final
 
 import pytest
@@ -62,7 +62,8 @@ async def test_send_slack_message_param(monkeypatch: pytest.MonkeyPatch) -> None
         monkeypatch.delenv(var, raising=False)
 
     result = await srv.send_slack_message(
-        input_params=SlackPostMessageInput(channel="C123", text="Hi", token="xoxb-param"))
+        input_params=SlackPostMessageInput(channel="C123", text="Hi", token="xoxb-param")
+    )
     assert result == {"ok": True, "channel": "C123", "text": "Hi"}
 
 
