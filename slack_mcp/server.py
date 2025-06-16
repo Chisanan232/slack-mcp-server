@@ -28,7 +28,7 @@ SERVER_NAME: Final[str] = "SlackMCPServer"
 mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
 
 
-@mcp.tool("slack_post_message")  # type: ignore[misc] – explicit name for LLM clarity
+@mcp.tool("slack_post_message")
 async def send_slack_message(
     input_params: SlackPostMessageInput,
 ) -> dict[str, Any]:
@@ -72,7 +72,7 @@ async def send_slack_message(
 # ---------------------------------------------------------------------------
 
 
-@mcp.prompt("slack_post_message_usage")  # type: ignore[misc]
+@mcp.prompt("slack_post_message_usage")
 def _slack_post_message_usage() -> str:  # noqa: D401 – imperative style acceptable for prompt
     """Explain when and how to invoke the ``slack_post_message`` tool."""
 
