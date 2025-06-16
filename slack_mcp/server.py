@@ -17,7 +17,6 @@ from slack_sdk.web.async_client import AsyncWebClient
 __all__: list[str] = [
     "mcp",
     "send_slack_message",
-    "SlackPostMessageInput",
 ]
 
 from slack_mcp.model import SlackPostMessageInput
