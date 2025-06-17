@@ -23,6 +23,10 @@ fi
 
 # Print the command that will be executed
 echo "Starting MCP server with arguments: ${CMD_ARGS[@]}"
+# Only print debug command information if log level is debug (case insensitive)
+if [ -n "${MCP_LOG_LEVEL}" ] && [ "$(echo ${MCP_LOG_LEVEL} | tr '[:upper:]' '[:lower:]')" == "debug" ]; then
+  echo "[DEBUG] Run the MCP server with command: uv run slack-mcp-server ${CMD_ARGS[@]}"
+fi
 
 # Execute the entry point with the collected arguments
 exec uv run slack-mcp-server "${CMD_ARGS[@]}"
