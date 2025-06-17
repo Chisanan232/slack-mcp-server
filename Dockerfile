@@ -13,7 +13,6 @@ COPY . .
 # Create a virtual environment and install dependencies using uv
 RUN uv venv
 RUN . .venv/bin/activate && uv pip install -e .
-RUN . .venv/bin/activate && uv pip install -e --group=dev
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
