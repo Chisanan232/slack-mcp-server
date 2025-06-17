@@ -24,4 +24,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 # Set the entry point
-CMD ["uv", "run", "slack-mcp-server", "--transport", "sse"]
+CMD ["bash", "./scripts/docker/run-mcp-server.sh"]
