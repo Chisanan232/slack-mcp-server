@@ -7,7 +7,7 @@ name = "slack-mcp"
 version = "0.0.0"
 description = "🦾 A strong MCP server for Slack."
 authors = [{ name = "Chisanan232", email = "chi10211201@cycu.org.tw" }]
-requires-python = ">=3.12"
+requires-python = ">=3.12,<3.14"
 readme = "README.md"
 license = { text = "MIT" }
 keywords = [
@@ -27,7 +27,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Programming Language :: Python :: 3.14",
+#    "Programming Language :: Python :: 3.14",  # TODO: Because of PyO3's maximum supported version (3.13)
 ]
 dependencies = [
     "mcp[cli]>=1.9.4",
@@ -49,6 +49,7 @@ dev = [
     "pytest-rerunfailures>=14.0,<15",
     "aiohttp>=3.12.13",
     "pytest-asyncio>=0.23.0,<1",
+    "python-dotenv>=1.0.1,<2",
 ]
 pre-commit-ci = [
     "pre-commit>=3.5.0,<4",

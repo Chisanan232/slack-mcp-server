@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from typing import Final
-
-from mcp.server.fastmcp import FastMCP
 
 from .server import mcp as _server_instance
 
@@ -39,10 +36,6 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
     args = _parse_args(argv)
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
-
-    if not isinstance(_server_instance, FastMCP):
-        _LOG.error("Imported server instance is not a FastMCP object.")
-        sys.exit(1)
 
     _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
     _server_instance.run(transport=args.transport, mount_path=args.mount_path)
