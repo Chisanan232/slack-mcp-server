@@ -40,10 +40,6 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
 
-    if not isinstance(_server_instance, FastMCP):
-        _LOG.error("Imported server instance is not a FastMCP object.")
-        sys.exit(1)
-
     _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
     _server_instance.run(transport=args.transport, mount_path=args.mount_path)
 
