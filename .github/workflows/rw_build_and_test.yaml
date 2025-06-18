@@ -46,7 +46,7 @@ jobs:
     uses: ./.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml
     with:
       test_type: e2e-test
-      all_test_items_paths: ${{needs.prep_unit-test.outputs.all_test_items}}
+      all_test_items_paths: ${{needs.prep_e2e-test.outputs.all_test_items}}
       install_dependency_with_group: 'dev'
 
   unit-test_codecov:
