@@ -6,7 +6,6 @@ import argparse
 import logging
 from typing import Final
 
-
 from .server import mcp as _server_instance
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
