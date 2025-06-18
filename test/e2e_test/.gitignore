@@ -1,0 +1,3 @@
+# the environment variables
+.env*
+!.env*example

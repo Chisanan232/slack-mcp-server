@@ -38,6 +38,9 @@ dependencies = [
 Homepage = "https://github.com/Chisanan232/slack-mcp-server"
 Repository = "https://github.com/Chisanan232/slack-mcp-server"
 
+[project.scripts]
+slack-mcp-server = "slack_mcp.entry:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.1.1,<9",
@@ -46,6 +49,7 @@ dev = [
     "pytest-rerunfailures>=14.0,<15",
     "aiohttp>=3.12.13",
     "pytest-asyncio>=0.23.0,<1",
+    "python-dotenv>=1.0.1,<2",
 ]
 pre-commit-ci = [
     "pre-commit>=3.5.0,<4",

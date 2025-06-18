@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+__all__: list[str] = [
+    "SlackPostMessageInput",
+]
+
 
 @dataclass(slots=True, kw_only=True)
 class SlackPostMessageInput:
