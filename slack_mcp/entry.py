@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import argparse
 import logging
-import sys
 from typing import Final
 
-from mcp.server.fastmcp import FastMCP
 
 from .server import mcp as _server_instance
 
