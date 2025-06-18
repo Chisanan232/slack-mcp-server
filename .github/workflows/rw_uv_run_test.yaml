@@ -80,6 +80,11 @@ jobs:
         with:
           python-version: ${{ inputs.python_version }}
 
+      - name: Activate the uv virtual environment
+        run: |
+          uv venv
+          . .venv/bin/activate
+
       - name: Install all the project dependencies
         if: ${{ inputs.install_dependency_with_group == '' }}
         run: uv sync --locked --all-extras --dev
