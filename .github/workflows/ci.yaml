@@ -59,7 +59,6 @@ jobs:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') }}
     uses: ./.github/workflows/rw_build_and_test.yaml
 
-
   unit-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
     if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') }}
@@ -72,7 +71,6 @@ jobs:
       upload-to-codecov: true
       codecov_flags: unit-test  # Required if 'upload-to-codecov' is true
       codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
-
 
 #  integration-test_codecov_finish:
 ##    name: Organize and generate the testing report and upload it to Codecov
@@ -87,7 +85,6 @@ jobs:
 #      codecov_flags: integration-test  # Required if 'upload-to-codecov' is true
 #      codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
 
-
   e2e-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
     if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') }}
@@ -100,7 +97,6 @@ jobs:
       upload-to-codecov: true
       codecov_flags: e2e-test  # Required if 'upload-to-codecov' is true
       codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
-
 
   all-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
@@ -115,7 +111,6 @@ jobs:
       codecov_flags: all-test  # Required if 'upload-to-codecov' is true
       codecov_name: slack-mcp  # Required if 'upload-to-codecov' is true
 
-
   sonarcloud_finish:
 #    name: SonarCloud Scan
     if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') }}
@@ -125,7 +120,6 @@ jobs:
       sonar_token: ${{ secrets.SONAR_TOKEN }}
     with:
       download_path: ${{ inputs.download_path }}
-
 
 #  pre-building_test:
 ##    name: Check about it could work finely by installing the Python package with setup.py file
