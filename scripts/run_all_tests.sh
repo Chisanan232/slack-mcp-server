@@ -63,6 +63,9 @@ then
 elif echo "$testing_type" | grep -q "system-test";
 then
     test_path=$(bash "$Scripts_Dir/$Test_Running_Script" ./test/system_test/ windows | sed "s/\"//g" | sed 's/^//')
+elif echo "$testing_type" | grep -q "e2e-test";
+then
+    test_path=$(bash "$Scripts_Dir/$Test_Running_Script" ./test/e2e_test/ windows | sed "s/\"//g" | sed 's/^//')
 elif echo "$testing_type" | grep -q "all-test";
 then
     unit_test_path=$(bash "$Scripts_Dir/$Test_Running_Script" ./test/unit_test/ windows | sed "s/\"//g" | sed 's/^//')
