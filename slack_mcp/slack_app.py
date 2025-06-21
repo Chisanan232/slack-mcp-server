@@ -16,7 +16,7 @@ from flask import Flask, Request, Response, request
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
-from .event_handler import EventCallback, SlackEvent, register_handlers
+from .event_handler import SlackEvent, register_handlers
 
 __all__: list[str] = [
     "create_slack_app",
@@ -91,7 +91,7 @@ async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> 
     if event_type in handlers:
         _LOG.info(f"Handling event type: {event_type}")
         handler = handlers[event_type]
-        return await handler(client, cast(EventCallback, event))
+        return await handler(client, event)
 
     _LOG.warning(f"No handler for event type: {event_type}")
     return None
