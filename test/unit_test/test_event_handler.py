@@ -1,8 +1,9 @@
 """Unit tests for the Slack event handler module."""
 
 import os
+from unittest.mock import AsyncMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
 
 from slack_mcp.event_handler import (
     handle_app_mention,
@@ -19,18 +20,16 @@ def mock_client():
     response_mock = AsyncMock()
     response_mock.data = {"ok": True, "ts": "1234567890.123456"}
     client.chat_postMessage = AsyncMock(return_value=response_mock)
-    
+
     # Similarly for conversations_history
     history_response = AsyncMock()
     history_response.data = {
-        "ok": True, 
-        "messages": [
-            {"text": "Hello", "user": "U12345678", "ts": "1234567890.123456"}
-        ]
+        "ok": True,
+        "messages": [{"text": "Hello", "user": "U12345678", "ts": "1234567890.123456"}],
     }
     history_response.get = lambda key, default=None: history_response.data.get(key, default)
     client.conversations_history = AsyncMock(return_value=history_response)
-    
+
     return client
 
 
@@ -115,12 +114,12 @@ async def test_handle_reaction_added_bot_message_with_id(mock_client):
             },
             "event_ts": "1234567890.123457",
         }
-        
+
         # Mock the conversations_history to return a message from our bot
         history_response = AsyncMock()
         history_response.data = {
-            "ok": True, 
-            "messages": [{"text": "Hello", "bot_id": "B12345678", "ts": "1234567890.123456"}]
+            "ok": True,
+            "messages": [{"text": "Hello", "bot_id": "B12345678", "ts": "1234567890.123456"}],
         }
         history_response.get = lambda key, default=None: history_response.data.get(key, default)
         mock_client.conversations_history.return_value = history_response
@@ -151,12 +150,12 @@ async def test_handle_reaction_added_not_bot_message(mock_client):
             },
             "event_ts": "1234567890.123457",
         }
-        
+
         # Mock the conversations_history to return a message not from our bot
         history_response = AsyncMock()
         history_response.data = {
-            "ok": True, 
-            "messages": [{"text": "Hello", "user": "U87654321", "ts": "1234567890.123456"}]
+            "ok": True,
+            "messages": [{"text": "Hello", "user": "U87654321", "ts": "1234567890.123456"}],
         }
         history_response.get = lambda key, default=None: history_response.data.get(key, default)
         mock_client.conversations_history.return_value = history_response
@@ -183,7 +182,7 @@ async def test_handle_reaction_added_message_not_found(mock_client):
         },
         "event_ts": "1234567890.123457",
     }
-    
+
     # Mock the conversations_history to return no messages
     history_response = AsyncMock()
     history_response.data = {"ok": True, "messages": []}
@@ -201,7 +200,7 @@ async def test_handle_reaction_added_message_not_found(mock_client):
 def test_register_handlers():
     """Test registering event handlers."""
     handlers = register_handlers()
-    
+
     assert "app_mention" in handlers
     assert "reaction_added" in handlers
     assert handlers["app_mention"] == handle_app_mention
