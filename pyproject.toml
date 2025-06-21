@@ -32,6 +32,9 @@ classifiers = [
 dependencies = [
     "mcp[cli]>=1.9.4",
     "slack-sdk>=3.35.0",
+    "Flask>=2.3.0",
+    "hypercorn>=0.14.3",
+    "asgiref>=3.6.0",  # Required for Flask async support
 ]
 
 [project.urls]
@@ -40,6 +43,7 @@ Repository = "https://github.com/Chisanan232/slack-mcp-server"
 
 [project.scripts]
 slack-mcp-server = "slack_mcp.entry:main"
+slack-events-server = "slack_mcp.slack_server:main"
 
 [dependency-groups]
 dev = [
