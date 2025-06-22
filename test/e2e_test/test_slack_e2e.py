@@ -184,10 +184,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     bot_token = os.environ["SLACK_BOT_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_parent_text = f"mcp-e2e-parent-{uuid.uuid4()}"
-    unique_reply_texts = [
-        f"mcp-e2e-reply1-{uuid.uuid4()}",
-        f"mcp-e2e-reply2-{uuid.uuid4()}"
-    ]
+    unique_reply_texts = [f"mcp-e2e-reply1-{uuid.uuid4()}", f"mcp-e2e-reply2-{uuid.uuid4()}"]
 
     logger.info(f"Testing with channel ID: {channel_id}")
     logger.info(f"Using unique parent message text: {unique_parent_text}")
@@ -252,13 +249,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
                 logger.info(f"Calling slack_thread_reply tool with channel: {channel_id} and thread_ts: {parent_ts}")
                 result = await session.call_tool(
                     "slack_thread_reply",
-                    {
-                        "input_params": {
-                            "channel": channel_id,
-                            "thread_ts": parent_ts,
-                            "texts": unique_reply_texts
-                        }
-                    },
+                    {"input_params": {"channel": channel_id, "thread_ts": parent_ts, "texts": unique_reply_texts}},
                     read_timeout_seconds=read_timeout,
                 )
 
@@ -288,27 +279,29 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
                 # Verify we have the expected number of responses
                 assert isinstance(slack_responses, list), "Expected list of responses"
-                assert len(slack_responses) == len(unique_reply_texts), "Response count doesn't match sent messages count"
+                assert len(slack_responses) == len(
+                    unique_reply_texts
+                ), "Response count doesn't match sent messages count"
 
                 # Check each response
                 for i, response in enumerate(slack_responses):
                     assert response.get("ok") is True, f"Reply {i+1} failed: {response}"
-                    
+
                     # The thread_ts can be either at the top level or inside the message object
                     thread_ts_value = response.get("thread_ts")
-                    
+
                     # If not at top level, check if it's in the message object
                     if thread_ts_value is None and "message" in response:
                         thread_ts_value = response["message"].get("thread_ts")
-                    
+
                     assert thread_ts_value is not None, f"Missing thread_ts in reply {i+1}"
                     assert thread_ts_value == parent_ts, f"Reply {i+1} has incorrect thread_ts"
-                    
+
                     # Check text - it might be in the message object or at the top level
                     text_value = response.get("text")
                     if text_value is None and "message" in response:
                         text_value = response["message"].get("text")
-                        
+
                     assert text_value == unique_reply_texts[i], f"Reply {i+1} text mismatch"
 
                 logger.info("All thread replies successfully sent")

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Final, List
+from typing import Any, Final
 
 import pytest
 
@@ -91,27 +91,23 @@ async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_
 
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(
-            channel="#general",
-            thread_ts=thread_ts,
-            texts=["Reply 1", "Reply 2"]
-        )
+        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Reply 1", "Reply 2"])
     )
-    
+
     assert isinstance(result, dict)
     assert "responses" in result
-    
+
     responses = result["responses"]
     assert isinstance(responses, list)
     assert len(responses) == 2
-    
+
     # Check first reply
     assert responses[0]["ok"] is True
     assert responses[0]["channel"] == "#general"
     assert responses[0]["text"] == "Reply 1"
     assert responses[0]["thread_ts"] == thread_ts
     assert "ts" in responses[0]
-    
+
     # Check second reply
     assert responses[1]["ok"] is True
     assert responses[1]["channel"] == "#general"
@@ -130,16 +126,13 @@ async def test_send_slack_thread_reply_param(monkeypatch: pytest.MonkeyPatch) ->
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
         input_params=SlackThreadReplyInput(
-            channel="C123",
-            thread_ts=thread_ts,
-            texts=["Reply text"],
-            token="xoxb-param"
+            channel="C123", thread_ts=thread_ts, texts=["Reply text"], token="xoxb-param"
         )
     )
-    
+
     assert isinstance(result, dict)
     assert "responses" in result
-    
+
     responses = result["responses"]
     assert isinstance(responses, list)
     assert len(responses) == 1
@@ -159,11 +152,7 @@ async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyP
     thread_ts = "1620000000.000000"
     with pytest.raises(ValueError):
         await srv.send_slack_thread_reply(
-            input_params=SlackThreadReplyInput(
-                channel="C123",
-                thread_ts=thread_ts,
-                texts=["Reply text"]
-            )
+            input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=["Reply text"])
         )
 
 
@@ -174,13 +163,9 @@ async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPat
 
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(
-            channel="C123",
-            thread_ts=thread_ts,
-            texts=[]
-        )
+        input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=[])
     )
-    
+
     assert isinstance(result, dict)
     assert "responses" in result
     assert isinstance(result["responses"], list)

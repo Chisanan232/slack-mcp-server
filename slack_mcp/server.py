@@ -9,7 +9,7 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 from __future__ import annotations
 
 import os
-from typing import Any, Final, List, Dict
+from typing import Any, Dict, Final, List
 
 from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
@@ -101,13 +101,11 @@ async def send_slack_thread_reply(
     client: AsyncWebClient = AsyncWebClient(token=resolved_token)
 
     responses: List[Dict[str, Any]] = []
-    
+
     # Send each text message as a separate reply to the thread
     for text in input_params.texts:
         response = await client.chat_postMessage(
-            channel=input_params.channel,
-            text=text,
-            thread_ts=input_params.thread_ts
+            channel=input_params.channel, text=text, thread_ts=input_params.thread_ts
         )
         responses.append(response.data)
 
