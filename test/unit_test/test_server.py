@@ -32,23 +32,31 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
     async def chat_postMessage(self, *, channel: str, text: str, **_: Any):
         """Echo back inputs in a Slack-like response structure."""
         return _FakeSlackResponse({"ok": True, "channel": channel, "text": text})
-    
+
     async def conversations_history(
-        self, *, channel: str, limit: int = 100, oldest: str | None = None, 
-        latest: str | None = None, inclusive: bool = False, **_: Any
+        self,
+        *,
+        channel: str,
+        limit: int = 100,
+        oldest: str | None = None,
+        latest: str | None = None,
+        inclusive: bool = False,
+        **_: Any,
     ):
         """Echo back inputs in a Slack-like response structure for channel history."""
         messages = [
             {"type": "message", "text": f"Test message {i}", "ts": f"16561234{i}.00000", "user": f"U12345{i}"}
             for i in range(min(3, limit))
         ]
-        return _FakeSlackResponse({
-            "ok": True, 
-            "channel": channel, 
-            "messages": messages,
-            "has_more": False,
-            "response_metadata": {"next_cursor": ""}
-        })
+        return _FakeSlackResponse(
+            {
+                "ok": True,
+                "channel": channel,
+                "messages": messages,
+                "has_more": False,
+                "response_metadata": {"next_cursor": ""},
+            }
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -128,9 +136,7 @@ async def test_read_slack_channel_messages_limit(monkeypatch: pytest.MonkeyPatch
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
 
     # With the test implementation, we should get max 2 messages when limit is 2
-    result = await srv.read_slack_channel_messages(
-        input_params=SlackReadChannelMessagesInput(channel="C123", limit=2)
-    )
+    result = await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="C123", limit=2))
     assert result["ok"] is True
     assert len(result["messages"]) == 2
 

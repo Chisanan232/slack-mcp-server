@@ -185,12 +185,12 @@ async def test_slack_read_channel_messages_e2e() -> None:
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info(f"Testing read messages from channel ID: {channel_id}")
-    
+
     # Create a variable to track test failures
     should_fail = False
     failure_reason = None
     unique_text = None
-    
+
     # Stage 1: Verify token and permissions
     if not should_fail:
         try:
@@ -212,17 +212,21 @@ async def test_slack_read_channel_messages_e2e() -> None:
 
             # If we can get channel info, check if this is a private channel requiring groups:history scope
             if not should_fail and channel_info_response:
-                is_private = channel_info_response.get('channel', {}).get('is_private', False)
+                is_private = channel_info_response.get("channel", {}).get("is_private", False)
                 if is_private:
                     # Check if we can directly access history (to catch permission issues early)
                     try:
                         history_test = await test_client.conversations_history(channel=channel_id, limit=1)
-                        if not history_test.get('ok'):
-                            scopes_needed = history_test.get('needed', '')
-                            scopes_provided = history_test.get('provided', '')
-                            logger.warning(f"Missing scopes for private channel: needed={scopes_needed}, provided={scopes_provided}")
+                        if not history_test.get("ok"):
+                            scopes_needed = history_test.get("needed", "")
+                            scopes_provided = history_test.get("provided", "")
+                            logger.warning(
+                                f"Missing scopes for private channel: needed={scopes_needed}, provided={scopes_provided}"
+                            )
                             should_fail = True
-                            failure_reason = f"Bot lacks required permission scopes for private channel: {scopes_needed}"
+                            failure_reason = (
+                                f"Bot lacks required permission scopes for private channel: {scopes_needed}"
+                            )
                     except Exception as he:
                         logger.warning(f"Cannot access channel history directly: {he}")
                         should_fail = True
@@ -287,12 +291,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
                         logger.info(f"Calling slack_read_channel_messages tool with channel: {channel_id}")
                         result = await session.call_tool(
                             "slack_read_channel_messages",
-                            {
-                                "input_params": {
-                                    "channel": channel_id,
-                                    "limit": 10
-                                }
-                            },
+                            {"input_params": {"channel": channel_id, "limit": 10}},
                             read_timeout_seconds=read_timeout,
                         )
 
@@ -301,9 +300,11 @@ async def test_slack_read_channel_messages_e2e() -> None:
 
                         # Check if we got an error related to permissions
                         if result.isError:
-                            error_text = result.content[0].text if result.content and hasattr(result.content[0], 'text') else ""
+                            error_text = (
+                                result.content[0].text if result.content and hasattr(result.content[0], "text") else ""
+                            )
                             logger.warning(f"Tool returned an error: {error_text}")
-                            
+
                             # If it's a permissions issue, fail the test with a clear message
                             if "missing_scope" in error_text:
                                 needed_scope = None
@@ -313,7 +314,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
                                     if len(parts) > 1:
                                         scope_part = parts[1].split(",")[0].strip()
                                         needed_scope = scope_part.strip("'").strip()
-                                
+
                                 fail_message = f"Bot token lacks required permission scope"
                                 if needed_scope:
                                     fail_message += f": {needed_scope}"
@@ -363,7 +364,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
                                                 logger.warning("Test message not found in channel history response.")
                                                 # This could happen legitimately (e.g., with many active messages),
                                                 # so we'll just log it rather than fail the test
-                                        
+
                                         logger.info("Channel history successfully retrieved")
         except Exception as e:
             error_text = str(e)
@@ -374,6 +375,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
             else:
                 logger.error(f"Error: {repr(e)}")
                 import traceback
+
                 logger.error(traceback.format_exc())
                 should_fail = True
                 failure_reason = f"MCP client operation failed: {e}"

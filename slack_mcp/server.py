@@ -105,7 +105,7 @@ async def read_slack_channel_messages(
         limit=input_params.limit,
         oldest=input_params.oldest,
         latest=input_params.latest,
-        inclusive=input_params.inclusive
+        inclusive=input_params.inclusive,
     )
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
