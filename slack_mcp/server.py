@@ -9,7 +9,7 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 from __future__ import annotations
 
 import os
-from typing import Any, Final
+from typing import Any, Final, List, Dict
 
 from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
@@ -17,9 +17,10 @@ from slack_sdk.web.async_client import AsyncWebClient
 __all__: list[str] = [
     "mcp",
     "send_slack_message",
+    "send_slack_thread_reply",
 ]
 
-from slack_mcp.model import SlackPostMessageInput
+from slack_mcp.model import SlackPostMessageInput, SlackThreadReplyInput
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
@@ -66,6 +67,54 @@ async def send_slack_message(
     return response.data
 
 
+@mcp.tool("slack_thread_reply")
+async def send_slack_thread_reply(
+    input_params: SlackThreadReplyInput,
+) -> dict[str, Any]:
+    """Send one or more messages as replies to a specific thread in a Slack channel.
+
+    Parameters
+    ----------
+    input_params
+        SlackThreadReplyInput object containing channel, thread_ts, texts, and token.
+
+    Returns
+    -------
+    dict[str, Any]
+        A dictionary containing a list of responses under the 'responses' key.
+        Each response is the raw JSON returned by Slack for each message posted.
+
+    Raises
+    ------
+    ValueError
+        If no *token* is supplied and the relevant environment variables are
+        missing as well.
+    """
+
+    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
+    if resolved_token is None:
+        raise ValueError(
+            "Slack token not found. Provide one via the 'token' argument or set "
+            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
+        )
+
+    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
+
+    responses: List[Dict[str, Any]] = []
+    
+    # Send each text message as a separate reply to the thread
+    for text in input_params.texts:
+        response = await client.chat_postMessage(
+            channel=input_params.channel,
+            text=text,
+            thread_ts=input_params.thread_ts
+        )
+        responses.append(response.data)
+
+    # Return a dictionary with the responses list to ensure proper serialization
+    return {"responses": responses}
+
+
 # ---------------------------------------------------------------------------
 # Guidance prompt for LLMs
 # ---------------------------------------------------------------------------
@@ -88,4 +137,26 @@ def _slack_post_message_usage() -> str:  # noqa: D401 – imperative style accep
         " • **token**   — *Optional.* Provide if the default bot token env var is unavailable.\n\n"
         "The tool returns the raw JSON response from Slack. If the response's `ok` field is `false`, "
         "consider the operation failed and surface the `error` field to the user."
+    )
+
+
+@mcp.prompt("slack_thread_reply_usage")
+def _slack_thread_reply_usage() -> str:  # noqa: D401 – imperative style acceptable for prompt
+    """Explain when and how to invoke the ``slack_thread_reply`` tool."""
+
+    return (
+        "Use `slack_thread_reply` when you need to send one or more follow-up messages "
+        "as replies to an existing thread in a Slack channel. This is particularly useful for:\n"
+        " • Continuing a conversation in a structured thread.\n"
+        " • Breaking down a complex response into multiple messages.\n"
+        " • Sending updates to a previously initiated conversation.\n"
+        " • Keeping related messages organized in a single thread.\n\n"
+        "Input guidelines:\n"
+        " • **channel** — Slack channel ID (e.g., `C12345678`) or name with `#`.\n"
+        " • **thread_ts** — The timestamp ID of the parent message to reply to.\n"
+        " • **texts** — A list of text messages to send as separate replies to the thread.\n"
+        " • **token** — *Optional.* Provide if the default bot token env var is unavailable.\n\n"
+        "The tool returns a dictionary containing a list of raw JSON responses from Slack (one for each message). "
+        "If any response's `ok` field is `false`, consider that particular message failed "
+        "and surface the corresponding `error` field to the user."
     )
