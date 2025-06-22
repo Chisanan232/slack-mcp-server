@@ -81,28 +81,21 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     try:
         # First create a message with a thread for testing
         logger.info("Creating a test message with thread replies")
-        parent_message = await test_client.chat_postMessage(
-            channel=channel_id,
-            text=unique_text
-        )
+        parent_message = await test_client.chat_postMessage(channel=channel_id, text=unique_text)
         parent_ts = parent_message["ts"]
         logger.info(f"Posted parent message with ts: {parent_ts}")
-        
+
         # Post 2 replies to create a thread
         reply1 = await test_client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=parent_ts,
-            text=f"Reply 1 to {unique_text}"
+            channel=channel_id, thread_ts=parent_ts, text=f"Reply 1 to {unique_text}"
         )
         logger.info(f"Posted reply 1 with ts: {reply1['ts']}")
-        
+
         reply2 = await test_client.chat_postMessage(
-            channel=channel_id,
-            thread_ts=parent_ts,
-            text=f"Reply 2 to {unique_text}"
+            channel=channel_id, thread_ts=parent_ts, text=f"Reply 2 to {unique_text}"
         )
         logger.info(f"Posted reply 2 with ts: {reply2['ts']}")
-        
+
         # Wait briefly to ensure messages are fully processed
         await asyncio.sleep(2)
 
@@ -127,7 +120,9 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
                     pytest.fail("slack_read_thread_messages tool not found in server")
 
                 # Call our test tool
-                logger.info(f"Calling slack_read_thread_messages tool with channel: {channel_id} and thread_ts: {parent_ts}")
+                logger.info(
+                    f"Calling slack_read_thread_messages tool with channel: {channel_id} and thread_ts: {parent_ts}"
+                )
                 result = await session.call_tool(
                     "slack_read_thread_messages",
                     {
@@ -161,19 +156,21 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
                 # Verify the result is successful
                 assert slack_response.get("ok") is True, f"Slack API returned error: {slack_response}"
                 assert "messages" in slack_response, "Missing messages in Slack response"
-                
+
                 # Verify we got at least 3 messages (parent + 2 replies)
-                assert len(slack_response["messages"]) >= 3, f"Expected at least 3 messages, got {len(slack_response['messages'])}"
-                
+                assert (
+                    len(slack_response["messages"]) >= 3
+                ), f"Expected at least 3 messages, got {len(slack_response['messages'])}"
+
                 # Verify message content
                 thread_messages = slack_response["messages"]
                 assert thread_messages[0]["ts"] == parent_ts, "First message should be the parent message"
-                
+
                 # Check for our unique messages in the thread
                 found_parent = False
                 found_reply1 = False
                 found_reply2 = False
-                
+
                 for msg in thread_messages:
                     if msg["text"] == unique_text:
                         found_parent = True
@@ -181,13 +178,13 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
                         found_reply1 = True
                     elif msg["text"] == f"Reply 2 to {unique_text}":
                         found_reply2 = True
-                
+
                 assert found_parent, "Parent message not found in thread"
                 assert found_reply1, "Reply 1 not found in thread"
                 assert found_reply2, "Reply 2 not found in thread"
-                
+
                 logger.info("Thread messages successfully verified")
-                
+
     except Exception as e:
         logger.error(f"Error: {repr(e)}")
         import traceback
