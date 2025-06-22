@@ -17,9 +17,10 @@ from slack_sdk.web.async_client import AsyncWebClient
 __all__: list[str] = [
     "mcp",
     "send_slack_message",
+    "read_thread_messages",
 ]
 
-from slack_mcp.model import SlackPostMessageInput
+from slack_mcp.model import SlackPostMessageInput, SlackReadThreadMessagesInput
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
@@ -66,6 +67,49 @@ async def send_slack_message(
     return response.data
 
 
+@mcp.tool("slack_read_thread_messages")
+async def read_thread_messages(
+    input_params: SlackReadThreadMessagesInput,
+) -> dict[str, Any]:
+    """Read messages from a specific thread in a given Slack channel.
+
+    Parameters
+    ----------
+    input_params
+        SlackReadThreadMessagesInput object containing channel, thread_ts, token, and limit.
+
+    Returns
+    -------
+    dict[str, Any]
+        The raw JSON response returned by Slack.  This is intentionally kept
+        flexible so FastMCP can serialise it to the client as-is.
+
+    Raises
+    ------
+    ValueError
+        If no *token* is supplied and the relevant environment variables are
+        missing as well.
+    """
+
+    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
+    if resolved_token is None:
+        raise ValueError(
+            "Slack token not found. Provide one via the 'token' argument or set "
+            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
+        )
+
+    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
+
+    response = await client.conversations_replies(
+        channel=input_params.channel,
+        ts=input_params.thread_ts,
+        limit=input_params.limit,
+    )
+
+    # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
+    return response.data
+
+
 # ---------------------------------------------------------------------------
 # Guidance prompt for LLMs
 # ---------------------------------------------------------------------------
@@ -88,4 +132,25 @@ def _slack_post_message_usage() -> str:  # noqa: D401 – imperative style accep
         " • **token**   — *Optional.* Provide if the default bot token env var is unavailable.\n\n"
         "The tool returns the raw JSON response from Slack. If the response's `ok` field is `false`, "
         "consider the operation failed and surface the `error` field to the user."
+    )
+
+
+@mcp.prompt("slack_read_thread_messages_usage")
+def _slack_read_thread_messages_usage() -> str:  # noqa: D401 – imperative style acceptable for prompt
+    """Explain when and how to invoke the ``slack_read_thread_messages`` tool."""
+
+    return (
+        "Use `slack_read_thread_messages` whenever you need to retrieve messages from a "
+        "specific thread in a Slack channel. Typical scenarios include:\n"
+        " • Accessing conversation history for analysis or summarization.\n"
+        " • Following up on previous discussions or retrieving context.\n"
+        " • Monitoring responses to important announcements.\n\n"
+        "Input guidelines:\n"
+        " • **channel**   — Slack channel ID (e.g., `C12345678`) or name with `#`.\n"
+        " • **thread_ts** — Timestamp ID of the parent message that started the thread.\n"
+        " • **limit**     — *Optional.* Maximum number of messages to retrieve (default: 100).\n"
+        " • **token**     — *Optional.* Provide if the default bot token env var is unavailable.\n\n"
+        "The tool returns the raw JSON response from Slack, containing thread messages under "
+        "the `messages` field. If the response's `ok` field is `false`, consider the operation "
+        "failed and surface the `error` field to the user."
     )
