@@ -7,7 +7,7 @@ from typing import Any, Final
 import pytest
 
 import slack_mcp.server as srv
-from slack_mcp.model import SlackPostMessageInput
+from slack_mcp.model import SlackPostMessageInput, SlackReadThreadMessagesInput
 
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]
@@ -32,6 +32,22 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
     async def chat_postMessage(self, *, channel: str, text: str, **_: Any):
         """Echo back inputs in a Slack-like response structure."""
         return _FakeSlackResponse({"ok": True, "channel": channel, "text": text})
+
+    async def conversations_replies(self, *, channel: str, ts: str, limit: int = 100, **_: Any):
+        """Echo back inputs in a Slack-like thread response structure."""
+        messages = [
+            {"ts": ts, "thread_ts": ts, "text": "Parent message"},
+            {"ts": f"{ts}.1", "thread_ts": ts, "text": "Reply 1"},
+            {"ts": f"{ts}.2", "thread_ts": ts, "text": "Reply 2"}
+        ]
+        # Limit the number of messages based on the limit parameter
+        return _FakeSlackResponse({
+            "ok": True, 
+            "channel": channel, 
+            "messages": messages[:min(limit, len(messages))],
+            "has_more": False,
+            "response_metadata": {"next_cursor": ""}
+        })
 
 
 @pytest.fixture(autouse=True)
@@ -75,3 +91,80 @@ async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch)
 
     with pytest.raises(ValueError):
         await srv.send_slack_message(input_params=SlackPostMessageInput(channel="C123", text="Hi"))
+
+
+@pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
+async def test_read_thread_messages_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
+    """Token should be picked from environment when *token* argument is *None* for thread reading."""
+
+    monkeypatch.setenv(env_var, "xoxb-env-token")
+
+    result = await srv.read_thread_messages(
+        input_params=SlackReadThreadMessagesInput(channel="#general", thread_ts="1234567890.123456")
+    )
+    assert result["ok"] is True
+    assert result["channel"] == "#general"
+    assert len(result["messages"]) == 3
+    assert result["messages"][0]["ts"] == "1234567890.123456"
+    assert result["messages"][1]["text"] == "Reply 1"
+
+
+async def test_read_thread_messages_param(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Explicit *token* parameter takes precedence over environment variables for thread reading."""
+
+    # Ensure env vars are absent.
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    result = await srv.read_thread_messages(
+        input_params=SlackReadThreadMessagesInput(
+            channel="C123", 
+            thread_ts="1234567890.123456", 
+            token="xoxb-param"
+        )
+    )
+    assert result["ok"] is True
+    assert result["channel"] == "C123"
+    assert len(result["messages"]) == 3
+
+
+async def test_read_thread_messages_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should raise :class:`ValueError` if no token is provided at all for thread reading."""
+
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    with pytest.raises(ValueError):
+        await srv.read_thread_messages(
+            input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456")
+        )
+
+
+async def test_read_thread_messages_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should honor the limit parameter for thread reading."""
+
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-env-token")
+
+    # Test with limit=1
+    result = await srv.read_thread_messages(
+        input_params=SlackReadThreadMessagesInput(
+            channel="C123", 
+            thread_ts="1234567890.123456", 
+            limit=1
+        )
+    )
+    assert result["ok"] is True
+    assert len(result["messages"]) == 1
+    assert result["messages"][0]["text"] == "Parent message"
+
+    # Test with limit=2
+    result = await srv.read_thread_messages(
+        input_params=SlackReadThreadMessagesInput(
+            channel="C123", 
+            thread_ts="1234567890.123456", 
+            limit=2
+        )
+    )
+    assert result["ok"] is True
+    assert len(result["messages"]) == 2
+    assert result["messages"][1]["text"] == "Reply 1"
