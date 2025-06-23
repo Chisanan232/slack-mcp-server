@@ -38,16 +38,18 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
         messages = [
             {"ts": ts, "thread_ts": ts, "text": "Parent message"},
             {"ts": f"{ts}.1", "thread_ts": ts, "text": "Reply 1"},
-            {"ts": f"{ts}.2", "thread_ts": ts, "text": "Reply 2"}
+            {"ts": f"{ts}.2", "thread_ts": ts, "text": "Reply 2"},
         ]
         # Limit the number of messages based on the limit parameter
-        return _FakeSlackResponse({
-            "ok": True,
-            "channel": channel,
-            "messages": messages[:min(limit, len(messages))],
-            "has_more": False,
-            "response_metadata": {"next_cursor": ""}
-        })
+        return _FakeSlackResponse(
+            {
+                "ok": True,
+                "channel": channel,
+                "messages": messages[: min(limit, len(messages))],
+                "has_more": False,
+                "response_metadata": {"next_cursor": ""},
+            }
+        )
 
     async def conversations_history(
         self,
@@ -142,11 +144,7 @@ async def test_read_thread_messages_param(monkeypatch: pytest.MonkeyPatch) -> No
         monkeypatch.delenv(var, raising=False)
 
     result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(
-            channel="C123",
-            thread_ts="1234567890.123456",
-            token="xoxb-param"
-        )
+        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456", token="xoxb-param")
     )
     assert result["ok"] is True
     assert result["channel"] == "C123"
@@ -172,11 +170,7 @@ async def test_read_thread_messages_limit(monkeypatch: pytest.MonkeyPatch) -> No
 
     # Test with limit=1
     result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(
-            channel="C123",
-            thread_ts="1234567890.123456",
-            limit=1
-        )
+        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456", limit=1)
     )
     assert result["ok"] is True
     assert len(result["messages"]) == 1
@@ -184,11 +178,7 @@ async def test_read_thread_messages_limit(monkeypatch: pytest.MonkeyPatch) -> No
 
     # Test with limit=2
     result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(
-            channel="C123",
-            thread_ts="1234567890.123456",
-            limit=2
-        )
+        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456", limit=2)
     )
     assert result["ok"] is True
     assert len(result["messages"]) == 2
