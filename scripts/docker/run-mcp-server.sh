@@ -21,6 +21,16 @@ if [ -n "${MCP_LOG_LEVEL}" ]; then
   CMD_ARGS+=(--log-level "${MCP_LOG_LEVEL}")
 fi
 
+# HOST: Host for FastAPI HTTP transports (used for sse or streamable-http)
+if [ -n "${MCP_HOST}" ]; then
+  CMD_ARGS+=(--host "${MCP_HOST}")
+fi
+
+# PORT: Port for FastAPI HTTP transports
+if [ -n "${MCP_PORT}" ]; then
+  CMD_ARGS+=(--port "${MCP_PORT}")
+fi
+
 # Print the command that will be executed
 echo "Starting MCP server with arguments: ${CMD_ARGS[@]}"
 # Only print debug command information if log level is debug (case insensitive)
