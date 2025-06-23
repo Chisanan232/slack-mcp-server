@@ -29,12 +29,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:  # noqa: D
         "--transport",
         choices=["stdio", "sse", "streamable-http"],
         default="stdio",
-        help="Transport mode for FastMCP server (default: stdio)",
+        help="Transport to use for MCP server (default: stdio)",
     )
     parser.add_argument(
         "--mount-path",
         default=None,
-        help="Mount path for HTTP transports (unused for stdio)",
+        help="Mount path for HTTP transports (unused for streamable-http transport)",
     )
     parser.add_argument(
         "--log-level",
@@ -60,13 +60,16 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
             # sse_app is a method that takes mount_path as a parameter
             app = _server_instance.sse_app(mount_path=args.mount_path)
         else:  # streamable-http
-            # streamable_http_app is also a method that takes mount_path as a parameter
-            app = _server_instance.streamable_http_app(mount_path=args.mount_path)
-            
-        # Run the FastAPI app with uvicorn
-        uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
+            # streamable_http_app doesn't accept mount_path parameter
+            app = _server_instance.streamable_http_app()
+            if args.mount_path:
+                _LOG.warning("mount-path is not supported for streamable-http transport and will be ignored")
+        
+        # Use uvicorn to run the FastAPI app
+        uvicorn.run(app, host=args.host, port=args.port)
     else:
-        # For stdio transport, use the standard run method
+        # For stdio transport, use the run method directly
+        _LOG.info("Running stdio transport")
         _server_instance.run(transport=args.transport)
 
 

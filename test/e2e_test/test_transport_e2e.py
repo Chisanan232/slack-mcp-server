@@ -1,8 +1,7 @@
-"""Test that Slack MCP server starts up successfully with SSE transport."""
+"""Test that Slack MCP server starts up successfully with different transports."""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("sse_startup_test")
+logger = logging.getLogger("transport_e2e_test")
 
 
 class _DummyServer:
@@ -26,7 +25,6 @@ class _DummyServer:
         self.sse_app_called = False
         self.sse_mount_path = None
         self.streamable_http_app_called = False
-        self.streamable_http_mount_path = None
         self._app = FastAPI()
     
     def run(self, transport="stdio", **kwargs):
@@ -41,34 +39,36 @@ class _DummyServer:
         self.sse_mount_path = mount_path
         return self._app
     
-    def streamable_http_app(self, mount_path=None):
-        """Return a dummy app for streamable HTTP transport."""
+    def streamable_http_app(self):
+        """Return a dummy app for streamable HTTP transport.
+        
+        Note: Unlike sse_app, this method doesn't accept mount_path parameter
+        in the actual FastMCP implementation.
+        """
         self.streamable_http_app_called = True
-        self.streamable_http_mount_path = mount_path
         return self._app
 
 
 @pytest.mark.parametrize(
-    "transport,mount_path", 
+    "transport,mount_path,warning_expected", 
     [
-        ("sse", "/mcp-sse"),
-        ("streamable-http", "/mcp-http")
+        ("sse", "/mcp-sse", False),
+        ("streamable-http", "/mcp-http", True),
+        ("streamable-http", None, False)
     ]
 )
-async def test_server_http_transports(transport, mount_path):
+async def test_server_http_transports(transport, mount_path, warning_expected, caplog):
     """Test that the server uses the correct transport methods."""
     from slack_mcp import entry
     
     mock_server = _DummyServer()
     
     # Create dummy args
-    argv = [
-        "--transport", transport,
-        "--mount-path", mount_path,
-        "--host", "localhost",
-        "--port", "8000",
-        "--log-level", "INFO"
-    ]
+    argv = ["--transport", transport, "--host", "localhost", "--port", "8000", "--log-level", "INFO"]
+    
+    # Add mount path if specified
+    if mount_path:
+        argv.extend(["--mount-path", mount_path])
     
     with patch("slack_mcp.entry._server_instance", mock_server), \
          patch("uvicorn.run") as mock_uvicorn_run:
@@ -84,11 +84,16 @@ async def test_server_http_transports(transport, mount_path):
             mock_uvicorn_run.assert_called_once()
             
         elif transport == "streamable-http":
-            # For streamable-http transport, check that streamable_http_app was called with correct mount path
+            # For streamable-http transport, check that streamable_http_app was called
+            # (but not with mount_path as parameter since the method doesn't accept it)
             assert mock_server.streamable_http_app_called
-            assert mock_server.streamable_http_mount_path == mount_path
             assert not mock_server.sse_app_called
             mock_uvicorn_run.assert_called_once()
+            
+            # Check for warning log if mount_path is provided with streamable-http
+            if warning_expected:
+                assert any("mount-path is not supported for streamable-http transport" in record.message 
+                          for record in caplog.records)
         
         # Make sure run was not called for HTTP transports
         assert not mock_server.run_called
