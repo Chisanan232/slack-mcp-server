@@ -1,28 +1,75 @@
 from __future__ import annotations
 
+from abc import ABC
 from dataclasses import dataclass
 from typing import List
 
 __all__: list[str] = [
     "SlackPostMessageInput",
+    "SlackReadThreadMessagesInput",
+    "SlackReadChannelMessagesInput",
     "SlackThreadReplyInput",
 ]
 
 
 @dataclass(slots=True, kw_only=True)
-class SlackPostMessageInput:
+class _BaseInput(ABC):
     """
-    Structured input for :pydata:`send_slack_message`.
+    Base abstract class for Slack input models.
 
-    :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
-    :param text: the text content of the message
     :param token: the Slack bot token to use (optional, default to ``None``)
         If not provided, it will attempt to get one from environment variable
         ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
     """
 
+    token: str | None = None
+
+
+@dataclass(slots=True, kw_only=True)
+class SlackPostMessageInput(_BaseInput):
+    """
+    Structured input for :pydata:`send_slack_message`.
+
+    :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
+    :param text: the text content of the message
+    """
+
     channel: str
     text: str
+
+
+@dataclass(slots=True, kw_only=True)
+class SlackReadThreadMessagesInput(_BaseInput):
+    """
+    Structured input for :pydata:`read_thread_messages`.
+
+    :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
+    :param thread_ts: the timestamp of the thread's parent message
+    :param limit: maximum number of messages to return (optional, default is 100)
+    """
+
+    channel: str
+    thread_ts: str
+    limit: int = 100
+
+
+@dataclass(slots=True, kw_only=True)
+class SlackReadChannelMessagesInput(_BaseInput):
+    """
+    Structured input for :pydata:`read_slack_channel_messages`.
+
+    :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
+    :param limit: the maximum number of messages to return (optional, default to 100)
+    :param oldest: the oldest message timestamp to include (optional, default to None)
+    :param latest: the latest message timestamp to include (optional, default to None)
+    :param inclusive: include messages with timestamps matching oldest or latest (optional, default to False)
+    """
+
+    channel: str
+    limit: int = 100
+    oldest: str | None = None
+    latest: str | None = None
+    inclusive: bool = False
     token: str | None = None
 
 
