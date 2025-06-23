@@ -276,7 +276,8 @@ class TestBaseInput(_BaseInput):
         (None, {}, None, True),
     ]
 )
-async def test_verify_slack_token_exist(
+@pytest.mark.asyncio(False)  # Override the module-level asyncio marker
+def test_verify_slack_token_exist(
     monkeypatch: pytest.MonkeyPatch,
     token_param: str | None,
     env_vars: dict[str, str],
@@ -297,8 +298,8 @@ async def test_verify_slack_token_exist(
 
     if should_raise:
         with pytest.raises(ValueError) as excinfo:
-            await srv._verify_slack_token_exist(test_input)
+            srv._verify_slack_token_exist(test_input)
         assert "Slack token not found" in str(excinfo.value)
     else:
-        result = await srv._verify_slack_token_exist(test_input)
+        result = srv._verify_slack_token_exist(test_input)
         assert result == expected_result
