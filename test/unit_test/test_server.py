@@ -13,8 +13,6 @@ from slack_mcp.model import SlackPostMessageInput, SlackReadChannelMessagesInput
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]
 
-pytestmark = pytest.mark.asyncio
-
 
 class _FakeSlackResponse:  # noqa: D101 – minimal stub
     """Stand-in for :class:`slack_sdk.web.slack_response.SlackResponse`."""
@@ -88,6 +86,7 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
 aSYNC_TOKEN_ENV_VARS = ("SLACK_BOT_TOKEN", "SLACK_TOKEN")
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
     """Token should be picked from environment when *token* argument is *None*."""
@@ -98,6 +97,7 @@ async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: 
     assert result == {"ok": True, "channel": "#general", "text": "Hello"}
 
 
+@pytest.mark.asyncio
 async def test_send_slack_message_param(monkeypatch: pytest.MonkeyPatch) -> None:
     """Explicit *token* parameter takes precedence over environment variables."""
 
@@ -111,6 +111,7 @@ async def test_send_slack_message_param(monkeypatch: pytest.MonkeyPatch) -> None
     assert result == {"ok": True, "channel": "C123", "text": "Hi"}
 
 
+@pytest.mark.asyncio
 async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should raise :class:`ValueError` if no token is provided at all."""
 
@@ -121,6 +122,7 @@ async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch)
         await srv.send_slack_message(input_params=SlackPostMessageInput(channel="C123", text="Hi"))
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_read_thread_messages_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
     """Token should be picked from environment when *token* argument is *None* for thread reading."""
@@ -137,6 +139,7 @@ async def test_read_thread_messages_env(monkeypatch: pytest.MonkeyPatch, env_var
     assert result["messages"][1]["text"] == "Reply 1"
 
 
+@pytest.mark.asyncio
 async def test_read_thread_messages_param(monkeypatch: pytest.MonkeyPatch) -> None:
     """Explicit *token* parameter takes precedence over environment variables for thread reading."""
 
@@ -152,6 +155,7 @@ async def test_read_thread_messages_param(monkeypatch: pytest.MonkeyPatch) -> No
     assert len(result["messages"]) == 3
 
 
+@pytest.mark.asyncio
 async def test_read_thread_messages_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should raise :class:`ValueError` if no token is provided at all for thread reading."""
 
@@ -164,6 +168,7 @@ async def test_read_thread_messages_missing_token(monkeypatch: pytest.MonkeyPatc
         )
 
 
+@pytest.mark.asyncio
 async def test_read_thread_messages_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should honor the limit parameter for thread reading."""
 
@@ -186,6 +191,7 @@ async def test_read_thread_messages_limit(monkeypatch: pytest.MonkeyPatch) -> No
     assert result["messages"][1]["text"] == "Reply 1"
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_read_slack_channel_messages_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
     """Token should be picked from environment when *token* argument is *None*."""
@@ -199,6 +205,7 @@ async def test_read_slack_channel_messages_env(monkeypatch: pytest.MonkeyPatch, 
     assert len(result["messages"]) == 3
 
 
+@pytest.mark.asyncio
 async def test_read_slack_channel_messages_param(monkeypatch: pytest.MonkeyPatch) -> None:
     """Explicit *token* parameter takes precedence over environment variables."""
 
@@ -214,6 +221,7 @@ async def test_read_slack_channel_messages_param(monkeypatch: pytest.MonkeyPatch
     assert isinstance(result["messages"], list)
 
 
+@pytest.mark.asyncio
 async def test_read_slack_channel_messages_limit(monkeypatch: pytest.MonkeyPatch) -> None:
     """Channel history limit parameter should be passed correctly."""
 
@@ -225,14 +233,16 @@ async def test_read_slack_channel_messages_limit(monkeypatch: pytest.MonkeyPatch
     assert len(result["messages"]) == 2
 
 
+@pytest.mark.asyncio
 async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should raise :class:`ValueError` if no token is provided at all."""
 
+    # Clear environment variables first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
     with pytest.raises(ValueError):
-        await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="C123"))
+        await srv.read_slack_channel_messages(SlackReadChannelMessagesInput(channel="C123"))
 
 
 @dataclass(slots=True, kw_only=True)
@@ -276,7 +286,6 @@ class TestBaseInput(_BaseInput):
         (None, {}, None, True),
     ]
 )
-@pytest.mark.asyncio(False)  # Override the module-level asyncio marker
 def test_verify_slack_token_exist(
     monkeypatch: pytest.MonkeyPatch,
     token_param: str | None,
