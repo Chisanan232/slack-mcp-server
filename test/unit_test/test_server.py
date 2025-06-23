@@ -5,9 +5,10 @@ from __future__ import annotations
 from typing import Any, Final
 
 import pytest
+from dataclasses import dataclass
 
 import slack_mcp.server as srv
-from slack_mcp.model import SlackPostMessageInput, SlackReadChannelMessagesInput, SlackReadThreadMessagesInput
+from slack_mcp.model import SlackPostMessageInput, SlackReadChannelMessagesInput, SlackReadThreadMessagesInput, _BaseInput
 
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]
@@ -232,3 +233,72 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
 
     with pytest.raises(ValueError):
         await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="C123"))
+
+
+@dataclass(slots=True, kw_only=True)
+class TestBaseInput(_BaseInput):
+    """Test implementation of _BaseInput for testing purposes."""
+    pass
+
+
+@pytest.mark.parametrize(
+    "token_param, env_vars, expected_result, should_raise",
+    [
+        # Case 1: explicit token parameter is provided
+        ("xoxb-explicit", {}, "xoxb-explicit", False),
+        
+        # Case 2: SLACK_BOT_TOKEN env var is set, no token parameter
+        (None, {"SLACK_BOT_TOKEN": "xoxb-bot-token"}, "xoxb-bot-token", False),
+        
+        # Case 3: SLACK_TOKEN env var is set, no token parameter or SLACK_BOT_TOKEN
+        (None, {"SLACK_TOKEN": "xoxb-slack-token"}, "xoxb-slack-token", False),
+        
+        # Case 4: Both env vars are set, SLACK_BOT_TOKEN should take precedence
+        (
+            None, 
+            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"}, 
+            "xoxb-bot-token", 
+            False
+        ),
+        
+        # Case 5: Token param overrides env vars
+        (
+            "xoxb-explicit", 
+            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"}, 
+            "xoxb-explicit", 
+            False
+        ),
+        
+        # Case 6: Empty string token should raise (treated as None)
+        ("", {}, None, True),
+        
+        # Case 7: No token anywhere should raise
+        (None, {}, None, True),
+    ]
+)
+async def test_verify_slack_token_exist(
+    monkeypatch: pytest.MonkeyPatch,
+    token_param: str | None,
+    env_vars: dict[str, str],
+    expected_result: str | None,
+    should_raise: bool,
+) -> None:
+    """Test _verify_slack_token_exist with different token sources."""
+    # Clear environment variables first
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+    
+    # Set env vars according to the test case
+    for var_name, var_value in env_vars.items():
+        monkeypatch.setenv(var_name, var_value)
+    
+    # Create test input
+    test_input = TestBaseInput(token=token_param)
+    
+    if should_raise:
+        with pytest.raises(ValueError) as excinfo:
+            await srv._verify_slack_token_exist(test_input)
+        assert "Slack token not found" in str(excinfo.value)
+    else:
+        result = await srv._verify_slack_token_exist(test_input)
+        assert result == expected_result
