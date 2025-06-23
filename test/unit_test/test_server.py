@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 import pytest
 
@@ -12,6 +12,7 @@ from slack_mcp.model import (
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
     SlackReadThreadMessagesInput,
+    SlackThreadReplyInput,
     _BaseInput,
 )
 
@@ -33,9 +34,15 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
         # Accept and ignore all initialisation parameters.
         pass
 
-    async def chat_postMessage(self, *, channel: str, text: str, **_: Any):
+    async def chat_postMessage(self, *, channel: str, text: str, thread_ts: Optional[str] = None, **_: Any):
         """Echo back inputs in a Slack-like response structure."""
-        return _FakeSlackResponse({"ok": True, "channel": channel, "text": text})
+        response = {"ok": True, "channel": channel, "text": text}
+        if thread_ts:
+            response["thread_ts"] = thread_ts
+            response["ts"] = f"{float(thread_ts) + 0.001:.6f}"  # Simulate a reply timestamp
+        else:
+            response["ts"] = "1620000000.000000"  # Dummy timestamp for non-thread messages
+        return _FakeSlackResponse(response)
 
     async def conversations_replies(self, *, channel: str, ts: str, limit: int = 100, **_: Any):
         """Echo back inputs in a Slack-like thread response structure."""
@@ -99,7 +106,7 @@ async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: 
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     result = await srv.send_slack_message(input_params=SlackPostMessageInput(channel="#general", text="Hello"))
-    assert result == {"ok": True, "channel": "#general", "text": "Hello"}
+    assert result == {"ok": True, "channel": "#general", "text": "Hello", "ts": "1620000000.000000"}
 
 
 @pytest.mark.asyncio
@@ -113,7 +120,7 @@ async def test_send_slack_message_param(monkeypatch: pytest.MonkeyPatch) -> None
     result = await srv.send_slack_message(
         input_params=SlackPostMessageInput(channel="C123", text="Hi", token="xoxb-param")
     )
-    assert result == {"ok": True, "channel": "C123", "text": "Hi"}
+    assert result == {"ok": True, "channel": "C123", "text": "Hi", "ts": "1620000000.000000"}
 
 
 @pytest.mark.asyncio
@@ -305,3 +312,96 @@ def test_verify_slack_token_exist(
     else:
         result = srv._verify_slack_token_exist(test_input)
         assert result == expected_result
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
+async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
+    """Token should be picked from environment when *token* argument is *None* for thread replies."""
+
+    monkeypatch.setenv(env_var, "xoxb-env-token")
+
+    thread_ts = "1620000000.000000"
+    result = await srv.send_slack_thread_reply(
+        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Reply 1", "Reply 2"])
+    )
+
+    assert isinstance(result, dict)
+    assert "responses" in result
+
+    responses = result["responses"]
+    assert isinstance(responses, list)
+    assert len(responses) == 2
+
+    # Check first reply
+    assert responses[0]["ok"] is True
+    assert responses[0]["channel"] == "#general"
+    assert responses[0]["text"] == "Reply 1"
+    assert responses[0]["thread_ts"] == thread_ts
+    assert "ts" in responses[0]
+
+    # Check second reply
+    assert responses[1]["ok"] is True
+    assert responses[1]["channel"] == "#general"
+    assert responses[1]["text"] == "Reply 2"
+    assert responses[1]["thread_ts"] == thread_ts
+    assert "ts" in responses[1]
+
+
+@pytest.mark.asyncio
+async def test_send_slack_thread_reply_param(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Explicit *token* parameter takes precedence over environment variables for thread replies."""
+
+    # Ensure env vars are absent.
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    thread_ts = "1620000000.000000"
+    result = await srv.send_slack_thread_reply(
+        input_params=SlackThreadReplyInput(
+            channel="C123", thread_ts=thread_ts, texts=["Reply text"], token="xoxb-param"
+        )
+    )
+
+    assert isinstance(result, dict)
+    assert "responses" in result
+
+    responses = result["responses"]
+    assert isinstance(responses, list)
+    assert len(responses) == 1
+    assert responses[0]["ok"] is True
+    assert responses[0]["channel"] == "C123"
+    assert responses[0]["text"] == "Reply text"
+    assert responses[0]["thread_ts"] == thread_ts
+    assert "ts" in responses[0]
+
+
+@pytest.mark.asyncio
+async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should raise :class:`ValueError` if no token is provided at all for thread replies."""
+
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    thread_ts = "1620000000.000000"
+    with pytest.raises(ValueError):
+        await srv.send_slack_thread_reply(
+            input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=["Reply text"])
+        )
+
+
+@pytest.mark.asyncio
+async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should return a dict with an empty list if texts list is empty."""
+
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-env-token")
+
+    thread_ts = "1620000000.000000"
+    result = await srv.send_slack_thread_reply(
+        input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=[])
+    )
+
+    assert isinstance(result, dict)
+    assert "responses" in result
+    assert isinstance(result["responses"], list)
+    assert len(result["responses"]) == 0
