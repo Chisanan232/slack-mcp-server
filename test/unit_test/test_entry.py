@@ -23,8 +23,13 @@ class _DummyServer(FastMCP):  # pragma: no cover – trivial stub
         self.called: bool = False
         self.called_args: tuple[Any, ...] = ()
         self.called_kwargs: dict[str, Any] = {}
+        
+        # Mock the app properties that would be used in HTTP transports
+        self.sse_app = SimpleNamespace(mount_path=None)
+        self.streamable_http_app = SimpleNamespace(mount_path=None)
 
     def run(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401 – override
+        """Capture run method calls with parameters."""
         self.called = True
         self.called_args = args
         self.called_kwargs = kwargs
@@ -42,6 +47,9 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch):  # noqa: D401 – fixture
     # Patch server instance and bypass logging setup **after** reload.
     monkeypatch.setattr(entry, "_server_instance", dummy_server, raising=True)
     monkeypatch.setattr(entry.logging, "basicConfig", lambda *a, **k: None, raising=True)
+    
+    # Patch uvicorn.run to prevent actual server startup
+    monkeypatch.setattr(entry.uvicorn, "run", lambda *a, **k: None, raising=True)
 
     return SimpleNamespace(entry=entry, dummy=dummy_server)
 
@@ -66,11 +74,11 @@ def test_entry_default_args(_patch_entry):
     thread.join(timeout=1)
 
     assert dummy.called is True
-    assert dummy.called_kwargs == {"transport": "stdio", "mount_path": None}
+    assert dummy.called_kwargs == {"transport": "stdio"}
 
 
 def test_entry_custom_transport(_patch_entry):
-    """Custom transport and mount path are forwarded to ``FastMCP.run``."""
+    """Custom transport and mount path are forwarded to FastMCP properly."""
 
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
@@ -85,5 +93,25 @@ def test_entry_custom_transport(_patch_entry):
     thread.start()
     thread.join(timeout=1)
 
-    assert dummy.called is True
-    assert dummy.called_kwargs == {"transport": "sse", "mount_path": "/mcp"}
+    # For SSE transport, verify mount path was set on the sse_app
+    assert dummy.sse_app.mount_path == "/mcp"
+    
+    
+def test_entry_streamable_http_transport(_patch_entry):
+    """Streamable HTTP transport uses the streamable_http_app property."""
+
+    entry = _patch_entry.entry
+    dummy: _DummyServer = _patch_entry.dummy
+
+    argv = ["--transport", "streamable-http", "--mount-path", "/api", "--log-level", "INFO"]
+
+    # Run with a timeout guard in case something blocks unexpectedly.
+    def run_with_timeout():
+        entry.main(argv)
+
+    thread = threading.Thread(target=run_with_timeout)
+    thread.start()
+    thread.join(timeout=1)
+
+    # For streamable-http transport, verify mount path was set on the streamable_http_app
+    assert dummy.streamable_http_app.mount_path == "/api"
