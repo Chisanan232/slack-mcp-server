@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any, Final, Optional
 
 import pytest
 
@@ -34,7 +34,7 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
         # Accept and ignore all initialisation parameters.
         pass
 
-    async def chat_postMessage(self, *, channel: str, text: str, thread_ts: str = None, **_: Any):
+    async def chat_postMessage(self, *, channel: str, text: str, thread_ts: Optional[str] = None, **_: Any):
         """Echo back inputs in a Slack-like response structure."""
         response = {"ok": True, "channel": channel, "text": text}
         if thread_ts:
