@@ -1,6 +1,6 @@
 """Slack app implementation for handling Slack events.
 
-This module defines a Flask application that serves as an endpoint for Slack events API.
+This module defines a FastAPI application that serves as an endpoint for Slack events API.
 It follows PEP 484/585 typing conventions.
 """
 
@@ -9,10 +9,10 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Final, cast
+from typing import Any, Final, cast, Dict
 
-import flask
-from flask import Flask, Request, Response, request
+from fastapi import FastAPI, Request, Response, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -27,13 +27,13 @@ __all__: list[str] = [
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_app")
 
 
-def verify_slack_request(request: Request, signing_secret: str | None = None) -> bool:
+async def verify_slack_request(request: Request, signing_secret: str | None = None) -> bool:
     """Verify that the request is coming from Slack.
 
     Parameters
     ----------
     request : Request
-        The Flask request object
+        The FastAPI request object
     signing_secret : str | None
         The Slack signing secret to use for verification. If None, will use SLACK_SIGNING_SECRET env var.
 
@@ -53,13 +53,16 @@ def verify_slack_request(request: Request, signing_secret: str | None = None) ->
     # Get request headers and body
     signature = request.headers.get("X-Slack-Signature", "")
     timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
-    body = request.get_data().decode("utf-8")
+    
+    # Read the body
+    body = await request.body()
+    body_str = body.decode("utf-8")
 
     # Verify the request
-    return verifier.is_valid(signature=signature, timestamp=timestamp, body=body)
+    return verifier.is_valid(signature=signature, timestamp=timestamp, body=body_str)
 
 
-async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> dict[str, Any] | None:
+async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> Dict[str, Any] | None:
     """Handle Slack events.
 
     Parameters
@@ -97,8 +100,8 @@ async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> 
     return None
 
 
-def create_slack_app(token: str | None = None) -> Flask:
-    """Create a Flask app for handling Slack events.
+def create_slack_app(token: str | None = None) -> FastAPI:
+    """Create a FastAPI app for handling Slack events.
 
     Parameters
     ----------
@@ -107,10 +110,10 @@ def create_slack_app(token: str | None = None) -> Flask:
 
     Returns
     -------
-    Flask
-        The Flask app
+    FastAPI
+        The FastAPI app
     """
-    app = Flask(__name__)
+    app = FastAPI(title="Slack MCP Server")
 
     # Resolve token
     resolved_token = token or os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
@@ -123,27 +126,34 @@ def create_slack_app(token: str | None = None) -> Flask:
     # Create Slack client
     client = AsyncWebClient(token=resolved_token)
 
-    @app.route("/slack/events", methods=["POST"])
-    async def slack_events() -> Response:
+    @app.post("/slack/events")
+    async def slack_events(request: Request) -> Response:
         """Handle Slack events."""
         # Verify the request is from Slack
-        if not verify_slack_request(request):
+        if not await verify_slack_request(request):
             _LOG.warning("Invalid Slack request signature")
-            return flask.jsonify({"error": "Invalid request signature"}), 401
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, 
+                detail="Invalid request signature"
+            )
 
+        # Get request body as text
+        body = await request.body()
+        body_str = body.decode("utf-8")
+        
         # Parse the request body
-        slack_event = json.loads(request.data)
+        slack_event = json.loads(body_str)
 
         # Handle URL verification challenge
         if "challenge" in slack_event:
             _LOG.info("Handling URL verification challenge")
-            return flask.jsonify({"challenge": slack_event["challenge"]})
+            return JSONResponse(content={"challenge": slack_event["challenge"]})
 
         # Handle the event
         _LOG.info(f"Received Slack event: {slack_event.get('event', {}).get('type')}")
         await handle_slack_event(cast(SlackEvent, slack_event), client)
 
         # Return 200 OK to acknowledge receipt of the event
-        return flask.jsonify({"status": "ok"}), 200
+        return JSONResponse(content={"status": "ok"})
 
     return app
