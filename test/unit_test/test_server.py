@@ -7,7 +7,11 @@ from typing import Any, Final
 import pytest
 
 import slack_mcp.server as srv
-from slack_mcp.model import SlackPostMessageInput, SlackReadChannelMessagesInput, SlackReadThreadMessagesInput
+from slack_mcp.model import (
+    SlackPostMessageInput,
+    SlackReadChannelMessagesInput,
+    SlackReadThreadMessagesInput,
+)
 
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]

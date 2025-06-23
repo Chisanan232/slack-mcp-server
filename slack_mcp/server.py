@@ -21,7 +21,11 @@ __all__: list[str] = [
     "read_slack_channel_messages",
 ]
 
-from slack_mcp.model import SlackPostMessageInput, SlackReadChannelMessagesInput, SlackReadThreadMessagesInput
+from slack_mcp.model import (
+    SlackPostMessageInput,
+    SlackReadChannelMessagesInput,
+    SlackReadThreadMessagesInput,
+)
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
