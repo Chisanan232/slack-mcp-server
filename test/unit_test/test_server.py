@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any, Final
 
 import pytest
-from dataclasses import dataclass
 
 import slack_mcp.server as srv
-from slack_mcp.model import SlackPostMessageInput, SlackReadChannelMessagesInput, SlackReadThreadMessagesInput, _BaseInput
+from slack_mcp.model import (
+    SlackPostMessageInput,
+    SlackReadChannelMessagesInput,
+    SlackReadThreadMessagesInput,
+    _BaseInput,
+)
 
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]
@@ -238,7 +243,6 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
 @dataclass(slots=True, kw_only=True)
 class TestBaseInput(_BaseInput):
     """Test implementation of _BaseInput for testing purposes."""
-    pass
 
 
 @pytest.mark.parametrize(
@@ -246,35 +250,24 @@ class TestBaseInput(_BaseInput):
     [
         # Case 1: explicit token parameter is provided
         ("xoxb-explicit", {}, "xoxb-explicit", False),
-
         # Case 2: SLACK_BOT_TOKEN env var is set, no token parameter
         (None, {"SLACK_BOT_TOKEN": "xoxb-bot-token"}, "xoxb-bot-token", False),
-
         # Case 3: SLACK_TOKEN env var is set, no token parameter or SLACK_BOT_TOKEN
         (None, {"SLACK_TOKEN": "xoxb-slack-token"}, "xoxb-slack-token", False),
-
         # Case 4: Both env vars are set, SLACK_BOT_TOKEN should take precedence
-        (
-            None,
-            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"},
-            "xoxb-bot-token",
-            False
-        ),
-
+        (None, {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"}, "xoxb-bot-token", False),
         # Case 5: Token param overrides env vars
         (
             "xoxb-explicit",
             {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"},
             "xoxb-explicit",
-            False
+            False,
         ),
-
         # Case 6: Empty string token should raise (treated as None)
         ("", {}, None, True),
-
         # Case 7: No token anywhere should raise
         (None, {}, None, True),
-    ]
+    ],
 )
 async def test_verify_slack_token_exist(
     monkeypatch: pytest.MonkeyPatch,
