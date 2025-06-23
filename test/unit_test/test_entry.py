@@ -24,15 +24,25 @@ class _DummyServer(FastMCP):  # pragma: no cover – trivial stub
         self.called_args: tuple[Any, ...] = ()
         self.called_kwargs: dict[str, Any] = {}
         
-        # Mock the app properties that would be used in HTTP transports
-        self.sse_app = SimpleNamespace(mount_path=None)
-        self.streamable_http_app = SimpleNamespace(mount_path=None)
+        # Track calls to app methods
+        self.sse_app_calls: list[dict[str, Any]] = []
+        self.streamable_http_app_calls: list[dict[str, Any]] = []
 
     def run(self, *args: Any, **kwargs: Any) -> None:  # noqa: D401 – override
         """Capture run method calls with parameters."""
         self.called = True
         self.called_args = args
         self.called_kwargs = kwargs
+        
+    def sse_app(self, mount_path: str | None = None) -> SimpleNamespace:
+        """Mock the sse_app method."""
+        self.sse_app_calls.append({"mount_path": mount_path})
+        return SimpleNamespace()
+    
+    def streamable_http_app(self, mount_path: str | None = None) -> SimpleNamespace:
+        """Mock the streamable_http_app method."""
+        self.streamable_http_app_calls.append({"mount_path": mount_path})
+        return SimpleNamespace()
 
 
 @pytest.fixture()
@@ -93,12 +103,13 @@ def test_entry_custom_transport(_patch_entry):
     thread.start()
     thread.join(timeout=1)
 
-    # For SSE transport, verify mount path was set on the sse_app
-    assert dummy.sse_app.mount_path == "/mcp"
+    # For SSE transport, verify sse_app method was called with correct mount path
+    assert len(dummy.sse_app_calls) == 1
+    assert dummy.sse_app_calls[0]["mount_path"] == "/mcp"
     
     
 def test_entry_streamable_http_transport(_patch_entry):
-    """Streamable HTTP transport uses the streamable_http_app property."""
+    """Streamable HTTP transport uses the streamable_http_app method."""
 
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
@@ -113,5 +124,6 @@ def test_entry_streamable_http_transport(_patch_entry):
     thread.start()
     thread.join(timeout=1)
 
-    # For streamable-http transport, verify mount path was set on the streamable_http_app
-    assert dummy.streamable_http_app.mount_path == "/api"
+    # For streamable-http transport, verify streamable_http_app method was called with correct mount path
+    assert len(dummy.streamable_http_app_calls) == 1
+    assert dummy.streamable_http_app_calls[0]["mount_path"] == "/api"

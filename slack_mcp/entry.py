@@ -52,16 +52,16 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
     _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
     
     if args.transport in ["sse", "streamable-http"]:
-        # For HTTP-based transports, configure server and access the appropriate app
+        # For HTTP-based transports, get the appropriate app using the transport-specific method
         _LOG.info(f"Running FastAPI server on {args.host}:{args.port}")
         
-        # Configure the FastMCP server for the specific HTTP transport
+        # Get the FastAPI app for the specific HTTP transport
         if args.transport == "sse":
-            _server_instance.sse_app.mount_path = args.mount_path
-            app = _server_instance.sse_app
+            # sse_app is a method that takes mount_path as a parameter
+            app = _server_instance.sse_app(mount_path=args.mount_path)
         else:  # streamable-http
-            _server_instance.streamable_http_app.mount_path = args.mount_path
-            app = _server_instance.streamable_http_app
+            # streamable_http_app is also a method that takes mount_path as a parameter
+            app = _server_instance.streamable_http_app(mount_path=args.mount_path)
             
         # Run the FastAPI app with uvicorn
         uvicorn.run(app, host=args.host, port=args.port, log_level=args.log_level.lower())
