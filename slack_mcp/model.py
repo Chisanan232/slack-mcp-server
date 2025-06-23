@@ -74,7 +74,7 @@ class SlackReadChannelMessagesInput(_BaseInput):
 
 
 @dataclass(slots=True, kw_only=True)
-class SlackThreadReplyInput:
+class SlackThreadReplyInput(_BaseInput):
     """
     Structured input for :pydata:`send_slack_thread_reply`.
 
@@ -89,4 +89,3 @@ class SlackThreadReplyInput:
     channel: str
     thread_ts: str
     texts: List[str]
-    token: str | None = None
