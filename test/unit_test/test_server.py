@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any, Final
-from typing import Any, Final, List
 
 import pytest
 
@@ -324,11 +323,7 @@ async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_
 
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(
-            channel="#general",
-            thread_ts=thread_ts,
-            texts=["Reply 1", "Reply 2"]
-        )
+        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Reply 1", "Reply 2"])
     )
 
     assert isinstance(result, dict)
@@ -364,10 +359,7 @@ async def test_send_slack_thread_reply_param(monkeypatch: pytest.MonkeyPatch) ->
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
         input_params=SlackThreadReplyInput(
-            channel="C123",
-            thread_ts=thread_ts,
-            texts=["Reply text"],
-            token="xoxb-param"
+            channel="C123", thread_ts=thread_ts, texts=["Reply text"], token="xoxb-param"
         )
     )
 
@@ -394,11 +386,7 @@ async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyP
     thread_ts = "1620000000.000000"
     with pytest.raises(ValueError):
         await srv.send_slack_thread_reply(
-            input_params=SlackThreadReplyInput(
-                channel="C123",
-                thread_ts=thread_ts,
-                texts=["Reply text"]
-            )
+            input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=["Reply text"])
         )
 
 
@@ -410,11 +398,7 @@ async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPat
 
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(
-            channel="C123",
-            thread_ts=thread_ts,
-            texts=[]
-        )
+        input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=[])
     )
 
     assert isinstance(result, dict)

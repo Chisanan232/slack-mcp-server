@@ -399,10 +399,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     bot_token = os.environ["SLACK_BOT_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_parent_text = f"mcp-e2e-parent-{uuid.uuid4()}"
-    unique_reply_texts = [
-        f"mcp-e2e-reply1-{uuid.uuid4()}",
-        f"mcp-e2e-reply2-{uuid.uuid4()}"
-    ]
+    unique_reply_texts = [f"mcp-e2e-reply1-{uuid.uuid4()}", f"mcp-e2e-reply2-{uuid.uuid4()}"]
 
     logger.info(f"Testing with channel ID: {channel_id}")
     logger.info(f"Using unique parent message text: {unique_parent_text}")
@@ -467,13 +464,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
                 logger.info(f"Calling slack_thread_reply tool with channel: {channel_id} and thread_ts: {parent_ts}")
                 result = await session.call_tool(
                     "slack_thread_reply",
-                    {
-                        "input_params": {
-                            "channel": channel_id,
-                            "thread_ts": parent_ts,
-                            "texts": unique_reply_texts
-                        }
-                    },
+                    {"input_params": {"channel": channel_id, "thread_ts": parent_ts, "texts": unique_reply_texts}},
                     read_timeout_seconds=read_timeout,
                 )
 
@@ -503,7 +494,9 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
                 # Verify we have the expected number of responses
                 assert isinstance(slack_responses, list), "Expected list of responses"
-                assert len(slack_responses) == len(unique_reply_texts), "Response count doesn't match sent messages count"
+                assert len(slack_responses) == len(
+                    unique_reply_texts
+                ), "Response count doesn't match sent messages count"
 
                 # Check each response
                 for i, response in enumerate(slack_responses):
