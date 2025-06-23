@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Final, List
 
+from fastapi import FastAPI
 from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -197,6 +198,22 @@ async def send_slack_thread_reply(
 
     # Return a dictionary with the responses list to ensure proper serialization
     return {"responses": responses}
+
+
+# Add method to initialize FastAPI app for HTTP transports
+def init_http(transport: str, mount_path: str | None = None) -> None:
+    """Initialize FastMCP with FastAPI for HTTP-based transports.
+    
+    Parameters
+    ----------
+    transport : str
+        Transport mode for FastMCP server ("sse" or "streamable-http")
+    mount_path : str | None
+        Mount path for HTTP transports
+    """
+    app = FastAPI(title="Slack MCP FastAPI Server")
+    mcp.use_transport(transport, app=app, mount_path=mount_path or "/api/mcp")
+    mcp.app = app  # Store app instance for later use in the entry point
 
 
 # ---------------------------------------------------------------------------
