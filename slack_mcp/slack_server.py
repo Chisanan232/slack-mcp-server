@@ -93,14 +93,12 @@ async def run_slack_server(
 
     _LOG.info(f"Starting Slack events server on {host}:{port}")
 
-    # Using hypercorn for ASGI support
-    from hypercorn.asyncio import serve
-    from hypercorn.config import Config
-
-    config = Config()
-    config.bind = [f"{host}:{port}"]
-
-    await serve(app, config)
+    # Using uvicorn for ASGI support with FastAPI
+    import uvicorn
+    
+    config = uvicorn.Config(app=app, host=host, port=port)
+    server = uvicorn.Server(config)
+    await server.serve()
 
 
 def main() -> None:

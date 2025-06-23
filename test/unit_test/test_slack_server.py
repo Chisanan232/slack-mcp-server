@@ -47,20 +47,24 @@ async def test_run_slack_server():
     """Test running the Slack server."""
     with (
         patch("slack_mcp.slack_server.create_slack_app") as mock_create_app,
-        patch("hypercorn.asyncio.serve") as mock_serve,
-        patch("hypercorn.config.Config") as mock_config_cls,
+        patch("uvicorn.Server") as mock_server_cls,
+        patch("uvicorn.Config") as mock_config_cls,
     ):
-
         # Setup mocks
         mock_app = MagicMock()
         mock_create_app.return_value = mock_app
 
         mock_config = MagicMock()
         mock_config_cls.return_value = mock_config
-
-        # Mock the serve coroutine
-        mock_serve.return_value = asyncio.Future()
-        mock_serve.return_value.set_result(None)
+        
+        # Mock the Server instance
+        mock_server = MagicMock()
+        mock_server_cls.return_value = mock_server
+        
+        # Mock the serve method to return a completed future
+        serve_future = asyncio.Future()
+        serve_future.set_result(None)
+        mock_server.serve.return_value = serve_future
 
         # Call the function with test parameters
         await run_slack_server(host="localhost", port=8000, token="test_token")
@@ -69,7 +73,8 @@ async def test_run_slack_server():
         mock_create_app.assert_called_once_with("test_token")
 
         # Verify the config was set correctly
-        assert mock_config.bind == ["localhost:8000"]
-
-        # Verify the server was started with the right parameters
-        mock_serve.assert_called_once_with(mock_app, mock_config)
+        mock_config_cls.assert_called_once_with(app=mock_app, host="localhost", port=8000)
+        
+        # Verify the server was properly configured and started
+        mock_server_cls.assert_called_once_with(mock_config)
+        mock_server.serve.assert_called_once()
