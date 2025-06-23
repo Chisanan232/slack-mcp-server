@@ -246,32 +246,32 @@ class TestBaseInput(_BaseInput):
     [
         # Case 1: explicit token parameter is provided
         ("xoxb-explicit", {}, "xoxb-explicit", False),
-        
+
         # Case 2: SLACK_BOT_TOKEN env var is set, no token parameter
         (None, {"SLACK_BOT_TOKEN": "xoxb-bot-token"}, "xoxb-bot-token", False),
-        
+
         # Case 3: SLACK_TOKEN env var is set, no token parameter or SLACK_BOT_TOKEN
         (None, {"SLACK_TOKEN": "xoxb-slack-token"}, "xoxb-slack-token", False),
-        
+
         # Case 4: Both env vars are set, SLACK_BOT_TOKEN should take precedence
         (
-            None, 
-            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"}, 
-            "xoxb-bot-token", 
+            None,
+            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"},
+            "xoxb-bot-token",
             False
         ),
-        
+
         # Case 5: Token param overrides env vars
         (
-            "xoxb-explicit", 
-            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"}, 
-            "xoxb-explicit", 
+            "xoxb-explicit",
+            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"},
+            "xoxb-explicit",
             False
         ),
-        
+
         # Case 6: Empty string token should raise (treated as None)
         ("", {}, None, True),
-        
+
         # Case 7: No token anywhere should raise
         (None, {}, None, True),
     ]
@@ -287,14 +287,14 @@ async def test_verify_slack_token_exist(
     # Clear environment variables first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
-    
+
     # Set env vars according to the test case
     for var_name, var_value in env_vars.items():
         monkeypatch.setenv(var_name, var_value)
-    
+
     # Create test input
     test_input = TestBaseInput(token=token_param)
-    
+
     if should_raise:
         with pytest.raises(ValueError) as excinfo:
             await srv._verify_slack_token_exist(test_input)
