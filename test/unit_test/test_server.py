@@ -315,6 +315,7 @@ def test_verify_slack_token_exist(
         assert result == expected_result
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
     """Token should be picked from environment when *token* argument is *None* for thread replies."""
@@ -352,6 +353,7 @@ async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_
     assert "ts" in responses[1]
 
 
+@pytest.mark.asyncio
 async def test_send_slack_thread_reply_param(monkeypatch: pytest.MonkeyPatch) -> None:
     """Explicit *token* parameter takes precedence over environment variables for thread replies."""
 
@@ -382,6 +384,7 @@ async def test_send_slack_thread_reply_param(monkeypatch: pytest.MonkeyPatch) ->
     assert "ts" in responses[0]
 
 
+@pytest.mark.asyncio
 async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should raise :class:`ValueError` if no token is provided at all for thread replies."""
 
@@ -399,6 +402,7 @@ async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyP
         )
 
 
+@pytest.mark.asyncio
 async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should return a dict with an empty list if texts list is empty."""
 
