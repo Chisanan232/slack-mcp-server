@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from abc import ABC
+from dataclasses import dataclass
 
 __all__: list[str] = [
     "SlackPostMessageInput",
@@ -19,6 +19,7 @@ class _BaseInput(ABC):
         If not provided, it will attempt to get one from environment variable
         ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
     """
+
     token: str | None = None
 
 
