@@ -25,12 +25,23 @@ from slack_mcp.model import (
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
     SlackReadThreadMessagesInput,
+    _BaseInput,
 )
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
 
 mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
+
+
+def _verify_slack_token_exist(input_params: _BaseInput) -> str:
+    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
+    if resolved_token is None:
+        raise ValueError(
+            "Slack token not found. Provide one via the 'token' argument or set "
+            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
+        )
+    return resolved_token
 
 
 @mcp.tool("slack_post_message")
@@ -57,12 +68,7 @@ async def send_slack_message(
         missing as well.
     """
 
-    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
-    if resolved_token is None:
-        raise ValueError(
-            "Slack token not found. Provide one via the 'token' argument or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
+    resolved_token = _verify_slack_token_exist(input_params)
 
     client: AsyncWebClient = AsyncWebClient(token=resolved_token)
 
@@ -96,12 +102,7 @@ async def read_thread_messages(
         missing as well.
     """
 
-    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
-    if resolved_token is None:
-        raise ValueError(
-            "Slack token not found. Provide one via the 'token' argument or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
+    resolved_token = _verify_slack_token_exist(input_params)
 
     client: AsyncWebClient = AsyncWebClient(token=resolved_token)
 
@@ -139,12 +140,7 @@ async def read_slack_channel_messages(
         missing as well.
     """
 
-    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
-    if resolved_token is None:
-        raise ValueError(
-            "Slack token not found. Provide one via the 'token' argument or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
+    resolved_token = _verify_slack_token_exist(input_params)
 
     client: AsyncWebClient = AsyncWebClient(token=resolved_token)
 
