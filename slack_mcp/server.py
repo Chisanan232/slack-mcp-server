@@ -200,22 +200,6 @@ async def send_slack_thread_reply(
     return {"responses": responses}
 
 
-# Add method to initialize FastAPI app for HTTP transports
-def init_http(transport: str, mount_path: str | None = None) -> None:
-    """Initialize FastMCP with FastAPI for HTTP-based transports.
-    
-    Parameters
-    ----------
-    transport : str
-        Transport mode for FastMCP server ("sse" or "streamable-http")
-    mount_path : str | None
-        Mount path for HTTP transports
-    """
-    app = FastAPI(title="Slack MCP FastAPI Server")
-    mcp.use_transport(transport, app=app, mount_path=mount_path or "/api/mcp")
-    mcp.app = app  # Store app instance for later use in the entry point
-
-
 # ---------------------------------------------------------------------------
 # Guidance prompt for LLMs
 # ---------------------------------------------------------------------------
