@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import pathlib
 from typing import Any, Final
+
+from dotenv import load_dotenv
 
 from .server import FastMCP, mcp
 from .slack_app import create_slack_app
@@ -122,16 +126,40 @@ def main() -> None:
         default="INFO",
         help="Python logging level (e.g., DEBUG, INFO)",
     )
+    parser.add_argument(
+        "--slack-token",
+        default=None,
+        help="Slack bot token to use (overrides SLACK_BOT_TOKEN environment variable)",
+    )
+    parser.add_argument(
+        "--env-file",
+        default=".env",
+        help="Path to .env file (default: .env in current directory)",
+    )
+    parser.add_argument(
+        "--no-env-file",
+        action="store_true",
+        help="Disable loading from .env file",
+    )
 
     args = parser.parse_args()
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
 
+    # Load environment variables from .env file if not disabled
+    if not args.no_env_file:
+        env_path = pathlib.Path(args.env_file)
+        if env_path.exists():
+            _LOG.info(f"Loading environment variables from {env_path.resolve()}")
+            load_dotenv(dotenv_path=env_path)
+        else:
+            _LOG.warning(f"Environment file not found: {env_path.resolve()}")
+
     # Register MCP tools
     register_mcp_tools(mcp)
 
-    # Run the server
-    asyncio.run(run_slack_server(host=args.host, port=args.port))
+    # Run the server with token from command line if provided
+    asyncio.run(run_slack_server(host=args.host, port=args.port, token=args.slack_token))
 
 
 if __name__ == "__main__":
