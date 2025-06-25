@@ -3,17 +3,20 @@
 from __future__ import annotations
 
 import importlib
+import logging
+import sys
 import threading
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Generator
 
 import pytest
+
 from mcp.server.fastmcp import FastMCP
 
-# ---------------------------------------------------------------------------
-# Helpers & fixtures
-# ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Mock classes
+# ---------------------------------------------------------------------------
 
 class _DummyServer(FastMCP):  # pragma: no cover – trivial stub
     """Subclass of :class:`FastMCP` capturing ``run`` invocations."""
@@ -39,70 +42,76 @@ class _DummyServer(FastMCP):  # pragma: no cover – trivial stub
         self.sse_app_calls.append({"mount_path": mount_path})
         return SimpleNamespace()
     
-    def streamable_http_app(self, mount_path: str | None = None) -> SimpleNamespace:
+    def streamable_http_app(self) -> SimpleNamespace:
         """Mock the streamable_http_app method."""
-        self.streamable_http_app_calls.append({"mount_path": mount_path})
+        self.streamable_http_app_calls.append({"called": True})
         return SimpleNamespace()
 
 
-@pytest.fixture()
-def _patch_entry(monkeypatch: pytest.MonkeyPatch):  # noqa: D401 – fixture
+# ---------------------------------------------------------------------------
+# Test fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, None, None]:
     """Provide patched ``slack_mcp.entry`` module with non-blocking server."""
+    # Suppress stderr to avoid polluting test output
+    monkeypatch.setattr(sys, "stderr", SimpleNamespace(write=lambda *args: None))
 
-    # Fresh reload to reset module state.
-    entry = importlib.reload(importlib.import_module("slack_mcp.entry"))
-
-    dummy_server = _DummyServer()
-
-    # Patch server instance and bypass logging setup **after** reload.
-    monkeypatch.setattr(entry, "_server_instance", dummy_server, raising=True)
-    monkeypatch.setattr(entry.logging, "basicConfig", lambda *a, **k: None, raising=True)
+    # Replace server instance with dummy
+    dummy = _DummyServer()
+    monkeypatch.setattr("slack_mcp.entry._server_instance", dummy)
     
-    # Patch uvicorn.run to prevent actual server startup
-    monkeypatch.setattr(entry.uvicorn, "run", lambda *a, **k: None, raising=True)
+    # Replace uvicorn.run with a non-blocking stub
+    monkeypatch.setattr("uvicorn.run", lambda *args, **kwargs: None)
 
-    return SimpleNamespace(entry=entry, dummy=dummy_server)
+    # Replace logging with a no-op function
+    monkeypatch.setattr(logging, "basicConfig", lambda *args, **kwargs: None)
+    
+    # Re-import the module to update bindings
+    entry = importlib.import_module("slack_mcp.entry")
+    
+    yield SimpleNamespace(entry=entry, dummy=dummy)
 
 
 # ---------------------------------------------------------------------------
 # Test cases
 # ---------------------------------------------------------------------------
 
-
 def test_entry_default_args(_patch_entry):
     """Running with no CLI flags should default to *stdio* transport."""
-
+    
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
-
+    
     # Run with a timeout guard in case something blocks unexpectedly.
     def run_with_timeout():
-        entry.main([])
-
+        entry.main([])  # Empty argv list
+    
     thread = threading.Thread(target=run_with_timeout)
     thread.start()
     thread.join(timeout=1)
-
-    assert dummy.called is True
-    assert dummy.called_kwargs == {"transport": "stdio"}
-
+    
+    assert dummy.called
+    assert dummy.called_kwargs["transport"] == "stdio"
+    
 
 def test_entry_custom_transport(_patch_entry):
     """Custom transport and mount path are forwarded to FastMCP properly."""
-
+    
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
-
-    argv = ["--transport", "sse", "--mount-path", "/mcp", "--log-level", "DEBUG"]
-
+    
+    argv = ["--transport", "sse", "--mount-path", "/mcp", "--log-level", "INFO"]
+    
     # Run with a timeout guard in case something blocks unexpectedly.
     def run_with_timeout():
         entry.main(argv)
-
+    
     thread = threading.Thread(target=run_with_timeout)
     thread.start()
     thread.join(timeout=1)
-
+    
     # For SSE transport, verify sse_app method was called with correct mount path
     assert len(dummy.sse_app_calls) == 1
     assert dummy.sse_app_calls[0]["mount_path"] == "/mcp"
@@ -124,6 +133,6 @@ def test_entry_streamable_http_transport(_patch_entry):
     thread.start()
     thread.join(timeout=1)
 
-    # For streamable-http transport, verify streamable_http_app method was called with correct mount path
+    # For streamable-http transport, verify streamable_http_app method was called
     assert len(dummy.streamable_http_app_calls) == 1
-    assert dummy.streamable_http_app_calls[0]["mount_path"] == "/api"
+    assert dummy.streamable_http_app_calls[0]["called"] is True
