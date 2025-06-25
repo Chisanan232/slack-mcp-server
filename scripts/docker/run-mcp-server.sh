@@ -31,6 +31,21 @@ if [ -n "${MCP_PORT}" ]; then
   CMD_ARGS+=(--port "${MCP_PORT}")
 fi
 
+# SLACK_BOT_TOKEN: Slack bot token
+if [ -n "${SLACK_BOT_TOKEN}" ]; then
+  CMD_ARGS+=(--slack-token "${SLACK_BOT_TOKEN}")
+fi
+
+# ENV_FILE: Path to .env file
+if [ -n "${MCP_ENV_FILE}" ]; then
+  CMD_ARGS+=(--env-file "${MCP_ENV_FILE}")
+fi
+
+# NO_ENV_FILE: Disable .env file loading
+if [ -n "${MCP_NO_ENV_FILE}" ] && [ "${MCP_NO_ENV_FILE}" = "true" ]; then
+  CMD_ARGS+=(--no-env-file)
+fi
+
 # Print the command that will be executed
 echo "Starting MCP server with arguments: ${CMD_ARGS[@]}"
 # Only print debug command information if log level is debug (case insensitive)
