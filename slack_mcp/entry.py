@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import argparse
 import logging
+import os
+import pathlib
 import uvicorn
 from typing import Final
+
+from dotenv import load_dotenv
 
 from .server import mcp as _server_instance
 
@@ -41,6 +45,21 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:  # noqa: D
         default="INFO",
         help="Python logging level (e.g., DEBUG, INFO)",
     )
+    parser.add_argument(
+        "--env-file",
+        default=".env",
+        help="Path to .env file (default: .env in current directory)",
+    )
+    parser.add_argument(
+        "--no-env-file",
+        action="store_true",
+        help="Disable loading from .env file",
+    )
+    parser.add_argument(
+        "--slack-token",
+        default=None,
+        help="Slack bot token (overrides SLACK_BOT_TOKEN environment variable)",
+    )
     return parser.parse_args(argv)
 
 
@@ -48,6 +67,20 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
     args = _parse_args(argv)
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
+
+    # Load environment variables from .env file if not disabled
+    if not args.no_env_file:
+        env_path = pathlib.Path(args.env_file)
+        if env_path.exists():
+            _LOG.info(f"Loading environment variables from {env_path.resolve()}")
+            load_dotenv(dotenv_path=env_path)
+        else:
+            _LOG.warning(f"Environment file not found: {env_path.resolve()}")
+    
+    # Set Slack token from command line argument if provided
+    if args.slack_token:
+        os.environ["SLACK_BOT_TOKEN"] = args.slack_token
+        _LOG.info("Using Slack token from command line argument")
 
     _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
     
