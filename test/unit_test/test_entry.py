@@ -8,6 +8,8 @@ import sys
 import threading
 from types import SimpleNamespace
 from typing import Any, Generator
+import os
+import pathlib
 
 import pytest
 from mcp.server.fastmcp import FastMCP
@@ -137,3 +139,119 @@ def test_entry_streamable_http_transport(_patch_entry):
     # For streamable-http transport, verify streamable_http_app method was called
     assert len(dummy.streamable_http_app_calls) == 1
     assert dummy.streamable_http_app_calls[0]["called"] is True
+
+
+def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
+    """Test loading of environment variables from .env file."""
+    entry = _patch_entry.entry
+    
+    # Track dotenv calls
+    load_dotenv_calls: list[dict[str, Any]] = []
+    monkeypatch.setattr(
+        "slack_mcp.entry.load_dotenv", 
+        lambda **kwargs: load_dotenv_calls.append(kwargs)
+    )
+    
+    # Case 1: .env file exists
+    monkeypatch.setattr(pathlib.Path, "exists", lambda self: True)
+    monkeypatch.setattr(pathlib.Path, "resolve", lambda self: str(self))
+    
+    # Run with default .env path
+    argv = []
+    
+    def run_with_timeout():
+        entry.main(argv)
+    
+    thread = threading.Thread(target=run_with_timeout)
+    thread.start()
+    thread.join(timeout=1)
+    
+    # Verify load_dotenv was called with correct path
+    assert len(load_dotenv_calls) == 1
+    assert load_dotenv_calls[0]["dotenv_path"].name == ".env"
+    
+    # Case 2: .env file doesn't exist
+    load_dotenv_calls.clear()
+    monkeypatch.setattr(pathlib.Path, "exists", lambda self: False)
+    
+    def run_with_timeout_no_file():
+        entry.main(argv)
+    
+    thread = threading.Thread(target=run_with_timeout_no_file)
+    thread.start()
+    thread.join(timeout=1)
+    
+    # Verify load_dotenv was not called
+    assert len(load_dotenv_calls) == 0
+    
+    # Case 3: Custom env file path
+    load_dotenv_calls.clear()
+    monkeypatch.setattr(pathlib.Path, "exists", lambda self: True)
+    
+    argv = ["--env-file", "custom.env"]
+    
+    def run_with_timeout_custom_file():
+        entry.main(argv)
+    
+    thread = threading.Thread(target=run_with_timeout_custom_file)
+    thread.start()
+    thread.join(timeout=1)
+    
+    # Verify load_dotenv was called with custom path
+    assert len(load_dotenv_calls) == 1
+    assert load_dotenv_calls[0]["dotenv_path"].name == "custom.env"
+    
+    # Case 4: No env file loading when --no-env-file is specified
+    load_dotenv_calls.clear()
+    
+    argv = ["--no-env-file"]
+    
+    def run_with_timeout_no_env_file():
+        entry.main(argv)
+    
+    thread = threading.Thread(target=run_with_timeout_no_env_file)
+    thread.start()
+    thread.join(timeout=1)
+    
+    # Verify load_dotenv was not called
+    assert len(load_dotenv_calls) == 0
+
+
+def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch):
+    """Test setting Slack token from command line argument."""
+    entry = _patch_entry.entry
+    
+    # Mock os.environ to track setting of SLACK_BOT_TOKEN
+    mock_environ = {}
+    monkeypatch.setattr(os, "environ", mock_environ)
+    
+    # Case 1: Slack token provided via command line
+    test_token = "xoxb-test-token-123456"
+    argv = ["--slack-token", test_token]
+    
+    def run_with_timeout():
+        entry.main(argv)
+    
+    thread = threading.Thread(target=run_with_timeout)
+    thread.start()
+    thread.join(timeout=1)
+    
+    # Verify token was set in environment
+    assert "SLACK_BOT_TOKEN" in mock_environ
+    assert mock_environ["SLACK_BOT_TOKEN"] == test_token
+    
+    # Case 2: No token provided, and prevent .env file loading
+    mock_environ.clear()
+    
+    # Add --no-env-file flag to prevent loading from .env file
+    argv = ["--no-env-file"]
+    
+    def run_with_timeout_no_token():
+        entry.main(argv)
+    
+    thread = threading.Thread(target=run_with_timeout_no_token)
+    thread.start()
+    thread.join(timeout=1)
+    
+    # Verify token was not set in environment
+    assert "SLACK_BOT_TOKEN" not in mock_environ
