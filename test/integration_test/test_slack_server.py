@@ -1,6 +1,5 @@
 """End-to-end tests for the Slack bot event handling features."""
 
-import json
 from unittest.mock import AsyncMock, patch
 
 import pytest

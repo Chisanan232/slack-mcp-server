@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import pathlib
 from typing import Any, Final
 
@@ -99,7 +98,7 @@ async def run_slack_server(
 
     # Using uvicorn for ASGI support with FastAPI
     import uvicorn
-    
+
     config = uvicorn.Config(app=app, host=host, port=port)
     server = uvicorn.Server(config)
     await server.serve()

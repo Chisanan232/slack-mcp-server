@@ -1,12 +1,11 @@
 """Unit tests for the Slack app module."""
 
-import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import FastAPI, Request, Body
-from fastapi.testclient import TestClient
+from fastapi import Body, FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.slack_app import (
@@ -176,18 +175,18 @@ async def test_slack_events_endpoint_challenge():
     with patch("slack_mcp.slack_app.verify_slack_request", AsyncMock(return_value=True)):
         # Create a test FastAPI app
         app = FastAPI()
-        
+
         # Add a test route to mimic the slack_events endpoint
         @app.post("/test")
         async def test_endpoint(event_data: dict = Body(...)):
             if event_data.get("type") == "url_verification":
                 return JSONResponse(content={"challenge": event_data["challenge"]})
             return JSONResponse(content={"status": "ok"})
-        
+
         # Use TestClient to test the endpoint
         test_client = TestClient(app)
         response = test_client.post("/test", json={"type": "url_verification", "challenge": "test_challenge"})
-        
+
         assert response.status_code == 200
         assert response.json()["challenge"] == "test_challenge"
 
@@ -204,16 +203,16 @@ async def test_slack_events_endpoint_event():
     ):
         # Create a test FastAPI app
         app = FastAPI()
-        
+
         # Add a test route to mimic the slack_events endpoint
         @app.post("/test")
         async def test_endpoint(event_data: dict = Body(...)):
             return JSONResponse(content={"status": "ok"})
-        
+
         # Use TestClient to test the endpoint
         test_client = TestClient(app)
         response = test_client.post(
-            "/test", 
+            "/test",
             json={
                 "event": {
                     "type": "app_mention",
@@ -222,9 +221,9 @@ async def test_slack_events_endpoint_event():
                     "ts": "1234567890.123456",
                     "channel": "C12345678",
                 }
-            }
+            },
         )
-        
+
         assert response.status_code == 200
         assert response.json()["status"] == "ok"
 
@@ -235,19 +234,17 @@ async def test_slack_events_endpoint_invalid_signature():
     with patch("slack_mcp.slack_app.verify_slack_request", AsyncMock(return_value=False)):
         # Create a test FastAPI app and add a route that raises HTTPException similar to the actual endpoint
         app = FastAPI()
-        
+
         # Add a test route that mimics the behavior
         @app.post("/test")
         async def test_endpoint(event_data: dict = Body(...)):
             from fastapi import HTTPException, status
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid request signature"
-            )
-        
+
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid request signature")
+
         # Use TestClient to test the endpoint
         test_client = TestClient(app)
         response = test_client.post("/test", json={"type": "test"})
-        
+
         assert response.status_code == 401
         assert response.json()["detail"] == "Invalid request signature"
