@@ -9,6 +9,7 @@ from slack_mcp.server import FastMCP
 from slack_mcp.slack_server import (
     register_mcp_tools,
     run_slack_server,
+    main,
 )
 
 
@@ -78,3 +79,73 @@ async def test_run_slack_server():
         # Verify the server was properly configured and started
         mock_server_cls.assert_called_once_with(mock_config)
         mock_server.serve.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "cmd_args, expected_host, expected_port, expected_token, env_file_exists",
+    [
+        # Default parameters
+        ([], "0.0.0.0", 3000, None, True),
+        # Custom host and port
+        (["--host", "127.0.0.1", "--port", "8080"], "127.0.0.1", 8080, None, True),
+        # Custom token
+        (["--slack-token", "custom_token"], "0.0.0.0", 3000, "custom_token", True),
+        # Custom env file
+        (["--env-file", "custom.env"], "0.0.0.0", 3000, None, True),
+        # No env file
+        (["--no-env-file"], "0.0.0.0", 3000, None, False),
+        # Custom log level
+        (["--log-level", "DEBUG"], "0.0.0.0", 3000, None, True),
+        # Combination of options
+        (
+            ["--host", "localhost", "--port", "5000", "--slack-token", "test", "--log-level", "DEBUG"],
+            "localhost", 5000, "test", True
+        ),
+    ]
+)
+def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_exists):
+    """Test the main function with different command line arguments."""
+    with (
+        patch("sys.argv", ["slack_server.py"] + cmd_args),
+        patch("slack_mcp.slack_server.asyncio.run") as mock_run,
+        patch("slack_mcp.slack_server.logging.basicConfig") as mock_logging,
+        patch("slack_mcp.slack_server.load_dotenv") as mock_load_dotenv,
+        patch("slack_mcp.slack_server.pathlib.Path") as mock_path,
+        patch("slack_mcp.slack_server.register_mcp_tools") as mock_register_mcp_tools,
+    ):
+        # Configure the mock path to simulate env file existence
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = env_file_exists
+        mock_path_instance.resolve.return_value = "/path/to/env"
+        mock_path.return_value = mock_path_instance
+
+        # Run the main function
+        main()
+
+        # Verify logging was configured
+        if "--log-level" in cmd_args:
+            log_level = cmd_args[cmd_args.index("--log-level") + 1].upper()
+        else:
+            log_level = "INFO"
+        mock_logging.assert_called_once()
+        assert mock_logging.call_args[1]["level"] == log_level
+
+        # Verify env file handling
+        if "--no-env-file" not in cmd_args:
+            env_file = "custom.env" if "--env-file" in cmd_args else ".env"
+            mock_path.assert_called_with(env_file)
+            
+            if env_file_exists:
+                mock_load_dotenv.assert_called_once()
+            else:
+                mock_load_dotenv.assert_not_called()
+        else:
+            mock_load_dotenv.assert_not_called()
+
+        # Verify MCP tools were registered
+        mock_register_mcp_tools.assert_called_once()
+
+        # Verify the server was run with the expected parameters
+        mock_run.assert_called_once()
+        run_args = mock_run.call_args[0][0]
+        assert asyncio.iscoroutine(run_args) or asyncio.isfuture(run_args)
