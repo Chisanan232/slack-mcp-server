@@ -56,11 +56,11 @@ async def test_run_slack_server():
 
         mock_config = MagicMock()
         mock_config_cls.return_value = mock_config
-        
+
         # Mock the Server instance
         mock_server = MagicMock()
         mock_server_cls.return_value = mock_server
-        
+
         # Mock the serve method to return a completed future
         serve_future = asyncio.Future()
         serve_future.set_result(None)
@@ -74,7 +74,7 @@ async def test_run_slack_server():
 
         # Verify the config was set correctly
         mock_config_cls.assert_called_once_with(app=mock_app, host="localhost", port=8000)
-        
+
         # Verify the server was properly configured and started
         mock_server_cls.assert_called_once_with(mock_config)
         mock_server.serve.assert_called_once()

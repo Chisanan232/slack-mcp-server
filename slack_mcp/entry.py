@@ -6,9 +6,9 @@ import argparse
 import logging
 import os
 import pathlib
-import uvicorn
 from typing import Final
 
+import uvicorn
 from dotenv import load_dotenv
 
 from .server import mcp as _server_instance
@@ -76,18 +76,18 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
             load_dotenv(dotenv_path=env_path)
         else:
             _LOG.warning(f"Environment file not found: {env_path.resolve()}")
-    
+
     # Set Slack token from command line argument if provided
     if args.slack_token:
         os.environ["SLACK_BOT_TOKEN"] = args.slack_token
         _LOG.info("Using Slack token from command line argument")
 
     _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
-    
+
     if args.transport in ["sse", "streamable-http"]:
         # For HTTP-based transports, get the appropriate app using the transport-specific method
         _LOG.info(f"Running FastAPI server on {args.host}:{args.port}")
-        
+
         # Get the FastAPI app for the specific HTTP transport
         if args.transport == "sse":
             # sse_app is a method that takes mount_path as a parameter
@@ -97,7 +97,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
             app = _server_instance.streamable_http_app()
             if args.mount_path:
                 _LOG.warning("mount-path is not supported for streamable-http transport and will be ignored")
-        
+
         # Use uvicorn to run the FastAPI app
         uvicorn.run(app, host=args.host, port=args.port)
     else:

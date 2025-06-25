@@ -9,9 +9,9 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Final, cast, Dict
+from typing import Any, Dict, Final, cast
 
-from fastapi import FastAPI, Request, Response, Depends, HTTPException, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
@@ -53,7 +53,7 @@ async def verify_slack_request(request: Request, signing_secret: str | None = No
     # Get request headers and body
     signature = request.headers.get("X-Slack-Signature", "")
     timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
-    
+
     # Read the body
     body = await request.body()
     body_str = body.decode("utf-8")
@@ -132,15 +132,12 @@ def create_slack_app(token: str | None = None) -> FastAPI:
         # Verify the request is from Slack
         if not await verify_slack_request(request):
             _LOG.warning("Invalid Slack request signature")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, 
-                detail="Invalid request signature"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid request signature")
 
         # Get request body as text
         body = await request.body()
         body_str = body.decode("utf-8")
-        
+
         # Parse the request body
         slack_event = json.loads(body_str)
 

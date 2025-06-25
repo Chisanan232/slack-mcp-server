@@ -11,7 +11,6 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Final, List
 
-from fastapi import FastAPI
 from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
 
