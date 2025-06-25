@@ -1,12 +1,11 @@
 """Unit tests for the Slack app module."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
 import asyncio
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-import json
-from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -240,12 +239,7 @@ def test_slack_events_endpoint_invalid_signature():
     "event_data, expected_status, expected_response, should_call_handle_event",
     [
         # Challenge verification
-        (
-            {"challenge": "verification_challenge"},
-            200, 
-            {"challenge": "verification_challenge"},
-            False
-        ),
+        ({"challenge": "verification_challenge"}, 200, {"challenge": "verification_challenge"}, False),
         # App mention event
         (
             {
@@ -256,11 +250,11 @@ def test_slack_events_endpoint_invalid_signature():
                     "text": "<@BOTID> Hello",
                     "channel": "C12345",
                     "ts": "1234567890.123456",
-                }
+                },
             },
             200,
             {"status": "ok"},
-            True
+            True,
         ),
         # Message event
         (
@@ -272,11 +266,11 @@ def test_slack_events_endpoint_invalid_signature():
                     "text": "Hello",
                     "channel": "C12345",
                     "ts": "1234567890.123456",
-                }
+                },
             },
             200,
             {"status": "ok"},
-            True
+            True,
         ),
         # Reaction added event
         (
@@ -287,27 +281,17 @@ def test_slack_events_endpoint_invalid_signature():
                     "user": "U12345",
                     "reaction": "thumbsup",
                     "item": {"type": "message", "channel": "C12345", "ts": "1234567890.123456"},
-                }
+                },
             },
             200,
             {"status": "ok"},
-            True
+            True,
         ),
         # Empty event (still processes but handle_slack_event will return None)
-        (
-            {"type": "event_callback"},
-            200,
-            {"status": "ok"},
-            True
-        ),
+        ({"type": "event_callback"}, 200, {"status": "ok"}, True),
         # Malformed event (still returns 200 but logs a warning)
-        (
-            {"not_a_valid_event": True},
-            200,
-            {"status": "ok"},
-            True
-        ),
-    ]
+        ({"not_a_valid_event": True}, 200, {"status": "ok"}, True),
+    ],
 )
 def test_slack_events_endpoint_parametrized(event_data, expected_status, expected_response, should_call_handle_event):
     """Test the slack_events endpoint with different event scenarios."""
@@ -345,8 +329,8 @@ def test_slack_events_endpoint_parametrized(event_data, expected_status, expecte
         # Invalid JSON (syntax error)
         (b'{"challenge": "test_challenge"', True),
         # Empty body
-        (b'', True),
-    ]
+        (b"", True),
+    ],
 )
 def test_slack_events_endpoint_json_parsing(request_body, should_fail):
     """Test the slack_events endpoint with different JSON inputs."""
@@ -358,13 +342,13 @@ def test_slack_events_endpoint_json_parsing(request_body, should_fail):
     ):
         mock_verify.return_value = True
         mock_handle.return_value = None
-        
+
         # Create a mock request with the specified body
         mock_request = AsyncMock()
         mock_request.body = AsyncMock(return_value=request_body)
         mock_request.headers = {"X-Slack-Signature": "test_sig", "X-Slack-Request-Timestamp": "1234"}
         MockRequest.return_value = mock_request
-        
+
         # Create app and get the slack_events endpoint function
         app = create_slack_app(token="test_token")
         slack_events_function = None
@@ -372,9 +356,9 @@ def test_slack_events_endpoint_json_parsing(request_body, should_fail):
             if route.path == "/slack/events" and route.methods == {"POST"}:
                 slack_events_function = route.endpoint
                 break
-        
+
         assert slack_events_function is not None
-        
+
         # Test the function directly
         if should_fail:
             with pytest.raises(Exception):  # Could be JSONDecodeError or other exceptions
@@ -383,7 +367,7 @@ def test_slack_events_endpoint_json_parsing(request_body, should_fail):
             response = asyncio.run(slack_events_function(mock_request))
             if b'"challenge"' in request_body:
                 expected_json = json.loads(request_body)
-                actual_json = json.loads(response.body.decode('utf-8'))
+                actual_json = json.loads(response.body.decode("utf-8"))
                 assert actual_json == expected_json
             else:
-                assert response.body.decode('utf-8') == json.dumps({"status": "ok"})
+                assert response.body.decode("utf-8") == json.dumps({"status": "ok"})

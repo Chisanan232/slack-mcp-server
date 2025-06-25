@@ -1,8 +1,8 @@
 """Unit tests for the Slack event handler module."""
 
 import os
+from typing import Any, Dict
 from unittest.mock import AsyncMock, patch
-from typing import Dict, Any, Optional, List, Tuple
 
 import pytest
 
@@ -105,52 +105,42 @@ async def test_handle_app_mention_in_thread(mock_client):
     [
         # Test with SLACK_BOT_ID set and matching bot_id in message
         (
-            {"bot_id": "B12345678", "text": "Hello", "ts": "1234567890.123456"}, 
-            {"SLACK_BOT_ID": "B12345678"}, 
-            {"ok": True}, 
-            True
+            {"bot_id": "B12345678", "text": "Hello", "ts": "1234567890.123456"},
+            {"SLACK_BOT_ID": "B12345678"},
+            {"ok": True},
+            True,
         ),
         # Test with SLACK_BOT_ID set but non-matching bot_id in message
         (
-            {"bot_id": "BDIFFERENT", "text": "Hello", "ts": "1234567890.123456"}, 
-            {"SLACK_BOT_ID": "B12345678"}, 
-            {"ok": True, "message": "Not a bot message"}, 
-            False
+            {"bot_id": "BDIFFERENT", "text": "Hello", "ts": "1234567890.123456"},
+            {"SLACK_BOT_ID": "B12345678"},
+            {"ok": True, "message": "Not a bot message"},
+            False,
         ),
         # Test with SLACK_BOT_ID set and no bot_id in message
         (
-            {"user": "U87654321", "text": "Hello", "ts": "1234567890.123456"}, 
-            {"SLACK_BOT_ID": "B12345678"}, 
-            {"ok": True, "message": "Not a bot message"}, 
-            False
+            {"user": "U87654321", "text": "Hello", "ts": "1234567890.123456"},
+            {"SLACK_BOT_ID": "B12345678"},
+            {"ok": True, "message": "Not a bot message"},
+            False,
         ),
         # Test with no SLACK_BOT_ID but message has bot_id
-        (
-            {"bot_id": "B98765432", "text": "Hello", "ts": "1234567890.123456"}, 
-            {}, 
-            {"ok": True}, 
-            True
-        ),
+        ({"bot_id": "B98765432", "text": "Hello", "ts": "1234567890.123456"}, {}, {"ok": True}, True),
         # Test with no SLACK_BOT_ID but message has app_id
-        (
-            {"app_id": "A98765432", "text": "Hello", "ts": "1234567890.123456"}, 
-            {}, 
-            {"ok": True}, 
-            True
-        ),
+        ({"app_id": "A98765432", "text": "Hello", "ts": "1234567890.123456"}, {}, {"ok": True}, True),
         # Test with no SLACK_BOT_ID and no bot identifiers in message
         (
-            {"user": "U87654321", "text": "Hello", "ts": "1234567890.123456"}, 
-            {}, 
-            {"ok": False, "error": "Not a bot message"}, 
-            False
+            {"user": "U87654321", "text": "Hello", "ts": "1234567890.123456"},
+            {},
+            {"ok": False, "error": "Not a bot message"},
+            False,
         ),
         # Test with SLACK_BOT_ID matching app_id instead of bot_id
         (
-            {"app_id": "B12345678", "text": "Hello", "ts": "1234567890.123456"}, 
-            {"SLACK_BOT_ID": "B12345678"}, 
-            {"ok": True}, 
-            True
+            {"app_id": "B12345678", "text": "Hello", "ts": "1234567890.123456"},
+            {"SLACK_BOT_ID": "B12345678"},
+            {"ok": True},
+            True,
         ),
     ],
 )
@@ -162,7 +152,7 @@ async def test_handle_reaction_added_parametrized(
     should_post_message: bool,
 ) -> None:
     """Test reaction handling with various bot ID scenarios using parametrization.
-    
+
     Args:
         mock_client: Mock Slack client fixture
         message_attributes: Message attributes to include in the history response
@@ -214,7 +204,7 @@ async def test_handle_reaction_added_parametrized(
                 # Handle SlackResponse for cases where expected_response is incorrect
                 assert hasattr(result, "data")
                 assert result.data["ok"] == expected_response["ok"]
-                
+
             mock_client.chat_postMessage.assert_not_called()
 
 

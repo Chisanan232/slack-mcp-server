@@ -7,9 +7,9 @@ import pytest
 
 from slack_mcp.server import FastMCP
 from slack_mcp.slack_server import (
+    main,
     register_mcp_tools,
     run_slack_server,
-    main,
 )
 
 
@@ -99,9 +99,12 @@ async def test_run_slack_server():
         # Combination of options
         (
             ["--host", "localhost", "--port", "5000", "--slack-token", "test", "--log-level", "DEBUG"],
-            "localhost", 5000, "test", True
+            "localhost",
+            5000,
+            "test",
+            True,
         ),
-    ]
+    ],
 )
 def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_exists):
     """Test the main function with different command line arguments."""
@@ -134,7 +137,7 @@ def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_e
         if "--no-env-file" not in cmd_args:
             env_file = "custom.env" if "--env-file" in cmd_args else ".env"
             mock_path.assert_called_with(env_file)
-            
+
             if env_file_exists:
                 mock_load_dotenv.assert_called_once()
             else:
