@@ -141,7 +141,7 @@ def test_entry_streamable_http_transport(_patch_entry):
     assert dummy.streamable_http_app_calls[0]["called"] is True
 
 
-def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
+def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test loading of environment variables from .env file."""
     entry = _patch_entry.entry
 
@@ -154,9 +154,9 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(pathlib.Path, "resolve", lambda self: str(self))
 
     # Run with default .env path
-    argv = []
+    argv: list[str] = []
 
-    def run_with_timeout():
+    def run_with_timeout() -> None:
         entry.main(argv)
 
     thread = threading.Thread(target=run_with_timeout)
@@ -171,7 +171,7 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
     load_dotenv_calls.clear()
     monkeypatch.setattr(pathlib.Path, "exists", lambda self: False)
 
-    def run_with_timeout_no_file():
+    def run_with_timeout_no_file() -> None:
         entry.main(argv)
 
     thread = threading.Thread(target=run_with_timeout_no_file)
@@ -187,7 +187,7 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
 
     argv = ["--env-file", "custom.env"]
 
-    def run_with_timeout_custom_file():
+    def run_with_timeout_custom_file() -> None:
         entry.main(argv)
 
     thread = threading.Thread(target=run_with_timeout_custom_file)
@@ -203,7 +203,7 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
 
     argv = ["--no-env-file"]
 
-    def run_with_timeout_no_env_file():
+    def run_with_timeout_no_env_file() -> None:
         entry.main(argv)
 
     thread = threading.Thread(target=run_with_timeout_no_env_file)
@@ -214,19 +214,19 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch):
     assert len(load_dotenv_calls) == 0
 
 
-def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch):
+def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test setting Slack token from command line argument."""
     entry = _patch_entry.entry
 
     # Mock os.environ to track setting of SLACK_BOT_TOKEN
-    mock_environ = {}
+    mock_environ: dict[str, str] = {}
     monkeypatch.setattr(os, "environ", mock_environ)
 
     # Case 1: Slack token provided via command line
     test_token = "xoxb-test-token-123456"
-    argv = ["--slack-token", test_token]
+    argv: list[str] = ["--slack-token", test_token]
 
-    def run_with_timeout():
+    def run_with_timeout() -> None:
         entry.main(argv)
 
     thread = threading.Thread(target=run_with_timeout)
@@ -243,7 +243,7 @@ def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatc
     # Add --no-env-file flag to prevent loading from .env file
     argv = ["--no-env-file"]
 
-    def run_with_timeout_no_token():
+    def run_with_timeout_no_token() -> None:
         entry.main(argv)
 
     thread = threading.Thread(target=run_with_timeout_no_token)
