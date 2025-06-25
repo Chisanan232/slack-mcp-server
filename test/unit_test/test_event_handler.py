@@ -1,54 +1,56 @@
 """Unit tests for the Slack event handler module."""
 
 import os
-from typing import Any, Dict
+from typing import Any, Dict, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from slack_mcp.event_handler import (
+    EventCallback,
     handle_app_mention,
     handle_reaction_added,
     register_handlers,
 )
 
 
+# Test fixtures
 @pytest.fixture
-def mock_client():
-    """Create a mock Slack client."""
+def mock_client() -> AsyncMock:
+    """Create a mock Slack client for testing."""
     client = AsyncMock()
-    # Create a proper mock for SlackResponse by having a data attribute
-    response_mock = AsyncMock()
-    response_mock.data = {"ok": True, "ts": "1234567890.123456"}
-    client.chat_postMessage = AsyncMock(return_value=response_mock)
-
-    # Similarly for conversations_history
-    history_response = AsyncMock()
-    history_response.data = {
+    # Mock response data
+    client.chat_postMessage.return_value.data = {
         "ok": True,
-        "messages": [{"text": "Hello", "user": "U12345678", "ts": "1234567890.123456"}],
+        "channel": "C12345678",
+        "ts": "1234567890.123456",
     }
-    history_response.get = lambda key, default=None: history_response.data.get(key, default)
-    client.conversations_history = AsyncMock(return_value=history_response)
-
     return client
 
 
 @pytest.mark.asyncio
-async def test_handle_app_mention_empty_text(mock_client):
+async def test_handle_app_mention_empty_text(mock_client: AsyncMock) -> None:
     """Test handling an app mention with empty text."""
-    event = {
-        "type": "app_mention",
-        "user": "U12345678",
-        "text": "<@U87654321>",
-        "ts": "1234567890.123456",
-        "channel": "C12345678",
-    }
+    # Configure the mock to return a SlackResponse-like object
+    mock_response = AsyncMock()
+    mock_response.data = {"ok": True, "ts": "1234567890.123456", "channel": "C12345678"}
+    mock_client.chat_postMessage.return_value = mock_response
+
+    event = cast(
+        EventCallback,
+        {
+            "type": "app_mention",
+            "user": "U12345678",
+            "text": "<@U87654321>",
+            "ts": "1234567890.123456",
+            "channel": "C12345678",
+        },
+    )
 
     result = await handle_app_mention(mock_client, event)
 
     # The result is the direct response from the chat_postMessage call
-    assert result.data["ok"] is True
+    assert result == mock_response  # Changed assertion to match actual return value
     mock_client.chat_postMessage.assert_called_once_with(
         channel="C12345678",
         text="Hello! I'm your Slack bot. How can I help you today?",
@@ -57,19 +59,27 @@ async def test_handle_app_mention_empty_text(mock_client):
 
 
 @pytest.mark.asyncio
-async def test_handle_app_mention_with_text(mock_client):
+async def test_handle_app_mention_with_text(mock_client: AsyncMock) -> None:
     """Test handling an app mention with text."""
-    event = {
-        "type": "app_mention",
-        "user": "U12345678",
-        "text": "<@U87654321> Hello bot!",
-        "ts": "1234567890.123456",
-        "channel": "C12345678",
-    }
+    # Configure the mock to return a SlackResponse-like object
+    mock_response = AsyncMock()
+    mock_response.data = {"ok": True, "ts": "1234567890.123456", "channel": "C12345678"}
+    mock_client.chat_postMessage.return_value = mock_response
+
+    event = cast(
+        EventCallback,
+        {
+            "type": "app_mention",
+            "user": "U12345678",
+            "text": "<@U87654321> Hello bot!",
+            "ts": "1234567890.123456",
+            "channel": "C12345678",
+        },
+    )
 
     result = await handle_app_mention(mock_client, event)
 
-    assert result.data["ok"] is True
+    assert result == mock_response  # Changed assertion to match actual return value
     mock_client.chat_postMessage.assert_called_once_with(
         channel="C12345678",
         text="You said: Hello bot!",
@@ -78,20 +88,28 @@ async def test_handle_app_mention_with_text(mock_client):
 
 
 @pytest.mark.asyncio
-async def test_handle_app_mention_in_thread(mock_client):
+async def test_handle_app_mention_in_thread(mock_client: AsyncMock) -> None:
     """Test handling an app mention in a thread."""
-    event = {
-        "type": "app_mention",
-        "user": "U12345678",
-        "text": "<@U87654321> Hello in thread!",
-        "ts": "1234567890.123457",
-        "channel": "C12345678",
-        "thread_ts": "1234567890.123456",
-    }
+    # Configure the mock to return a SlackResponse-like object
+    mock_response = AsyncMock()
+    mock_response.data = {"ok": True, "ts": "1234567890.123456", "channel": "C12345678"}
+    mock_client.chat_postMessage.return_value = mock_response
+
+    event = cast(
+        EventCallback,
+        {
+            "type": "app_mention",
+            "user": "U12345678",
+            "text": "<@U87654321> Hello in thread!",
+            "ts": "1234567890.123457",
+            "channel": "C12345678",
+            "thread_ts": "1234567890.123456",
+        },
+    )
 
     result = await handle_app_mention(mock_client, event)
 
-    assert result.data["ok"] is True
+    assert result == mock_response  # Changed assertion to match actual return value
     mock_client.chat_postMessage.assert_called_once_with(
         channel="C12345678",
         text="You said: Hello in thread!",
@@ -162,17 +180,20 @@ async def test_handle_reaction_added_parametrized(
     """
     # Set environment variables for the test
     with patch.dict(os.environ, env_vars, clear=True):
-        event: Dict[str, Any] = {
-            "type": "reaction_added",
-            "user": "U12345678",
-            "reaction": "thumbsup",
-            "item": {
-                "type": "message",
-                "channel": "C12345678",
-                "ts": "1234567890.123456",
+        event = cast(
+            EventCallback,
+            {
+                "type": "reaction_added",
+                "user": "U12345678",
+                "reaction": "thumbsup",
+                "item": {
+                    "type": "message",
+                    "channel": "C12345678",
+                    "ts": "1234567890.123456",
+                },
+                "event_ts": "1234567890.123457",
             },
-            "event_ts": "1234567890.123457",
-        }
+        )
 
         # Mock the conversations_history to return a message with specified attributes
         history_response = AsyncMock()
@@ -211,17 +232,20 @@ async def test_handle_reaction_added_parametrized(
 @pytest.mark.asyncio
 async def test_handle_reaction_added_message_not_found(mock_client: AsyncMock) -> None:
     """Test handling a reaction added when the message can't be found."""
-    event: Dict[str, Any] = {
-        "type": "reaction_added",
-        "user": "U12345678",
-        "reaction": "thumbsup",
-        "item": {
-            "type": "message",
-            "channel": "C12345678",
-            "ts": "1234567890.123456",
+    event = cast(
+        EventCallback,
+        {
+            "type": "reaction_added",
+            "user": "U12345678",
+            "reaction": "thumbsup",
+            "item": {
+                "type": "message",
+                "channel": "C12345678",
+                "ts": "1234567890.123456",
+            },
+            "event_ts": "1234567890.123457",
         },
-        "event_ts": "1234567890.123457",
-    }
+    )
 
     # Mock the conversations_history to return no messages
     history_response = AsyncMock()
@@ -237,7 +261,7 @@ async def test_handle_reaction_added_message_not_found(mock_client: AsyncMock) -
     mock_client.chat_postMessage.assert_not_called()
 
 
-def test_register_handlers():
+def test_register_handlers() -> None:
     """Test registering event handlers."""
     handlers = register_handlers()
 
