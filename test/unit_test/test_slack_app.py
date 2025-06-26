@@ -1,26 +1,27 @@
 """Unit tests for the Slack app module."""
 
+import asyncio
 import json
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, call
+from unittest.mock import AsyncMock, MagicMock, patch
 
-from flask import Flask, jsonify
-from flask.testing import FlaskClient
+import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.slack_app import (
     create_slack_app,
-    verify_slack_request,
     handle_slack_event,
+    verify_slack_request,
 )
 
 
 @pytest.fixture
 def mock_request():
-    """Create a mock Flask request."""
+    """Create a mock FastAPI request."""
     request = MagicMock()
     request.headers = {"X-Slack-Signature": "test_signature", "X-Slack-Request-Timestamp": "1234567890"}
-    request.get_data.return_value = b"test_body"
+    request.body = AsyncMock(return_value=b"test_body")
     return request
 
 
@@ -40,13 +41,14 @@ def mock_client():
     return client
 
 
-def test_verify_slack_request_valid(mock_request):
+@pytest.mark.asyncio
+async def test_verify_slack_request_valid(mock_request):
     """Test verifying a valid Slack request."""
     with patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv:
         mock_sv.return_value.is_valid.return_value = True
-        
-        result = verify_slack_request(mock_request, signing_secret="test_secret")
-        
+
+        result = await verify_slack_request(mock_request, signing_secret="test_secret")
+
         assert result is True
         mock_sv.assert_called_once_with("test_secret")
         mock_sv.return_value.is_valid.assert_called_once_with(
@@ -56,25 +58,29 @@ def test_verify_slack_request_valid(mock_request):
         )
 
 
-def test_verify_slack_request_invalid(mock_request):
+@pytest.mark.asyncio
+async def test_verify_slack_request_invalid(mock_request):
     """Test verifying an invalid Slack request."""
     with patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv:
         mock_sv.return_value.is_valid.return_value = False
-        
-        result = verify_slack_request(mock_request, signing_secret="test_secret")
-        
+
+        result = await verify_slack_request(mock_request, signing_secret="test_secret")
+
         assert result is False
         mock_sv.assert_called_once_with("test_secret")
 
 
-def test_verify_slack_request_env_var(mock_request):
+@pytest.mark.asyncio
+async def test_verify_slack_request_env_var(mock_request):
     """Test verifying a Slack request using the environment variable."""
-    with patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv, \
-         patch.dict("os.environ", {"SLACK_SIGNING_SECRET": "env_secret"}):
+    with (
+        patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv,
+        patch.dict("os.environ", {"SLACK_SIGNING_SECRET": "env_secret"}),
+    ):
         mock_sv.return_value.is_valid.return_value = True
-        
-        result = verify_slack_request(mock_request)
-        
+
+        result = await verify_slack_request(mock_request)
+
         assert result is True
         mock_sv.assert_called_once_with("env_secret")
 
@@ -83,9 +89,9 @@ def test_verify_slack_request_env_var(mock_request):
 async def test_handle_slack_event_no_event(mock_client):
     """Test handling a Slack event with no event data."""
     event_data = {"type": "event_callback"}
-    
+
     result = await handle_slack_event(event_data, mock_client)
-    
+
     assert result is None
 
 
@@ -93,19 +99,19 @@ async def test_handle_slack_event_no_event(mock_client):
 async def test_handle_slack_event_no_type(mock_client):
     """Test handling a Slack event with no event type."""
     event_data = {"event": {}}
-    
+
     result = await handle_slack_event(event_data, mock_client)
-    
+
     assert result is None
 
 
 @pytest.mark.asyncio
 async def test_handle_slack_event_unhandled_type(mock_client):
     """Test handling a Slack event with an unhandled event type."""
-    event_data = {"event": {"type": "unhandled_event"}}
-    
+    event_data = {"event": {"type": "unknown_event_type"}}
+
     result = await handle_slack_event(event_data, mock_client)
-    
+
     assert result is None
 
 
@@ -115,114 +121,253 @@ async def test_handle_slack_event_app_mention(mock_client):
     event_data = {
         "event": {
             "type": "app_mention",
-            "user": "U12345678",
-            "text": "<@U87654321> Hello!",
+            "user": "U12345",
+            "text": "<@BOTID> Hello there!",
+            "channel": "C12345",
             "ts": "1234567890.123456",
-            "channel": "C12345678",
+            "thread_ts": "1234567890.123456",
         }
     }
-    
-    with patch("slack_mcp.slack_app.register_handlers") as mock_register:
-        mock_handler = AsyncMock(return_value={"ok": True})
-        mock_register.return_value = {"app_mention": mock_handler}
-        
-        result = await handle_slack_event(event_data, mock_client)
-        
-        assert result == {"ok": True}
-        mock_handler.assert_called_once_with(mock_client, event_data["event"])
+
+    result = await handle_slack_event(event_data, mock_client)
+
+    assert result is not None
+    mock_client.chat_postMessage.assert_called_once_with(
+        channel="C12345",
+        text="You said: Hello there!",
+        thread_ts="1234567890.123456",
+    )
 
 
 def test_create_slack_app():
     """Test creating a Slack app."""
-    with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls, \
-         patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}):
+    with patch.dict("os.environ", {"SLACK_BOT_TOKEN": "env_token"}):
         app = create_slack_app()
-        
-        assert isinstance(app, Flask)
-        mock_client_cls.assert_called_once_with(token="test_token")
+
+    assert isinstance(app, FastAPI)
+    # Check routes were registered
+    assert any(route.path == "/slack/events" for route in app.routes)
 
 
 def test_create_slack_app_with_token():
     """Test creating a Slack app with a specified token."""
-    with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls:
-        app = create_slack_app(token="custom_token")
-        
-        assert isinstance(app, Flask)
-        mock_client_cls.assert_called_once_with(token="custom_token")
+    app = create_slack_app(token="test_token")
+
+    assert isinstance(app, FastAPI)
+    assert any(route.path == "/slack/events" for route in app.routes)
 
 
 def test_create_slack_app_no_token():
     """Test creating a Slack app with no token."""
-    with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls, \
-         patch.dict("os.environ", {}, clear=True):
-        
+    with patch.dict("os.environ", {"SLACK_BOT_TOKEN": "", "SLACK_TOKEN": ""}, clear=True):
         with pytest.raises(ValueError) as excinfo:
             create_slack_app()
-        
+
         assert "Slack token not found" in str(excinfo.value)
-        mock_client_cls.assert_not_called()
 
 
 def test_slack_events_endpoint_challenge():
     """Test the Slack events endpoint with a URL verification challenge."""
-    # Instead of testing the async route directly, test the handler function
-    with patch("slack_mcp.slack_app.verify_slack_request", return_value=True):
-        # Create a test Flask app and get its request context
-        app = Flask(__name__)
-        client = AsyncMock(spec=AsyncWebClient)
-        
-        # Test the handler function directly
-        event_data = {"type": "url_verification", "challenge": "test_challenge"}
-        
-        # Create a response using Flask's jsonify
-        with app.test_request_context():
-            response = jsonify({"challenge": event_data["challenge"]})
-            
+    with (
+        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
+        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
+    ):
+        mock_verify.return_value = True
+
+        # Create app and test client
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with challenge
+        response = client.post("/slack/events", json={"challenge": "test_challenge"})
+
         assert response.status_code == 200
-        assert json.loads(response.data)["challenge"] == "test_challenge"
+        assert response.json() == {"challenge": "test_challenge"}
 
 
 def test_slack_events_endpoint_event():
     """Test the Slack events endpoint with an event."""
-    # Test the internal handler logic instead of the route
-    mock_handle = AsyncMock()
-    mock_handle.return_value = {"ok": True}
-    
-    with patch("slack_mcp.slack_app.handle_slack_event", mock_handle), \
-         patch("slack_mcp.slack_app.verify_slack_request", return_value=True):
-        
-        # Create a test Flask app
-        app = Flask(__name__)
-        client = AsyncMock(spec=AsyncWebClient)
-        
+    with (
+        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
+        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
+        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
+    ):
+        mock_verify.return_value = True
+        mock_handle.return_value = None
+
+        # Create app and test client
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with an event
         event_data = {
+            "type": "event_callback",
             "event": {
                 "type": "app_mention",
-                "user": "U12345678",
-                "text": "<@U87654321> Hello!",
+                "user": "U12345",
+                "text": "<@BOTID> Hello",
+                "channel": "C12345",
                 "ts": "1234567890.123456",
-                "channel": "C12345678",
-            }
+            },
         }
-        
-        # Test the response creation logic
-        with app.test_request_context():
-            response = jsonify({"status": "ok"})
-        
+        response = client.post("/slack/events", json=event_data)
+
         assert response.status_code == 200
-        assert json.loads(response.data)["status"] == "ok"
+        assert response.json() == {"status": "ok"}
+        mock_handle.assert_awaited_once()
 
 
 def test_slack_events_endpoint_invalid_signature():
     """Test the Slack events endpoint with an invalid signature."""
-    with patch("slack_mcp.slack_app.verify_slack_request", return_value=False):
-        # Create a test Flask app
-        app = Flask(__name__)
-        
-        # Test the response for invalid signature
-        with app.test_request_context():
-            response = jsonify({"error": "Invalid request signature"})
-            response.status_code = 401  # Set status code directly on response
-        
+    with (
+        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
+        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
+    ):
+        mock_verify.return_value = False
+
+        # Create app and test client
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request and check for 401 status code
+        response = client.post("/slack/events", json={"type": "event_callback"})
         assert response.status_code == 401
-        assert json.loads(response.data)["error"] == "Invalid request signature"
+        assert "Invalid request signature" in response.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    "event_data, expected_status, expected_response, should_call_handle_event",
+    [
+        # Challenge verification
+        ({"challenge": "verification_challenge"}, 200, {"challenge": "verification_challenge"}, False),
+        # App mention event
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "app_mention",
+                    "user": "U12345",
+                    "text": "<@BOTID> Hello",
+                    "channel": "C12345",
+                    "ts": "1234567890.123456",
+                },
+            },
+            200,
+            {"status": "ok"},
+            True,
+        ),
+        # Message event
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "message",
+                    "user": "U12345",
+                    "text": "Hello",
+                    "channel": "C12345",
+                    "ts": "1234567890.123456",
+                },
+            },
+            200,
+            {"status": "ok"},
+            True,
+        ),
+        # Reaction added event
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "reaction_added",
+                    "user": "U12345",
+                    "reaction": "thumbsup",
+                    "item": {"type": "message", "channel": "C12345", "ts": "1234567890.123456"},
+                },
+            },
+            200,
+            {"status": "ok"},
+            True,
+        ),
+        # Empty event (still processes but handle_slack_event will return None)
+        ({"type": "event_callback"}, 200, {"status": "ok"}, True),
+        # Malformed event (still returns 200 but logs a warning)
+        ({"not_a_valid_event": True}, 200, {"status": "ok"}, True),
+    ],
+)
+def test_slack_events_endpoint_parametrized(event_data, expected_status, expected_response, should_call_handle_event):
+    """Test the slack_events endpoint with different event scenarios."""
+    with (
+        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
+        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
+        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
+    ):
+        mock_verify.return_value = True
+        mock_handle.return_value = None
+
+        # Create app and test client
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with the event data
+        response = client.post("/slack/events", json=event_data)
+
+        # Check the response
+        assert response.status_code == expected_status
+        assert response.json() == expected_response
+
+        # Verify handle_slack_event was called appropriately
+        if should_call_handle_event:
+            mock_handle.assert_awaited_once()
+        else:
+            mock_handle.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "request_body, should_fail",
+    [
+        # Valid JSON
+        (b'{"challenge": "test_challenge"}', False),
+        # Invalid JSON (syntax error)
+        (b'{"challenge": "test_challenge"', True),
+        # Empty body
+        (b"", True),
+    ],
+)
+def test_slack_events_endpoint_json_parsing(request_body, should_fail):
+    """Test the slack_events endpoint with different JSON inputs."""
+    with (
+        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
+        patch("fastapi.Request") as MockRequest,
+        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
+        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
+    ):
+        mock_verify.return_value = True
+        mock_handle.return_value = None
+
+        # Create a mock request with the specified body
+        mock_request = AsyncMock()
+        mock_request.body = AsyncMock(return_value=request_body)
+        mock_request.headers = {"X-Slack-Signature": "test_sig", "X-Slack-Request-Timestamp": "1234"}
+        MockRequest.return_value = mock_request
+
+        # Create app and get the slack_events endpoint function
+        app = create_slack_app(token="test_token")
+        slack_events_function = None
+        for route in app.routes:
+            if route.path == "/slack/events" and route.methods == {"POST"}:
+                slack_events_function = route.endpoint
+                break
+
+        assert slack_events_function is not None
+
+        # Test the function directly
+        if should_fail:
+            with pytest.raises(Exception):  # Could be JSONDecodeError or other exceptions
+                response = asyncio.run(slack_events_function(mock_request))
+        else:
+            response = asyncio.run(slack_events_function(mock_request))
+            if b'"challenge"' in request_body:
+                expected_json = json.loads(request_body)
+                actual_json = json.loads(response.body.decode("utf-8"))
+                assert actual_json == expected_json
+            else:
+                assert response.body.decode("utf-8") == json.dumps({"status": "ok"})
