@@ -21,6 +21,7 @@ __all__: list[str] = [
     "read_slack_channel_messages",
     "send_slack_thread_reply",
     "read_slack_emojis",
+    "add_slack_reactions",
 ]
 
 from slack_mcp.model import (
@@ -29,6 +30,7 @@ from slack_mcp.model import (
     SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
+    SlackAddReactionsInput,
     _BaseInput,
 )
 
@@ -235,6 +237,47 @@ async def read_slack_emojis(
     return response.data
 
 
+@mcp.tool("slack_add_reactions")
+async def add_slack_reactions(
+    input_params: SlackAddReactionsInput,
+) -> dict[str, Any]:
+    """Add one or more emoji reactions to a specific message in a Slack channel.
+
+    Parameters
+    ----------
+    input_params
+        SlackAddReactionsInput object containing channel, timestamp, emojis, and token.
+
+    Returns
+    -------
+    dict[str, Any]
+        A dictionary containing a list of responses under the 'responses' key.
+        Each response is the raw JSON returned by Slack for each emoji reaction added.
+
+    Raises
+    ------
+    ValueError
+        If no *token* is supplied and the relevant environment variables are
+        missing as well.
+    """
+
+    resolved_token = _verify_slack_token_exist(input_params)
+
+    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
+
+    responses: List[Dict[str, Any]] = []
+    
+    for emoji in input_params.emojis:
+        response = await client.reactions_add(
+            channel=input_params.channel,
+            timestamp=input_params.timestamp,
+            name=emoji
+        )
+        responses.append(response.data)
+    
+    return {"responses": responses}
+
+
 # ---------------------------------------------------------------------------
 # Guidance prompt for LLMs
 # ---------------------------------------------------------------------------
@@ -344,3 +387,57 @@ def _slack_read_emojis_usage() -> str:  # noqa: D401 – imperative style accept
         "include a mapping of emoji names to either URLs (for custom emojis) or alias strings (for "
         "standard emojis that are aliased to other emojis) in the `emoji` field."
     )
+
+
+@mcp.prompt("slack_add_reactions_usage")
+def _slack_add_reactions_usage() -> str:  # noqa: D401 – imperative style acceptable for prompt
+    """Explain when and how to invoke the ``slack_add_reactions`` tool."""
+
+    return (
+        "Use `slack_add_reactions` when you need to add one or more emoji reactions to a specific message in a Slack channel. "
+        "This allows adding emoji reactions to any message, including those in threads.\n\n"
+        "Input guidelines:\n"
+        " • **channel** — Slack channel ID (e.g., `C12345678`) or name with `#`.\n"
+        " • **timestamp** — Timestamp ID of the message to react to.\n"
+        " • **emojis** — A list of emoji names to add as reactions.\n"
+        " • **token** — *Optional.* Provide if the default bot token env var is unavailable.\n\n"
+        "The tool returns a dictionary containing a list of raw JSON responses from Slack (one for each emoji). "
+        "If any response's `ok` field is `false`, consider that particular emoji failed "
+        "and surface the corresponding `error` field to the user."
+    )
+
+
+def usage_prompt() -> str:
+    """Report the overall consolidated usage prompt for this server."""
+
+    return f"""
+    # Slack Operations MCP Server
+
+    This server exposes tools to interact with Slack from an MCP client.
+
+    ## Available Tools
+
+    ### slack_post_message
+
+    {_slack_post_message_usage()}
+
+    ### slack_read_channel_messages
+
+    {_slack_read_channel_messages_usage()}
+
+    ### slack_read_thread_messages
+
+    {_slack_read_thread_messages_usage()}
+
+    ### slack_thread_reply
+
+    {_slack_thread_reply_usage()}
+
+    ### slack_read_emojis
+    
+    {_slack_read_emojis_usage()}
+
+    ### slack_add_reactions
+    
+    {_slack_add_reactions_usage()}
+    """
