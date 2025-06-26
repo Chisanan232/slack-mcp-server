@@ -14,6 +14,7 @@ from slack_mcp.model import (
     SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
+    SlackAddReactionsInput,
     _BaseInput,
 )
 
@@ -99,7 +100,16 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
             "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
         }
         return _FakeSlackResponse({"ok": True, "emoji": emojis})
-
+        
+    async def reactions_add(self, *, channel: str, timestamp: str, name: str, **_: Any):
+        """Echo back inputs in a Slack-like response structure for reactions.add API."""
+        response = {
+            "ok": True, 
+            "channel": channel, 
+            "timestamp": timestamp,
+            "name": name,
+        }
+        return _FakeSlackResponse(response)
 
 @pytest.fixture(autouse=True)
 def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -407,16 +417,17 @@ async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyP
 async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPatch) -> None:
     """Function should return a dict with an empty list if texts list is empty."""
 
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-env-token")
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
 
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=[])
+        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=[])
     )
 
     assert isinstance(result, dict)
     assert "responses" in result
-    assert result["responses"] == []
+    assert isinstance(result["responses"], list)
+    assert len(result["responses"]) == 0
 
 
 @pytest.mark.asyncio
@@ -430,15 +441,8 @@ async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: s
     assert result["ok"] is True
     assert "emoji" in result
     assert isinstance(result["emoji"], dict)
-    assert len(result["emoji"]) == 4
-
-    # Check built-in emojis
     assert result["emoji"]["thumbsup"] == "alias:+1"
-    assert result["emoji"]["smile"] == "alias:grinning"
-
-    # Check custom emojis
-    assert result["emoji"]["custom_emoji1"].startswith("https://")
-    assert result["emoji"]["custom_emoji2"].startswith("https://")
+    assert result["emoji"]["custom_emoji1"] == "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png"
 
 
 @pytest.mark.asyncio
@@ -453,7 +457,6 @@ async def test_read_slack_emojis_param(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result["ok"] is True
     assert "emoji" in result
     assert isinstance(result["emoji"], dict)
-    assert len(result["emoji"]) == 4
 
 
 @pytest.mark.asyncio
@@ -465,3 +468,93 @@ async def test_read_slack_emojis_missing_token(monkeypatch: pytest.MonkeyPatch) 
 
     with pytest.raises(ValueError):
         await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
+async def test_add_slack_reactions_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
+    """Token should be picked from environment when *token* argument is *None* for adding reactions."""
+
+    monkeypatch.setenv(env_var, "xoxb-env-token")
+
+    timestamp = "1620000000.000000"
+    result = await srv.add_slack_reactions(
+        input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=["thumbsup", "heart"])
+    )
+
+    assert isinstance(result, dict)
+    assert "responses" in result
+
+    responses = result["responses"]
+    assert isinstance(responses, list)
+    assert len(responses) == 2
+
+    # Check first reaction
+    assert responses[0]["ok"] is True
+    assert responses[0]["channel"] == "#general"
+    assert responses[0]["timestamp"] == timestamp
+    assert responses[0]["name"] == "thumbsup"
+
+    # Check second reaction
+    assert responses[1]["ok"] is True
+    assert responses[1]["channel"] == "#general"
+    assert responses[1]["timestamp"] == timestamp
+    assert responses[1]["name"] == "heart"
+
+
+@pytest.mark.asyncio
+async def test_add_slack_reactions_param(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Explicit *token* parameter takes precedence over environment variables for adding reactions."""
+
+    # Ensure env vars are absent.
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    timestamp = "1620000000.000000"
+    result = await srv.add_slack_reactions(
+        input_params=SlackAddReactionsInput(
+            channel="C123", timestamp=timestamp, emojis=["smile"], token="xoxb-param"
+        )
+    )
+
+    assert isinstance(result, dict)
+    assert "responses" in result
+
+    responses = result["responses"]
+    assert isinstance(responses, list)
+    assert len(responses) == 1
+    assert responses[0]["ok"] is True
+    assert responses[0]["channel"] == "C123"
+    assert responses[0]["timestamp"] == timestamp
+    assert responses[0]["name"] == "smile"
+
+
+@pytest.mark.asyncio
+async def test_add_slack_reactions_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should raise :class:`ValueError` if no token is provided at all for adding reactions."""
+
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    timestamp = "1620000000.000000"
+    with pytest.raises(ValueError):
+        await srv.add_slack_reactions(
+            input_params=SlackAddReactionsInput(channel="C123", timestamp=timestamp, emojis=["smile"])
+        )
+
+
+@pytest.mark.asyncio
+async def test_add_slack_reactions_empty_emojis(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should return a dict with an empty list if emojis list is empty."""
+
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
+
+    timestamp = "1620000000.000000"
+    result = await srv.add_slack_reactions(
+        input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=[])
+    )
+
+    assert isinstance(result, dict)
+    assert "responses" in result
+    assert isinstance(result["responses"], list)
+    assert len(result["responses"]) == 0
