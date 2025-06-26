@@ -559,3 +559,171 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
             # Since we got successful responses from the Slack API on send, we consider this test passed
         else:
             pytest.fail(f"Thread replies verification failed: {e}")
+
+
+@pytest.mark.skipif(
+    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+)
+async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
+    """Spawn the server via stdio, post a message, then add emoji reactions to it."""
+    # Import here to avoid heavy dependencies at collection time
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    # Get required values from environment
+    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    unique_text = f"mcp-e2e-reaction-test-{uuid.uuid4()}"
+
+    logger.info(f"Testing with channel ID: {channel_id}")
+    logger.info(f"Using unique message text: {unique_text}")
+    
+    # Create a test message to react to
+    message_ts = None
+    try:
+        test_client = AsyncWebClient(token=bot_token)
+        # Verify token works with direct API call first
+        auth_test = await test_client.auth_test()
+        logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+        
+        # Send a test message that we'll react to
+        message_response = await test_client.chat_postMessage(channel=channel_id, text=unique_text)
+        assert message_response["ok"] is True, "Failed to send test message"
+        message_ts = message_response["ts"]
+        logger.info(f"Created test message with timestamp: {message_ts}")
+    except Exception as e:
+        pytest.fail(f"Slack API setup failed: {e}")
+    
+    # Prepare server with explicit environment set
+    custom_env = {**os.environ}  # Create a copy
+    custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
+
+    # Use simple transport args
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=["-m", "slack_mcp.entry"],
+        env=custom_env,
+    )
+
+    logger.info("Starting MCP server via stdio")
+
+    # Set a reasonable timeout for operations
+    read_timeout = timedelta(seconds=30)
+    
+    # Define emojis to add as reactions
+    emojis_to_add = ["thumbsup", "heart"]
+    
+    # Slack emoji name mapping (some emoji names differ between what we send and what Slack returns)
+    slack_emoji_mapping = {
+        "thumbsup": "+1",  # Slack returns "+1" when "thumbsup" is used
+        # Add other mappings if needed in the future
+    }
+
+    try:
+        # Connect to the server
+        async with stdio_client(server_params) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream, read_timeout_seconds=read_timeout) as session:
+                # Initialize the session first
+                logger.info("Initializing MCP session...")
+                init_result = await session.initialize()
+                logger.info(f"Initialization successful: {init_result}")
+
+                # Wait a moment to ensure server is ready
+                await asyncio.sleep(1)
+
+                # List available tools for debugging
+                logger.info("Listing available tools...")
+                tools = await session.list_tools()
+                tool_names = [tool.name for tool in tools.tools]
+                logger.info(f"Found tools: {tool_names}")
+
+                if "slack_add_reactions" not in tool_names:
+                    pytest.fail("slack_add_reactions tool not found in server")
+
+                # Call our test tool
+                logger.info(f"Calling slack_add_reactions tool with channel: {channel_id} and message ts: {message_ts}")
+                result = await session.call_tool(
+                    "slack_add_reactions",
+                    {
+                        "input_params": {
+                            "channel": channel_id,
+                            "timestamp": message_ts,
+                            "emojis": emojis_to_add,
+                        }
+                    },
+                    read_timeout_seconds=read_timeout,
+                )
+
+                # Log the result
+                logger.info(f"Tool result content type: {type(result.content).__name__}")
+
+                # Verify the result is successful
+                assert result.isError is False, f"Tool execution failed: {result.content}"
+                assert len(result.content) > 0, "Expected non-empty content in response"
+
+                # The content is a list of TextContent objects
+                text_content = result.content[0]
+                logger.info(f"Content item type: {type(text_content).__name__}")
+
+                # Extract response from TextContent
+                assert hasattr(text_content, "text"), "TextContent missing text field"
+                logger.info(f"Response text preview: {text_content.text[:100]}...")
+
+                # Parse the JSON response
+                slack_response = json.loads(text_content.text)
+                logger.info(f"Parsed Slack response: {slack_response}")
+
+                # Verify the result has expected structure
+                assert "responses" in slack_response, "Missing 'responses' field in Slack response"
+                assert isinstance(slack_response["responses"], list), "'responses' should be a list"
+                assert len(slack_response["responses"]) == len(emojis_to_add), f"Expected {len(emojis_to_add)} responses"
+                
+                # Check each response for the emoji reactions
+                for i, emoji in enumerate(emojis_to_add):
+                    response = slack_response["responses"][i]
+                    assert response.get("ok") is True, f"Slack API returned error for emoji {emoji}: {response}"
+                    # The Slack API reactions.add doesn't return name and timestamp in the response
+                    # We just verify that each reaction was successfully added ("ok": true)
+                
+                logger.info("Successfully added emoji reactions")
+    except Exception as e:
+        logger.error(f"Error: {repr(e)}")
+        import traceback
+
+        logger.error(traceback.format_exc())
+        pytest.fail(f"MCP client operation failed: {e}")
+
+    # Wait briefly to ensure reactions are processed
+    await asyncio.sleep(1)
+
+    # Verify the reactions were actually added
+    logger.info("Verifying emoji reactions were added...")
+    try:
+        client = AsyncWebClient(token=bot_token)
+        reactions_response = await client.reactions_get(channel=channel_id, timestamp=message_ts)
+        
+        assert reactions_response.get("ok") is True, f"Reactions API call failed: {reactions_response}"
+        assert "message" in reactions_response, "Missing 'message' field in reactions response"
+        
+        message = reactions_response.get("message", {})
+        assert "reactions" in message, "No reactions found on message"
+        
+        reactions = message.get("reactions", [])
+        reaction_names = [reaction.get("name") for reaction in reactions]
+        logger.info(f"Found reaction names: {reaction_names}")
+        
+        # Verify each emoji was added, accounting for Slack's emoji name mapping
+        for emoji in emojis_to_add:
+            # Get the expected reaction name (either the mapped version or the original)
+            expected_name = slack_emoji_mapping.get(emoji, emoji)
+            assert expected_name in reaction_names, f"Emoji '{emoji}' (as '{expected_name}') not found in reactions"
+            
+        logger.info("Successfully verified emoji reactions were added")
+    except Exception as e:
+        if "missing_scope" in str(e):
+            logger.warning(f"Cannot verify reactions due to missing permissions: {e}")
+            logger.warning("Skipping full verification, but reaction add was successful according to API response")
+            # Since we got a successful response from the Slack API on add, we consider this test passed
+        else:
+            pytest.fail(f"Reaction verification failed: {e}")
