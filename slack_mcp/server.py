@@ -215,7 +215,7 @@ async def read_slack_emojis(
     Returns
     -------
     dict[str, Any]
-        The raw JSON response returned by Slack. This contains a mapping of emoji 
+        The raw JSON response returned by Slack. This contains a mapping of emoji
         names to their URLs or aliases.
 
     Raises

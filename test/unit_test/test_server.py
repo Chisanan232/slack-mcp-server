@@ -431,11 +431,11 @@ async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: s
     assert "emoji" in result
     assert isinstance(result["emoji"], dict)
     assert len(result["emoji"]) == 4
-    
+
     # Check built-in emojis
     assert result["emoji"]["thumbsup"] == "alias:+1"
     assert result["emoji"]["smile"] == "alias:grinning"
-    
+
     # Check custom emojis
     assert result["emoji"]["custom_emoji1"].startswith("https://")
     assert result["emoji"]["custom_emoji2"].startswith("https://")
