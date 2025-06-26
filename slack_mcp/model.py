@@ -10,6 +10,7 @@ __all__: list[str] = [
     "SlackReadChannelMessagesInput",
     "SlackThreadReplyInput",
     "SlackReadEmojisInput",
+    "SlackAddReactionsInput",
 ]
 
 
@@ -101,3 +102,21 @@ class SlackReadEmojisInput(_BaseInput):
         If not provided, it will attempt to get one from environment variable
         ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
     """
+
+
+@dataclass(slots=True, kw_only=True)
+class SlackAddReactionsInput(_BaseInput):
+    """
+    Structured input for :pydata:`add_slack_reactions`.
+
+    :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
+    :param timestamp: the timestamp of the message to react to
+    :param emojis: a list of emoji names to add as reactions
+    :param token: the Slack bot token to use (optional, default to ``None``)
+        If not provided, it will attempt to get one from environment variable
+        ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
+    """
+
+    channel: str
+    timestamp: str
+    emojis: List[str]
