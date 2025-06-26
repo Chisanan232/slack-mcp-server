@@ -9,12 +9,12 @@ import pytest
 
 import slack_mcp.server as srv
 from slack_mcp.model import (
+    SlackAddReactionsInput,
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
     SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
-    SlackAddReactionsInput,
     _BaseInput,
 )
 
@@ -100,16 +100,17 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
             "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
         }
         return _FakeSlackResponse({"ok": True, "emoji": emojis})
-        
+
     async def reactions_add(self, *, channel: str, timestamp: str, name: str, **_: Any):
         """Echo back inputs in a Slack-like response structure for reactions.add API."""
         response = {
-            "ok": True, 
-            "channel": channel, 
+            "ok": True,
+            "channel": channel,
             "timestamp": timestamp,
             "name": name,
         }
         return _FakeSlackResponse(response)
+
 
 @pytest.fixture(autouse=True)
 def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -512,9 +513,7 @@ async def test_add_slack_reactions_param(monkeypatch: pytest.MonkeyPatch) -> Non
 
     timestamp = "1620000000.000000"
     result = await srv.add_slack_reactions(
-        input_params=SlackAddReactionsInput(
-            channel="C123", timestamp=timestamp, emojis=["smile"], token="xoxb-param"
-        )
+        input_params=SlackAddReactionsInput(channel="C123", timestamp=timestamp, emojis=["smile"], token="xoxb-param")
     )
 
     assert isinstance(result, dict)

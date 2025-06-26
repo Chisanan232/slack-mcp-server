@@ -578,7 +578,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
 
     logger.info(f"Testing with channel ID: {channel_id}")
     logger.info(f"Using unique message text: {unique_text}")
-    
+
     # Create a test message to react to
     message_ts = None
     try:
@@ -586,7 +586,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
         # Verify token works with direct API call first
         auth_test = await test_client.auth_test()
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
-        
+
         # Send a test message that we'll react to
         message_response = await test_client.chat_postMessage(channel=channel_id, text=unique_text)
         assert message_response["ok"] is True, "Failed to send test message"
@@ -594,7 +594,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
         logger.info(f"Created test message with timestamp: {message_ts}")
     except Exception as e:
         pytest.fail(f"Slack API setup failed: {e}")
-    
+
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
     custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
@@ -610,10 +610,10 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
 
     # Set a reasonable timeout for operations
     read_timeout = timedelta(seconds=30)
-    
+
     # Define emojis to add as reactions
     emojis_to_add = ["thumbsup", "heart"]
-    
+
     # Slack emoji name mapping (some emoji names differ between what we send and what Slack returns)
     slack_emoji_mapping = {
         "thumbsup": "+1",  # Slack returns "+1" when "thumbsup" is used
@@ -677,15 +677,17 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
                 # Verify the result has expected structure
                 assert "responses" in slack_response, "Missing 'responses' field in Slack response"
                 assert isinstance(slack_response["responses"], list), "'responses' should be a list"
-                assert len(slack_response["responses"]) == len(emojis_to_add), f"Expected {len(emojis_to_add)} responses"
-                
+                assert len(slack_response["responses"]) == len(
+                    emojis_to_add
+                ), f"Expected {len(emojis_to_add)} responses"
+
                 # Check each response for the emoji reactions
                 for i, emoji in enumerate(emojis_to_add):
                     response = slack_response["responses"][i]
                     assert response.get("ok") is True, f"Slack API returned error for emoji {emoji}: {response}"
                     # The Slack API reactions.add doesn't return name and timestamp in the response
                     # We just verify that each reaction was successfully added ("ok": true)
-                
+
                 logger.info("Successfully added emoji reactions")
     except Exception as e:
         logger.error(f"Error: {repr(e)}")
@@ -702,23 +704,23 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     try:
         client = AsyncWebClient(token=bot_token)
         reactions_response = await client.reactions_get(channel=channel_id, timestamp=message_ts)
-        
+
         assert reactions_response.get("ok") is True, f"Reactions API call failed: {reactions_response}"
         assert "message" in reactions_response, "Missing 'message' field in reactions response"
-        
+
         message = reactions_response.get("message", {})
         assert "reactions" in message, "No reactions found on message"
-        
+
         reactions = message.get("reactions", [])
         reaction_names = [reaction.get("name") for reaction in reactions]
         logger.info(f"Found reaction names: {reaction_names}")
-        
+
         # Verify each emoji was added, accounting for Slack's emoji name mapping
         for emoji in emojis_to_add:
             # Get the expected reaction name (either the mapped version or the original)
             expected_name = slack_emoji_mapping.get(emoji, emoji)
             assert expected_name in reaction_names, f"Emoji '{emoji}' (as '{expected_name}') not found in reactions"
-            
+
         logger.info("Successfully verified emoji reactions were added")
     except Exception as e:
         if "missing_scope" in str(e):

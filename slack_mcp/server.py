@@ -25,12 +25,12 @@ __all__: list[str] = [
 ]
 
 from slack_mcp.model import (
+    SlackAddReactionsInput,
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
     SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
-    SlackAddReactionsInput,
     _BaseInput,
 )
 
@@ -266,15 +266,13 @@ async def add_slack_reactions(
     client: AsyncWebClient = AsyncWebClient(token=resolved_token)
 
     responses: List[Dict[str, Any]] = []
-    
+
     for emoji in input_params.emojis:
         response = await client.reactions_add(
-            channel=input_params.channel,
-            timestamp=input_params.timestamp,
-            name=emoji
+            channel=input_params.channel, timestamp=input_params.timestamp, name=emoji
         )
         responses.append(response.data)
-    
+
     return {"responses": responses}
 
 
@@ -434,10 +432,10 @@ def usage_prompt() -> str:
     {_slack_thread_reply_usage()}
 
     ### slack_read_emojis
-    
+
     {_slack_read_emojis_usage()}
 
     ### slack_add_reactions
-    
+
     {_slack_add_reactions_usage()}
     """
