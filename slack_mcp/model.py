@@ -9,6 +9,7 @@ __all__: list[str] = [
     "SlackReadThreadMessagesInput",
     "SlackReadChannelMessagesInput",
     "SlackThreadReplyInput",
+    "SlackReadEmojisInput",
 ]
 
 
@@ -89,3 +90,14 @@ class SlackThreadReplyInput(_BaseInput):
     channel: str
     thread_ts: str
     texts: List[str]
+
+
+@dataclass(slots=True, kw_only=True)
+class SlackReadEmojisInput(_BaseInput):
+    """
+    Structured input for :pydata:`read_slack_emojis`.
+
+    :param token: the Slack bot token to use (optional, default to ``None``)
+        If not provided, it will attempt to get one from environment variable
+        ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
+    """
