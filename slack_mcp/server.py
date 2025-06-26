@@ -20,11 +20,13 @@ __all__: list[str] = [
     "read_thread_messages",
     "read_slack_channel_messages",
     "send_slack_thread_reply",
+    "read_slack_emojis",
 ]
 
 from slack_mcp.model import (
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
+    SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
     _BaseInput,
@@ -199,6 +201,40 @@ async def send_slack_thread_reply(
     return {"responses": responses}
 
 
+@mcp.tool("slack_read_emojis")
+async def read_slack_emojis(
+    input_params: SlackReadEmojisInput,
+) -> dict[str, Any]:
+    """Get all emojis (both built-in and custom) available in the Slack workspace.
+
+    Parameters
+    ----------
+    input_params
+        SlackReadEmojisInput object containing token.
+
+    Returns
+    -------
+    dict[str, Any]
+        The raw JSON response returned by Slack. This contains a mapping of emoji 
+        names to their URLs or aliases.
+
+    Raises
+    ------
+    ValueError
+        If no *token* is supplied and the relevant environment variables are
+        missing as well.
+    """
+
+    resolved_token = _verify_slack_token_exist(input_params)
+
+    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
+
+    response = await client.emoji_list(include_categories=True)
+
+    # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
+    return response.data
+
+
 # ---------------------------------------------------------------------------
 # Guidance prompt for LLMs
 # ---------------------------------------------------------------------------
@@ -287,4 +323,24 @@ def _slack_thread_reply_usage() -> str:  # noqa: D401 – imperative style accep
         "The tool returns a dictionary containing a list of raw JSON responses from Slack (one for each message). "
         "If any response's `ok` field is `false`, consider that particular message failed "
         "and surface the corresponding `error` field to the user."
+    )
+
+
+@mcp.prompt("slack_read_emojis_usage")
+def _slack_read_emojis_usage() -> str:  # noqa: D401 – imperative style acceptable for prompt
+    """Explain when and how to invoke the ``slack_read_emojis`` tool."""
+
+    return (
+        "Use `slack_read_emojis` when you need to retrieve all emojis available in the Slack workspace. "
+        "This includes both standard (built-in) Slack emojis and any custom emojis that have been "
+        "added to the workspace. Typical scenarios include:\n"
+        " • Providing a list of available emojis for users to reference.\n"
+        " • Determining which emojis (especially custom ones) are available for use in messages.\n"
+        " • Analyzing emoji usage and availability in a workspace.\n\n"
+        "Input guidelines:\n"
+        " • **token** — *Optional.* Provide if the default bot token env var is unavailable.\n\n"
+        "The tool returns the raw JSON response from Slack. If the response's `ok` field is `false`, "
+        "consider the operation failed and surface the `error` field to the user. The response will "
+        "include a mapping of emoji names to either URLs (for custom emojis) or alias strings (for "
+        "standard emojis that are aliased to other emojis) in the `emoji` field."
     )
