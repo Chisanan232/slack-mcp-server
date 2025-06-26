@@ -11,6 +11,7 @@ import slack_mcp.server as srv
 from slack_mcp.model import (
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
+    SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
     _BaseInput,
@@ -86,6 +87,18 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
                 "response_metadata": {"next_cursor": ""},
             }
         )
+
+    async def emoji_list(self, **_: Any):
+        """Return a mock emoji list with built-in and custom emojis."""
+        emojis = {
+            # Built-in emojis (aliases to other emojis)
+            "thumbsup": "alias:+1",
+            "smile": "alias:grinning",
+            # Custom emojis (URLs to images)
+            "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+            "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+        }
+        return _FakeSlackResponse({"ok": True, "emoji": emojis})
 
 
 @pytest.fixture(autouse=True)
@@ -403,5 +416,52 @@ async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPat
 
     assert isinstance(result, dict)
     assert "responses" in result
-    assert isinstance(result["responses"], list)
-    assert len(result["responses"]) == 0
+    assert result["responses"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
+async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
+    """Token should be picked from environment when *token* argument is *None* for emoji reading."""
+
+    monkeypatch.setenv(env_var, "xoxb-env-token")
+
+    result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
+    assert result["ok"] is True
+    assert "emoji" in result
+    assert isinstance(result["emoji"], dict)
+    assert len(result["emoji"]) == 4
+    
+    # Check built-in emojis
+    assert result["emoji"]["thumbsup"] == "alias:+1"
+    assert result["emoji"]["smile"] == "alias:grinning"
+    
+    # Check custom emojis
+    assert result["emoji"]["custom_emoji1"].startswith("https://")
+    assert result["emoji"]["custom_emoji2"].startswith("https://")
+
+
+@pytest.mark.asyncio
+async def test_read_slack_emojis_param(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Explicit *token* parameter takes precedence over environment variables for emoji reading."""
+
+    # Ensure env vars are absent.
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput(token="xoxb-param"))
+    assert result["ok"] is True
+    assert "emoji" in result
+    assert isinstance(result["emoji"], dict)
+    assert len(result["emoji"]) == 4
+
+
+@pytest.mark.asyncio
+async def test_read_slack_emojis_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should raise :class:`ValueError` if no token is provided at all for emoji reading."""
+
+    for var in aSYNC_TOKEN_ENV_VARS:
+        monkeypatch.delenv(var, raising=False)
+
+    with pytest.raises(ValueError):
+        await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
