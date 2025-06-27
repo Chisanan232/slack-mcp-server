@@ -17,6 +17,7 @@ from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
 from .event_handler import SlackEvent, register_handlers
+from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
 __all__: list[str] = [
     "create_slack_app",
@@ -139,16 +140,35 @@ def create_slack_app(token: str | None = None) -> FastAPI:
         body_str = body.decode("utf-8")
 
         # Parse the request body
-        slack_event = json.loads(body_str)
+        slack_event_dict = json.loads(body_str)
+
+        # Use Pydantic model for deserialization
+        try:
+            slack_event_model = deserialize(slack_event_dict)
+        except Exception as e:
+            _LOG.error(f"Error deserializing Slack event: {e}")
+            # Continue with the original dictionary approach as fallback
+            slack_event_model = None
 
         # Handle URL verification challenge
-        if "challenge" in slack_event:
+        if isinstance(slack_event_model, UrlVerificationModel):
             _LOG.info("Handling URL verification challenge")
-            return JSONResponse(content={"challenge": slack_event["challenge"]})
+            return JSONResponse(content={"challenge": slack_event_model.challenge})
+        elif "challenge" in slack_event_dict:
+            _LOG.info("Handling URL verification challenge (fallback)")
+            return JSONResponse(content={"challenge": slack_event_dict["challenge"]})
 
         # Handle the event
-        _LOG.info(f"Received Slack event: {slack_event.get('event', {}).get('type')}")
-        await handle_slack_event(cast(SlackEvent, slack_event), client)
+        if isinstance(slack_event_model, SlackEventModel):
+            # Use the Pydantic model for logging and processing
+            _LOG.info(f"Received Slack event: {slack_event_model.event.type if hasattr(slack_event_model.event, 'type') else 'unknown'}")
+            # Convert model to dict for backward compatibility with handle_slack_event
+            event_dict = slack_event_model.model_dump()
+            await handle_slack_event(cast(SlackEvent, event_dict), client)
+        else:
+            # Fallback to original dictionary approach
+            _LOG.info(f"Received Slack event: {slack_event_dict.get('event', {}).get('type')}")
+            await handle_slack_event(cast(SlackEvent, slack_event_dict), client)
 
         # Return 200 OK to acknowledge receipt of the event
         return JSONResponse(content={"status": "ok"})
