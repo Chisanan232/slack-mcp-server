@@ -25,9 +25,27 @@ dist/
 *.egg-info/
 
 ## Script
-scripts/ci/get-all-tests.sh
+scripts/ci/**
+scripts/run_all_tests.sh
 
 ## Some usage of this project
+study/
+
+## Some files for development
+.github/
+.coveragerc
+.gitcommitrules
+.gitignore
+.pre-commit-config.yaml
+.pylintrc
+codecov.yml
+mkdocs.yml
+mypy.ini
+pytest.ini
+sonar-project.properties
+docs/
+test/
+venv/
 
 ## Configuration
 .env*
