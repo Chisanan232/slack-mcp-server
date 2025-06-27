@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Generator
+from typing import Any, Dict, Generator, List
 
 import pytest
 from fastapi import FastAPI, Request
+from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
 from slack_mcp.integrated_server import create_integrated_app
@@ -117,7 +118,7 @@ def test_integrated_server_structure(
     # Mock the MCP server instance to avoid task group initialization issues
     class MockMCPApp:
         def __init__(self) -> None:
-            self.routes = []
+            self.routes: List[APIRoute] = []
 
         def sse_app(self, mount_path: str | None = None) -> Any:
             # Return a minimal FastAPI app instead of just a string

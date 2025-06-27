@@ -118,9 +118,41 @@ async def sse_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[D
             pass
 
 
+@pytest_asyncio.fixture
+async def http_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[Dict[str, Any], None]:
+    """Start an integrated server with streamable-http transport for e2e testing."""
+    port = find_free_port()
+
+    # Create the integrated app
+    app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="streamable-http")
+
+    # Configure and start the server
+    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
+    server = TestServer(config)
+
+    # Start the server in a separate task
+    task = asyncio.create_task(server.start_and_wait())
+
+    # Give it a moment to start up
+    await asyncio.sleep(0.5)
+
+    try:
+        # Yield the server info
+        yield {"port": port, "base_url": f"http://127.0.0.1:{port}"}
+    finally:
+        # Stop the server
+        server.should_exit = True
+        await asyncio.sleep(0.1)
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
 @pytest.mark.asyncio
-async def test_sse_integrated_server(sse_server: Dict[str, Any]) -> None:
-    """Test that the integrated server works end-to-end with SSE transport."""
+async def test_sse_integrated_server_webhook(sse_server: Dict[str, Any]) -> None:
+    """Test that the webhook endpoints for the integrated server work with SSE transport."""
     base_url = sse_server["base_url"]
 
     async with aiohttp.ClientSession() as session:
@@ -140,9 +172,14 @@ async def test_sse_integrated_server(sse_server: Dict[str, Any]) -> None:
             data = await response.json()
             assert data == {"challenge": "challenge_value"}
 
-        # Test the MCP mount point
-        # Unlike TestClient in integration tests, aiohttp follows redirects by default
-        # We need to disable that to check the redirect status
+
+@pytest.mark.asyncio
+async def test_sse_integrated_server_mount_point(sse_server: Dict[str, Any]) -> None:
+    """Test that the MCP mount point is properly set up with SSE transport."""
+    base_url = sse_server["base_url"]
+
+    async with aiohttp.ClientSession() as session:
+        # Test the MCP mount point (should redirect to /mcp/)
         async with session.get(f"{base_url}/mcp", allow_redirects=False) as response:
             # We should get a redirect (307) when hitting the mount point
             assert response.status == 307
@@ -151,12 +188,96 @@ async def test_sse_integrated_server(sse_server: Dict[str, Any]) -> None:
 
 
 @pytest.mark.asyncio
-async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> None:
-    """Test just the webhook functionality of the integrated server with HTTP transport.
+async def test_sse_docs_endpoint(sse_server: Dict[str, Any]) -> None:
+    """Test that the API docs are available in the integrated server with SSE transport."""
+    base_url = sse_server["base_url"]
 
-    Note: We don't test the full HTTP transport with MCP due to task group initialization issues.
-    Instead, we verify that the Slack webhook functionality works correctly.
-    """
+    async with aiohttp.ClientSession() as session:
+        # FastAPI automatically adds docs endpoints
+        async with session.get(f"{base_url}/docs") as response:
+            assert response.status == 200
+            # Just check that it returns HTML content for the docs
+            content = await response.text()
+            assert "swagger-ui" in content.lower()
+
+
+@pytest.mark.asyncio
+async def test_slack_webhook_message_events(sse_server: Dict[str, Any]) -> None:
+    """Test the Slack webhook endpoint with message events."""
+    base_url = sse_server["base_url"]
+
+    async with aiohttp.ClientSession() as session:
+        # Create a Slack message event
+        message_event = {
+            "token": "verification_token",
+            "team_id": "T12345",
+            "api_app_id": "A12345",
+            "event": {
+                "type": "message",
+                "channel": "C12345",
+                "user": "U12345",
+                "text": "Hello, world!",
+                "ts": "1234567890.123456",
+            },
+            "type": "event_callback",
+            "event_id": "Ev12345",
+            "event_time": 1234567890,
+        }
+
+        # Add required Slack verification headers
+        headers = {
+            "X-Slack-Signature": "v0=fake_signature",
+            "X-Slack-Request-Timestamp": "1234567890",
+            "Content-Type": "application/json",
+        }
+
+        # Test the Slack webhook endpoint with a message event
+        async with session.post(f"{base_url}/slack/events", json=message_event, headers=headers) as response:
+            assert response.status == 200
+            data = await response.json()
+            assert data == {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_http_integrated_server_webhook(http_server: Dict[str, Any]) -> None:
+    """Test that the webhook endpoints for the integrated server work with HTTP transport."""
+    base_url = http_server["base_url"]
+
+    async with aiohttp.ClientSession() as session:
+        # Test the webhook endpoint
+        challenge_data = {"token": "verification_token", "challenge": "challenge_value", "type": "url_verification"}
+
+        # Add required Slack verification headers
+        headers = {
+            "X-Slack-Signature": "v0=fake_signature",
+            "X-Slack-Request-Timestamp": "1234567890",
+            "Content-Type": "application/json",
+        }
+
+        # Test the Slack webhook endpoint
+        async with session.post(f"{base_url}/slack/events", json=challenge_data, headers=headers) as response:
+            assert response.status == 200
+            data = await response.json()
+            assert data == {"challenge": "challenge_value"}
+
+
+@pytest.mark.asyncio
+async def test_http_docs_endpoint(http_server: Dict[str, Any]) -> None:
+    """Test that the API docs are available in the integrated server with HTTP transport."""
+    base_url = http_server["base_url"]
+
+    async with aiohttp.ClientSession() as session:
+        # FastAPI automatically adds docs endpoints
+        async with session.get(f"{base_url}/docs") as response:
+            assert response.status == 200
+            # Just check that it returns HTML content for the docs
+            content = await response.text()
+            assert "swagger-ui" in content.lower()
+
+
+@pytest.mark.asyncio
+async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> None:
+    """Test just the webhook functionality of the integrated server with HTTP transport."""
     port = find_free_port()
 
     # Create a simple Slack app without MCP integration to test webhook functionality
