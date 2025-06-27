@@ -9,8 +9,8 @@ from slack_mcp.server import FastMCP
 from slack_mcp.slack_server import (
     main,
     register_mcp_tools,
-    run_slack_server,
     run_integrated_server,
+    run_slack_server,
 )
 
 
@@ -100,17 +100,53 @@ async def test_run_slack_server():
         # Integrated mode with default transport and mount path
         (["--integrated"], "0.0.0.0", 3000, None, True, True, "sse", "/mcp"),
         # Integrated mode with custom transport
-        (["--integrated", "--mcp-transport", "streamable-http"], "0.0.0.0", 3000, None, True, True, "streamable-http", "/mcp"),
+        (
+            ["--integrated", "--mcp-transport", "streamable-http"],
+            "0.0.0.0",
+            3000,
+            None,
+            True,
+            True,
+            "streamable-http",
+            "/mcp",
+        ),
         # Integrated mode with custom mount path
         (["--integrated", "--mcp-mount-path", "/api"], "0.0.0.0", 3000, None, True, True, "sse", "/api"),
         # Full integrated configuration
         (
-            ["--integrated", "--host", "localhost", "--port", "5000", "--slack-token", "test", "--mcp-transport", "streamable-http", "--mcp-mount-path", "/custom"],
-            "localhost", 5000, "test", True, True, "streamable-http", "/custom",
+            [
+                "--integrated",
+                "--host",
+                "localhost",
+                "--port",
+                "5000",
+                "--slack-token",
+                "test",
+                "--mcp-transport",
+                "streamable-http",
+                "--mcp-mount-path",
+                "/custom",
+            ],
+            "localhost",
+            5000,
+            "test",
+            True,
+            True,
+            "streamable-http",
+            "/custom",
         ),
     ],
 )
-def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_exists, is_integrated, expected_transport, expected_mount_path):
+def test_main(
+    cmd_args,
+    expected_host,
+    expected_port,
+    expected_token,
+    env_file_exists,
+    is_integrated,
+    expected_transport,
+    expected_mount_path,
+):
     """Test the main function with different command line arguments."""
     with (
         patch("sys.argv", ["slack_server.py"] + cmd_args),
@@ -156,7 +192,7 @@ def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_e
 
         # Verify the server was run with the expected parameters
         mock_run.assert_called_once()
-        
+
         # Check which server function was called based on integrated flag
         if is_integrated:
             mock_run_integrated_server.assert_called_once_with(
