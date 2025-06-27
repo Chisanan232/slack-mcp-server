@@ -4,7 +4,7 @@ This module defines Pydantic models for Slack events API payloads,
 following PEP 484/585 typing conventions.
 """
 
-from typing import Any, Dict, List, Optional, TypedDict, cast
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -65,17 +65,17 @@ class UrlVerificationModel(BaseModel):
 
 def deserialize(event_data: Dict[str, Any]) -> SlackEventModel | UrlVerificationModel:
     """Deserialize Slack event data into the appropriate Pydantic model.
-    
+
     Parameters
     ----------
     event_data : Dict[str, Any]
         The event data from Slack as a dictionary
-        
+
     Returns
     -------
     SlackEventModel | UrlVerificationModel
         The deserialized Slack event model
-    
+
     Examples
     --------
     >>> event_data = {"type": "event_callback", "event": {"type": "app_mention"}, ...}
@@ -84,7 +84,7 @@ def deserialize(event_data: Dict[str, Any]) -> SlackEventModel | UrlVerification
     True
     """
     event_type = event_data.get("type")
-    
+
     if event_type == "url_verification":
         return UrlVerificationModel(**event_data)
     else:
