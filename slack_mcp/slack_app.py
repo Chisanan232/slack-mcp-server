@@ -161,7 +161,9 @@ def create_slack_app(token: str | None = None) -> FastAPI:
         # Handle the event
         if isinstance(slack_event_model, SlackEventModel):
             # Use the Pydantic model for logging and processing
-            _LOG.info(f"Received Slack event: {slack_event_model.event.type if hasattr(slack_event_model.event, 'type') else 'unknown'}")
+            _LOG.info(
+                f"Received Slack event: {slack_event_model.event.type if hasattr(slack_event_model.event, 'type') else 'unknown'}"
+            )
             # Convert model to dict for backward compatibility with handle_slack_event
             event_dict = slack_event_model.model_dump()
             await handle_slack_event(cast(SlackEvent, event_dict), client)
