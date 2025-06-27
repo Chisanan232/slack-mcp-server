@@ -10,6 +10,7 @@ from slack_mcp.slack_server import (
     main,
     register_mcp_tools,
     run_slack_server,
+    run_integrated_server,
 )
 
 
@@ -152,3 +153,70 @@ def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_e
         mock_run.assert_called_once()
         run_args = mock_run.call_args[0][0]
         assert asyncio.iscoroutine(run_args) or asyncio.isfuture(run_args)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "host, port, token, mcp_transport, mcp_mount_path",
+    [
+        # Default parameters
+        ("0.0.0.0", 3000, None, "sse", "/mcp"),
+        # Custom host and port
+        ("127.0.0.1", 8080, None, "sse", "/mcp"),
+        # Custom token
+        ("0.0.0.0", 3000, "test_token", "sse", "/mcp"),
+        # Different transport types
+        ("0.0.0.0", 3000, None, "streamable-http", "/mcp"),
+        # Different mount path
+        ("0.0.0.0", 3000, None, "sse", "/custom-path"),
+        # No mount path
+        ("0.0.0.0", 3000, None, "sse", None),
+        # Combination of customizations
+        ("localhost", 5000, "test_token", "streamable-http", None),
+    ],
+)
+async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount_path):
+    """Test running the integrated server with different configurations."""
+    with (
+        patch("slack_mcp.slack_server.create_integrated_app") as mock_create_app,
+        patch("uvicorn.Server") as mock_server_cls,
+        patch("uvicorn.Config") as mock_config_cls,
+    ):
+        # Setup mocks
+        mock_app = MagicMock()
+        mock_create_app.return_value = mock_app
+
+        mock_config = MagicMock()
+        mock_config_cls.return_value = mock_config
+
+        # Mock the Server instance
+        mock_server = MagicMock()
+        mock_server_cls.return_value = mock_server
+
+        # Mock the serve method to return a completed future
+        serve_future = asyncio.Future()
+        serve_future.set_result(None)
+        mock_server.serve.return_value = serve_future
+
+        # Call the function with test parameters
+        await run_integrated_server(
+            host=host,
+            port=port,
+            token=token,
+            mcp_transport=mcp_transport,
+            mcp_mount_path=mcp_mount_path,
+        )
+
+        # Verify the app was created with the right parameters
+        mock_create_app.assert_called_once_with(
+            token=token,
+            mcp_transport=mcp_transport,
+            mcp_mount_path=mcp_mount_path,
+        )
+
+        # Verify the config was set correctly
+        mock_config_cls.assert_called_once_with(app=mock_app, host=host, port=port)
+
+        # Verify the server was properly configured and started
+        mock_server_cls.assert_called_once_with(mock_config)
+        mock_server.serve.assert_called_once()
