@@ -9,6 +9,7 @@ from slack_mcp.server import FastMCP
 from slack_mcp.slack_server import (
     main,
     register_mcp_tools,
+    run_integrated_server,
     run_slack_server,
 )
 
@@ -82,31 +83,70 @@ async def test_run_slack_server():
 
 
 @pytest.mark.parametrize(
-    "cmd_args, expected_host, expected_port, expected_token, env_file_exists",
+    "cmd_args, expected_host, expected_port, expected_token, env_file_exists, is_integrated, expected_transport, expected_mount_path",
     [
         # Default parameters
-        ([], "0.0.0.0", 3000, None, True),
+        ([], "0.0.0.0", 3000, None, True, False, None, None),
         # Custom host and port
-        (["--host", "127.0.0.1", "--port", "8080"], "127.0.0.1", 8080, None, True),
+        (["--host", "127.0.0.1", "--port", "8080"], "127.0.0.1", 8080, None, True, False, None, None),
         # Custom token
-        (["--slack-token", "custom_token"], "0.0.0.0", 3000, "custom_token", True),
+        (["--slack-token", "custom_token"], "0.0.0.0", 3000, "custom_token", True, False, None, None),
         # Custom env file
-        (["--env-file", "custom.env"], "0.0.0.0", 3000, None, True),
+        (["--env-file", "custom.env"], "0.0.0.0", 3000, None, True, False, None, None),
         # No env file
-        (["--no-env-file"], "0.0.0.0", 3000, None, False),
+        (["--no-env-file"], "0.0.0.0", 3000, None, False, False, None, None),
         # Custom log level
-        (["--log-level", "DEBUG"], "0.0.0.0", 3000, None, True),
-        # Combination of options
+        (["--log-level", "DEBUG"], "0.0.0.0", 3000, None, True, False, None, None),
+        # Integrated mode with default transport and mount path
+        (["--integrated"], "0.0.0.0", 3000, None, True, True, "sse", "/mcp"),
+        # Integrated mode with custom transport
         (
-            ["--host", "localhost", "--port", "5000", "--slack-token", "test", "--log-level", "DEBUG"],
+            ["--integrated", "--mcp-transport", "streamable-http"],
+            "0.0.0.0",
+            3000,
+            None,
+            True,
+            True,
+            "streamable-http",
+            "/mcp",
+        ),
+        # Integrated mode with custom mount path
+        (["--integrated", "--mcp-mount-path", "/api"], "0.0.0.0", 3000, None, True, True, "sse", "/api"),
+        # Full integrated configuration
+        (
+            [
+                "--integrated",
+                "--host",
+                "localhost",
+                "--port",
+                "5000",
+                "--slack-token",
+                "test",
+                "--mcp-transport",
+                "streamable-http",
+                "--mcp-mount-path",
+                "/custom",
+            ],
             "localhost",
             5000,
             "test",
             True,
+            True,
+            "streamable-http",
+            "/custom",
         ),
     ],
 )
-def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_exists):
+def test_main(
+    cmd_args,
+    expected_host,
+    expected_port,
+    expected_token,
+    env_file_exists,
+    is_integrated,
+    expected_transport,
+    expected_mount_path,
+):
     """Test the main function with different command line arguments."""
     with (
         patch("sys.argv", ["slack_server.py"] + cmd_args),
@@ -115,6 +155,8 @@ def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_e
         patch("slack_mcp.slack_server.load_dotenv") as mock_load_dotenv,
         patch("slack_mcp.slack_server.pathlib.Path") as mock_path,
         patch("slack_mcp.slack_server.register_mcp_tools") as mock_register_mcp_tools,
+        patch("slack_mcp.slack_server.run_integrated_server") as mock_run_integrated_server,
+        patch("slack_mcp.slack_server.run_slack_server") as mock_run_slack_server,
     ):
         # Configure the mock path to simulate env file existence
         mock_path_instance = MagicMock()
@@ -150,5 +192,88 @@ def test_main(cmd_args, expected_host, expected_port, expected_token, env_file_e
 
         # Verify the server was run with the expected parameters
         mock_run.assert_called_once()
-        run_args = mock_run.call_args[0][0]
-        assert asyncio.iscoroutine(run_args) or asyncio.isfuture(run_args)
+
+        # Check which server function was called based on integrated flag
+        if is_integrated:
+            mock_run_integrated_server.assert_called_once_with(
+                host=expected_host,
+                port=expected_port,
+                token=expected_token,
+                mcp_transport=expected_transport,
+                mcp_mount_path=expected_mount_path,
+            )
+            mock_run_slack_server.assert_not_called()
+        else:
+            mock_run_slack_server.assert_called_once_with(
+                host=expected_host,
+                port=expected_port,
+                token=expected_token,
+            )
+            mock_run_integrated_server.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "host, port, token, mcp_transport, mcp_mount_path",
+    [
+        # Default parameters
+        ("0.0.0.0", 3000, None, "sse", "/mcp"),
+        # Custom host and port
+        ("127.0.0.1", 8080, None, "sse", "/mcp"),
+        # Custom token
+        ("0.0.0.0", 3000, "test_token", "sse", "/mcp"),
+        # Different transport types
+        ("0.0.0.0", 3000, None, "streamable-http", "/mcp"),
+        # Different mount path
+        ("0.0.0.0", 3000, None, "sse", "/custom-path"),
+        # No mount path
+        ("0.0.0.0", 3000, None, "sse", None),
+        # Combination of customizations
+        ("localhost", 5000, "test_token", "streamable-http", None),
+    ],
+)
+async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount_path):
+    """Test running the integrated server with different configurations."""
+    with (
+        patch("slack_mcp.slack_server.create_integrated_app") as mock_create_app,
+        patch("uvicorn.Server") as mock_server_cls,
+        patch("uvicorn.Config") as mock_config_cls,
+    ):
+        # Setup mocks
+        mock_app = MagicMock()
+        mock_create_app.return_value = mock_app
+
+        mock_config = MagicMock()
+        mock_config_cls.return_value = mock_config
+
+        # Mock the Server instance
+        mock_server = MagicMock()
+        mock_server_cls.return_value = mock_server
+
+        # Mock the serve method to return a completed future
+        serve_future = asyncio.Future()
+        serve_future.set_result(None)
+        mock_server.serve.return_value = serve_future
+
+        # Call the function with test parameters
+        await run_integrated_server(
+            host=host,
+            port=port,
+            token=token,
+            mcp_transport=mcp_transport,
+            mcp_mount_path=mcp_mount_path,
+        )
+
+        # Verify the app was created with the right parameters
+        mock_create_app.assert_called_once_with(
+            token=token,
+            mcp_transport=mcp_transport,
+            mcp_mount_path=mcp_mount_path,
+        )
+
+        # Verify the config was set correctly
+        mock_config_cls.assert_called_once_with(app=mock_app, host=host, port=port)
+
+        # Verify the server was properly configured and started
+        mock_server_cls.assert_called_once_with(mock_config)
+        mock_server.serve.assert_called_once()
