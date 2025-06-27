@@ -12,9 +12,9 @@ on:
       - "!**/__pkg_info__.py"
 #     For docker configuration and shell script for running by Docker
       - "Dockerfile"
-      - "./scripts/docker/run-server.sh"
-      - "./scripts/docker/run-slack-mcp-server.sh"
-      - "./scripts/docker/run-slack-webhook-server.sh"
+      - "scripts/docker/run-server.sh"
+      - "scripts/docker/run-slack-mcp-server.sh"
+      - "scripts/docker/run-slack-webhook-server.sh"
 #     For Python project configuration
       - "pyproject.toml"
       - "uv.lock"
@@ -32,9 +32,9 @@ on:
       - "!**/__pkg_info__.py"
 #     For docker configuration and shell script for running by Docker
       - "Dockerfile"
-      - "./scripts/docker/run-server.sh"
-      - "./scripts/docker/run-slack-mcp-server.sh"
-      - "./scripts/docker/run-slack-webhook-server.sh"
+      - "scripts/docker/run-server.sh"
+      - "scripts/docker/run-slack-mcp-server.sh"
+      - "scripts/docker/run-slack-webhook-server.sh"
 #     For Python project configuration
       - "pyproject.toml"
       - "uv.lock"
