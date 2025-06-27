@@ -11,6 +11,7 @@ from typing import Final
 import uvicorn
 from dotenv import load_dotenv
 
+from .integrated_server import create_integrated_app
 from .server import mcp as _server_instance
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
@@ -60,6 +61,11 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:  # noqa: D
         default=None,
         help="Slack bot token (overrides SLACK_BOT_TOKEN environment variable)",
     )
+    parser.add_argument(
+        "--integrated",
+        action="store_true",
+        help="Run MCP server integrated with webhook server in a single FastAPI application",
+    )
     return parser.parse_args(argv)
 
 
@@ -82,28 +88,46 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
         os.environ["SLACK_BOT_TOKEN"] = args.slack_token
         _LOG.info("Using Slack token from command line argument")
 
-    _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
+    # Determine if we should run the integrated server
+    if args.integrated:
+        if args.transport == "stdio":
+            _LOG.error("Integrated mode is not supported with stdio transport")
+            return
 
-    if args.transport in ["sse", "streamable-http"]:
-        # For HTTP-based transports, get the appropriate app using the transport-specific method
-        _LOG.info(f"Running FastAPI server on {args.host}:{args.port}")
+        _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {args.host}:{args.port}")
 
-        # Get the FastAPI app for the specific HTTP transport
-        if args.transport == "sse":
-            # sse_app is a method that takes mount_path as a parameter
-            app = _server_instance.sse_app(mount_path=args.mount_path)
-        else:  # streamable-http
-            # streamable_http_app doesn't accept mount_path parameter
-            app = _server_instance.streamable_http_app()
-            if args.mount_path:
-                _LOG.warning("mount-path is not supported for streamable-http transport and will be ignored")
+        # Create integrated app with both MCP and webhook functionality
+        app = create_integrated_app(
+            token=args.slack_token,
+            mcp_transport=args.transport, 
+            mcp_mount_path=args.mount_path
+        )
 
-        # Use uvicorn to run the FastAPI app
+        # Run the integrated FastAPI app
         uvicorn.run(app, host=args.host, port=args.port)
     else:
-        # For stdio transport, use the run method directly
-        _LOG.info("Running stdio transport")
-        _server_instance.run(transport=args.transport)
+        _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
+
+        if args.transport in ["sse", "streamable-http"]:
+            # For HTTP-based transports, get the appropriate app using the transport-specific method
+            _LOG.info(f"Running FastAPI server on {args.host}:{args.port}")
+
+            # Get the FastAPI app for the specific HTTP transport
+            if args.transport == "sse":
+                # sse_app is a method that takes mount_path as a parameter
+                app = _server_instance.sse_app(mount_path=args.mount_path)
+            else:  # streamable-http
+                # streamable_http_app doesn't accept mount_path parameter
+                app = _server_instance.streamable_http_app()
+                if args.mount_path:
+                    _LOG.warning("mount-path is not supported for streamable-http transport and will be ignored")
+
+            # Use uvicorn to run the FastAPI app
+            uvicorn.run(app, host=args.host, port=args.port)
+        else:
+            # For stdio transport, use the run method directly
+            _LOG.info("Running stdio transport")
+            _server_instance.run(transport=args.transport)
 
 
 if __name__ == "__main__":  # pragma: no cover
