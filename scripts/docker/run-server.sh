@@ -8,12 +8,12 @@ set -e
 # Environment variables:
 #
 # SERVICE_TYPE → Determines which service to run
-#    - "mcp": Runs the MCP server (run-mcp-server.sh)
+#    - "mcp": Runs the MCP server (run-slack-mcp-server.sh)
 #    - "webhook": Runs the Slack webhook server (run-slack-webhook-server.sh)
 #    - "integrated": Runs either server in integrated mode
 #
 # For all other environment variables, see the respective server scripts:
-# - run-mcp-server.sh
+# - run-slack-mcp-server.sh
 # - run-slack-webhook-server.sh
 #
 
@@ -30,7 +30,7 @@ echo "SERVICE_TYPE is set to: ${SERVICE_TYPE}"
 case "${SERVICE_TYPE}" in
   mcp)
     echo "Starting MCP server..."
-    exec "${SCRIPT_DIR}/run-mcp-server.sh"
+    exec "${SCRIPT_DIR}/run-slack-mcp-server.sh"
     ;;
     
   webhook)
@@ -50,7 +50,7 @@ case "${SERVICE_TYPE}" in
     # otherwise use defaults
     
     # Execute the MCP server with integrated flag
-    exec "${SCRIPT_DIR}/run-mcp-server.sh"
+    exec "${SCRIPT_DIR}/run-slack-mcp-server.sh"
     ;;
     
   integrated-webhook)
