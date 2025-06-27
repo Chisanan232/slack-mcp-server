@@ -28,3 +28,6 @@ dist/
 scripts/ci/get-all-tests.sh
 
 ## Some usage of this project
+
+## Configuration
+.env*

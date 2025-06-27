@@ -46,3 +46,6 @@ sonar-project.properties
 docs/
 test/
 venv/
+
+## Configuration
+.env*
