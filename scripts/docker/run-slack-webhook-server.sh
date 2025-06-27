@@ -53,12 +53,12 @@ fi
 # INTEGRATED: Run in integrated mode with MCP server
 if [ -n "${SLACK_WEBHOOK_INTEGRATED}" ] && [ "${SLACK_WEBHOOK_INTEGRATED}" = "true" ]; then
   CMD_ARGS+=(--integrated)
-  
+
   # MCP_TRANSPORT: Transport type for MCP in integrated mode
   if [ -n "${SLACK_WEBHOOK_MCP_TRANSPORT}" ]; then
     CMD_ARGS+=(--mcp-transport "${SLACK_WEBHOOK_MCP_TRANSPORT}")
   fi
-  
+
   # MCP_MOUNT_PATH: Mount path for MCP in integrated mode (when using sse transport)
   if [ -n "${SLACK_WEBHOOK_MCP_MOUNT_PATH}" ]; then
     CMD_ARGS+=(--mcp-mount-path "${SLACK_WEBHOOK_MCP_MOUNT_PATH}")

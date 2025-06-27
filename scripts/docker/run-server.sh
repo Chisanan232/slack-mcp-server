@@ -32,38 +32,38 @@ case "${SERVICE_TYPE}" in
     echo "Starting MCP server..."
     exec "${SCRIPT_DIR}/run-slack-mcp-server.sh"
     ;;
-    
+
   webhook)
     echo "Starting Slack webhook server..."
     exec "${SCRIPT_DIR}/run-slack-webhook-server.sh"
     ;;
-    
+
   integrated)
     # For integrated mode, we can use either entry point with the --integrated flag
     # Default to MCP server with integrated flag
     echo "Starting integrated server via MCP entry point..."
-    
+
     # Force integrated mode
     export MCP_INTEGRATED=true
-    
+
     # If specific options for integrated mode are provided, use them
     # otherwise use defaults
-    
+
     # Execute the MCP server with integrated flag
     exec "${SCRIPT_DIR}/run-slack-mcp-server.sh"
     ;;
-    
+
   integrated-webhook)
     # Alternative way to run integrated mode via webhook entry point
     echo "Starting integrated server via webhook entry point..."
-    
+
     # Force integrated mode
     export SLACK_WEBHOOK_INTEGRATED=true
-    
+
     # Execute the webhook server with integrated flag
     exec "${SCRIPT_DIR}/run-slack-webhook-server.sh"
     ;;
-    
+
   *)
     # Invalid SERVICE_TYPE
     echo "ERROR: Invalid SERVICE_TYPE: ${SERVICE_TYPE}"
