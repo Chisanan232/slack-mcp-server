@@ -1,6 +1,20 @@
 #!/bin/bash
 set -e
 
+#
+# Environment variables:
+#
+# MCP_TRANSPORT → --transport
+# MCP_MOUNT_PATH → --mount-path
+# MCP_LOG_LEVEL → --log-level
+# MCP_HOST → --host
+# MCP_PORT → --port
+# SLACK_BOT_TOKEN → --slack-token
+# MCP_ENV_FILE → --env-file
+# MCP_NO_ENV_FILE → --no-env-file
+# MCP_INTEGRATED → --integrated
+#
+
 # Initialize command line arguments array
 CMD_ARGS=()
 
@@ -44,6 +58,11 @@ fi
 # NO_ENV_FILE: Disable .env file loading
 if [ -n "${MCP_NO_ENV_FILE}" ] && [ "${MCP_NO_ENV_FILE}" = "true" ]; then
   CMD_ARGS+=(--no-env-file)
+fi
+
+# INTEGRATED: Run in integrated mode with webhook server
+if [ -n "${MCP_INTEGRATED}" ] && [ "${MCP_INTEGRATED}" = "true" ]; then
+  CMD_ARGS+=(--integrated)
 fi
 
 # Print the command that will be executed

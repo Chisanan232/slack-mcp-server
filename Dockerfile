@@ -23,4 +23,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 EXPOSE 8000
 
 # Set the entry point
-CMD ["bash", "./scripts/docker/run-mcp-server.sh"]
+CMD ["bash", "./scripts/docker/run-server.sh"]
