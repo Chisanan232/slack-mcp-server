@@ -13,12 +13,14 @@ from typing import Any, Final
 
 from dotenv import load_dotenv
 
+from .integrated_server import create_integrated_app
 from .server import FastMCP, mcp
 from .slack_app import create_slack_app
 
 __all__: list[str] = [
     "run_slack_server",
     "register_mcp_tools",
+    "run_integrated_server",
 ]
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_server")
@@ -104,6 +106,44 @@ async def run_slack_server(
     await server.serve()
 
 
+async def run_integrated_server(
+    host: str = "0.0.0.0",
+    port: int = 3000,
+    token: str | None = None,
+    mcp_transport: str = "sse",
+    mcp_mount_path: str | None = "/mcp",
+) -> None:
+    """Run the integrated server with both MCP and webhook functionalities.
+
+    Parameters
+    ----------
+    host : str
+        The host to listen on
+    port : int
+        The port to listen on
+    token : str | None
+        The Slack bot token to use. If None, will use environment variables.
+    mcp_transport : str
+        The transport to use for the MCP server. Either "sse" or "streamable-http".
+    mcp_mount_path : str | None
+        The mount path for the MCP server. Only used for sse transport.
+    """
+    app = create_integrated_app(
+        token=token,
+        mcp_transport=mcp_transport,
+        mcp_mount_path=mcp_mount_path,
+    )
+
+    _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {host}:{port}")
+
+    # Using uvicorn for ASGI support with FastAPI
+    import uvicorn
+
+    config = uvicorn.Config(app=app, host=host, port=port)
+    server = uvicorn.Server(config)
+    await server.serve()
+
+
 def main() -> None:
     """Run the Slack events server as a standalone application."""
     import argparse
@@ -140,6 +180,22 @@ def main() -> None:
         action="store_true",
         help="Disable loading from .env file",
     )
+    parser.add_argument(
+        "--integrated",
+        action="store_true",
+        help="Run the integrated server with both MCP and webhook functionalities",
+    )
+    parser.add_argument(
+        "--mcp-transport",
+        choices=["sse", "streamable-http"],
+        default="sse",
+        help="Transport to use for MCP server when running in integrated mode (default: sse)",
+    )
+    parser.add_argument(
+        "--mcp-mount-path",
+        default="/mcp",
+        help="Mount path for MCP server when using sse transport (default: /mcp)",
+    )
 
     args = parser.parse_args()
 
@@ -157,8 +213,21 @@ def main() -> None:
     # Register MCP tools
     register_mcp_tools(mcp)
 
-    # Run the server with token from command line if provided
-    asyncio.run(run_slack_server(host=args.host, port=args.port, token=args.slack_token))
+    # Determine whether to run in integrated mode or standalone mode
+    if args.integrated:
+        # Run the integrated server
+        asyncio.run(
+            run_integrated_server(
+                host=args.host,
+                port=args.port,
+                token=args.slack_token,
+                mcp_transport=args.mcp_transport,
+                mcp_mount_path=args.mcp_mount_path,
+            )
+        )
+    else:
+        # Run the standalone webhook server
+        asyncio.run(run_slack_server(host=args.host, port=args.port, token=args.slack_token))
 
 
 if __name__ == "__main__":
