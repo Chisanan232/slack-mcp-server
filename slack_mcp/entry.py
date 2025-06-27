@@ -98,9 +98,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
 
         # Create integrated app with both MCP and webhook functionality
         app = create_integrated_app(
-            token=args.slack_token,
-            mcp_transport=args.transport, 
-            mcp_mount_path=args.mount_path
+            token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path
         )
 
         # Run the integrated FastAPI app

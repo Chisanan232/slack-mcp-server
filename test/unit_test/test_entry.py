@@ -69,12 +69,12 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
 
     # Replace logging with a no-op function
     monkeypatch.setattr(logging, "basicConfig", lambda *args, **kwargs: None)
-    
+
     # Replace integrated app creation with a mock
     mock_integrated_app = SimpleNamespace()
     monkeypatch.setattr(
         "slack_mcp.entry.create_integrated_app",
-        lambda token=None, mcp_transport=None, mcp_mount_path=None: mock_integrated_app
+        lambda token=None, mcp_transport=None, mcp_mount_path=None: mock_integrated_app,
     )
 
     # Re-import the module to update bindings
@@ -266,20 +266,20 @@ def test_entry_integrated_mode_sse(_patch_entry) -> None:
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
     mock_integrated_app = _patch_entry.mock_integrated_app
-    
+
     # Call main with integrated flag and SSE transport
     argv = ["--integrated", "--transport", "sse", "--mount-path", "/mcp-test"]
-    
+
     def run_with_timeout() -> None:
         entry.main(argv)
-    
+
     thread = threading.Thread(target=run_with_timeout)
     thread.start()
     thread.join(timeout=1)
-    
+
     # Verify the dummy server's run method was not called (it should use create_integrated_app instead)
     assert not dummy.called
-    
+
     # Verify uvicorn.run was called with the mock integrated app (through the mock)
     # This is implicit since we patched uvicorn.run to be a no-op function
 
@@ -289,20 +289,20 @@ def test_entry_integrated_mode_streamable_http(_patch_entry) -> None:
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
     mock_integrated_app = _patch_entry.mock_integrated_app
-    
+
     # Call main with integrated flag and streamable-http transport
     argv = ["--integrated", "--transport", "streamable-http"]
-    
+
     def run_with_timeout() -> None:
         entry.main(argv)
-    
+
     thread = threading.Thread(target=run_with_timeout)
     thread.start()
     thread.join(timeout=1)
-    
+
     # Verify the dummy server's run method was not called (it should use create_integrated_app instead)
     assert not dummy.called
-    
+
     # Verify uvicorn.run was called with the mock integrated app (through the mock)
     # This is implicit since we patched uvicorn.run to be a no-op function
 
@@ -310,19 +310,19 @@ def test_entry_integrated_mode_streamable_http(_patch_entry) -> None:
 def test_entry_integrated_mode_stdio_not_supported(_patch_entry, caplog) -> None:
     """Test that integrated mode with stdio transport is not supported."""
     entry = _patch_entry.entry
-    
+
     # Capture logs
     caplog.set_level(logging.ERROR)
-    
+
     # Call main with integrated flag and stdio transport
     argv = ["--integrated", "--transport", "stdio"]
-    
+
     def run_with_timeout() -> None:
         entry.main(argv)
-    
+
     thread = threading.Thread(target=run_with_timeout)
     thread.start()
     thread.join(timeout=1)
-    
+
     # Verify error log was emitted
     assert "Integrated mode is not supported with stdio transport" in caplog.text
