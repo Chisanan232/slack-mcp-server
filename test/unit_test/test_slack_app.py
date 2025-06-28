@@ -370,4 +370,82 @@ def test_slack_events_endpoint_json_parsing(request_body, should_fail):
                 actual_json = json.loads(response.body.decode("utf-8"))
                 assert actual_json == expected_json
             else:
+                assert response.status_code == 200
                 assert response.body.decode("utf-8") == json.dumps({"status": "ok"})
+
+
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_with_pydantic_model():
+    """Test slack_events endpoint when using the Pydantic model path.
+
+    This test specifically covers the code path where a SlackEventModel is successfully
+    deserialized and used to handle the Slack event.
+    """
+    with (
+        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
+        patch("slack_mcp.slack_app.deserialize") as mock_deserialize,
+        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
+        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
+    ):
+        # Setup mocks
+        mock_verify.return_value = True
+        mock_handle.return_value = None
+
+        # Create test data
+        event_data = {
+            "token": "test_token",
+            "team_id": "T12345",
+            "api_app_id": "A12345",
+            "event": {
+                "type": "app_mention",
+                "user": "U12345",
+                "text": "<@BOTID> Hello",
+                "channel": "C12345",
+                "ts": "1234567890.123456",
+                "event_ts": "1234567890.123456",
+            },
+            "type": "event_callback",
+            "event_id": "Ev12345",
+            "event_time": 1234567890,
+            "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+            "is_ext_shared_channel": False,
+        }
+
+        # Import here to avoid circular imports in test setup
+        from slack_mcp.slack_models import SlackEventModel
+
+        # Create a Pydantic model instance for the mock to return
+        event_model = SlackEventModel(**event_data)
+        mock_deserialize.return_value = event_model
+
+        # Create app and test client
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with event data
+        response = client.post(
+            "/slack/events",
+            json=event_data,
+            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+        )
+
+        # Verify response
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+        # Verify the deserialize function was called
+        mock_deserialize.assert_called_once()
+
+        # Verify handle_slack_event was called with the model's data
+        # The model is converted to dict before passing to handle_slack_event
+        mock_handle.assert_awaited_once()
+        args, _ = mock_handle.await_args
+
+        # First argument should be the event dict converted from the model
+        assert args[0]["token"] == event_data["token"]
+        assert args[0]["team_id"] == event_data["team_id"]
+        assert args[0]["event"]["type"] == event_data["event"]["type"]
+        assert args[0]["event"]["user"] == event_data["event"]["user"]
+
+        # Second argument should be the client
+        assert isinstance(args[1], AsyncWebClient)
