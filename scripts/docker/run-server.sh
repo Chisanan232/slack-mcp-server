@@ -16,6 +16,19 @@ set -e
 # - run-slack-mcp-server.sh
 # - run-slack-webhook-server.sh
 #
+# Example usage:
+# # Run MCP server
+# SERVICE_TYPE=mcp ./run-server.sh
+#
+## Run webhook server
+# SERVICE_TYPE=webhook ./run-server.sh
+#
+## Run integrated server via MCP entry point
+# SERVICE_TYPE=integrated ./run-server.sh
+#
+## Run integrated server via webhook entry point
+# SERVICE_TYPE=integrated-webhook ./run-server.sh
+#
 
 # Default to MCP server if SERVICE_TYPE is not set
 SERVICE_TYPE=${SERVICE_TYPE:-mcp}

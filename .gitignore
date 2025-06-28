@@ -31,3 +31,4 @@ scripts/ci/get-all-tests.sh
 
 ## Configuration
 .env*
+!.env*example
