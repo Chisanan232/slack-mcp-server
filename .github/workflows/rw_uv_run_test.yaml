@@ -70,8 +70,8 @@ env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
 
 jobs:
-  environment: ${{ inputs.with-environment-variables }}
   run_test_items:
+    environment: ${{ inputs.with-environment-variables }}
     runs-on: ${{ inputs.runtime_os }}
 
     strategy:
