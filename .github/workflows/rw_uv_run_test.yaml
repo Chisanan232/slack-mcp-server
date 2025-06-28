@@ -60,12 +60,18 @@ on:
         type: boolean
         required: false
         default: false
+      with-environment-variables:
+        description: "Set the specific environment for the environment variables."
+        type: string
+        required: false
+        default: development
 
 env:
   PIP_DISABLE_PIP_VERSION_CHECK: 1
 
 jobs:
   run_test_items:
+    environment: ${{ inputs.with-environment-variables }}
     runs-on: ${{ inputs.runtime_os }}
 
     strategy:
