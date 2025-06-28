@@ -4,9 +4,10 @@ Protocol definitions for queue backends in the MCP server.
 This module defines the interface that all queue backends must implement.
 """
 
-from typing import Any, AsyncIterator, Dict, Optional, Protocol
+from typing import Any, AsyncIterator, Dict, Optional, Protocol, runtime_checkable
 
 
+@runtime_checkable
 class QueueBackend(Protocol):
     """Protocol defining the interface for queue backends.
 
