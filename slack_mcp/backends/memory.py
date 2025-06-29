@@ -8,10 +8,14 @@ It uses an asyncio.Queue to store messages in memory, which means:
 """
 
 import asyncio
+import logging
 import warnings
 from typing import Any, AsyncIterator, Dict, Optional, Tuple
 
 from .protocol import QueueBackend
+
+# Set up logger for the memory backend
+logger = logging.getLogger(__name__)
 
 
 class MemoryBackend(QueueBackend):
@@ -63,13 +67,32 @@ class MemoryBackend(QueueBackend):
         Yields:
             Message payloads in the order they were published
         """
-        while True:
-            try:
-                # Get next message but ignore the key
-                _, payload = await self._queue.get()
-                yield payload
-                # Mark the message as processed
-                self._queue.task_done()
-            except asyncio.CancelledError:
-                # Handle task cancellation gracefully
-                break
+        message_in_progress = False
+        try:
+            while True:
+                try:
+                    # Get next message but ignore the key
+                    message_in_progress = True
+                    _, payload = await self._queue.get()
+                    message_in_progress = False
+
+                    # Mark the message as processed before yielding to ensure proper queue accounting
+                    # even if the consumer doesn't fully process the message
+                    self._queue.task_done()
+
+                    yield payload
+                except asyncio.CancelledError:
+                    logger.debug("Consume operation was cancelled")
+                    # If we were in the middle of getting a message, mark it as done
+                    # so it's not left in a "processing" state
+                    if message_in_progress:
+                        self._queue.task_done()
+                    raise  # Re-raise to allow proper asyncio cancellation handling
+        except asyncio.CancelledError:
+            # Catch at the outer level to properly handle cancellation during yield
+            logger.debug("Consumer task was cancelled, shutting down gracefully")
+            # No need to re-raise here as this is the outermost handler
+        except Exception as e:
+            # Log unexpected errors but don't crash
+            logger.error(f"Unexpected error in memory backend consumer: {e}", exc_info=True)
+            raise  # Re-raise to allow caller to handle
