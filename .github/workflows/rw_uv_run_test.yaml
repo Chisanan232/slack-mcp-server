@@ -106,6 +106,7 @@ jobs:
         run: uv run pytest ${{ matrix.test-path }}
         continue-on-error: ${{ inputs.keep_run_if_test_fail }}
         env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_TEST_CHANNEL: ${{ vars.SLACK_TEST_CHANNEL }}
           SLACK_TEST_CHANNEL_ID: ${{ vars.SLACK_TEST_CHANNEL_ID }}
