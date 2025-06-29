@@ -50,18 +50,18 @@ class TestServer(uvicorn.Server):
     async def _wait_for_startup(self) -> None:
         """Wait for the server to start."""
         await self._startup_done.wait()
-        
+
     async def safe_shutdown(self) -> None:
         """Safely shut down the server, handling any event loop issues."""
         if not self.started:
             return
-            
+
         self.should_exit = True
-        
+
         with suppress(asyncio.TimeoutError):
             # Give the server a brief moment to start shutting down
             await asyncio.sleep(0.2)
-            
+
 
 @pytest.fixture
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
@@ -103,7 +103,7 @@ async def safely_cancel_task(task: asyncio.Task) -> None:
     """Safely cancel a task without raising exceptions."""
     if task.done():
         return
-        
+
     try:
         task.cancel()
         with suppress(asyncio.CancelledError, RuntimeError, asyncio.TimeoutError):
