@@ -107,8 +107,8 @@ jobs:
         continue-on-error: ${{ inputs.keep_run_if_test_fail }}
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-          SLACK_TEST_CHANNEL: ${{ vars.SLACK_BOT_TOKEN }}
-          SLACK_TEST_CHANNEL_ID: ${{ vars.SLACK_BOT_TOKEN }}
+          SLACK_TEST_CHANNEL: ${{ vars.SLACK_TEST_CHANNEL }}
+          SLACK_TEST_CHANNEL_ID: ${{ vars.SLACK_TEST_CHANNEL_ID }}
 
       - name: Rename the code coverage result file
         working-directory: ${{ inputs.test_working_directory }}
