@@ -111,11 +111,23 @@ async def sse_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[D
         # Stop the server
         server.should_exit = True
         await asyncio.sleep(0.1)
-        task.cancel()
+        # Use a new event loop for cleanup if the current one is closed
         try:
-            await task
-        except asyncio.CancelledError:
-            pass
+            task.cancel()
+            try:
+                await asyncio.wait_for(task, timeout=1.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                # The event loop is already closed, so we can't await the task
+                # Just ensure the server is stopped by setting should_exit
+                if not task.done():
+                    # Cancel the task if it's not done, but don't await it
+                    task.cancel()
+            else:
+                # Re-raise other RuntimeError exceptions
+                raise
 
 
 @pytest_asyncio.fixture
@@ -143,11 +155,23 @@ async def http_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[
         # Stop the server
         server.should_exit = True
         await asyncio.sleep(0.1)
-        task.cancel()
+        # Use a new event loop for cleanup if the current one is closed
         try:
-            await task
-        except asyncio.CancelledError:
-            pass
+            task.cancel()
+            try:
+                await asyncio.wait_for(task, timeout=1.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                # The event loop is already closed, so we can't await the task
+                # Just ensure the server is stopped by setting should_exit
+                if not task.done():
+                    # Cancel the task if it's not done, but don't await it
+                    task.cancel()
+            else:
+                # Re-raise other RuntimeError exceptions
+                raise
 
 
 @pytest.mark.asyncio
@@ -318,8 +342,20 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
         # Stop the server
         server.should_exit = True
         await asyncio.sleep(0.1)
-        task.cancel()
+        # Use a new event loop for cleanup if the current one is closed
         try:
-            await task
-        except asyncio.CancelledError:
-            pass
+            task.cancel()
+            try:
+                await asyncio.wait_for(task, timeout=1.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
+        except RuntimeError as e:
+            if "Event loop is closed" in str(e):
+                # The event loop is already closed, so we can't await the task
+                # Just ensure the server is stopped by setting should_exit
+                if not task.done():
+                    # Cancel the task if it's not done, but don't await it
+                    task.cancel()
+            else:
+                # Re-raise other RuntimeError exceptions
+                raise
