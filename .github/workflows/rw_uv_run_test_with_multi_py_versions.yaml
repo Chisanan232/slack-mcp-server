@@ -40,7 +40,7 @@ on:
         description: "Set the specific environment for the environment variables."
         type: string
         required: false
-        default: development
+        default: ''
 
 jobs:
   run_test_items:
