@@ -71,6 +71,11 @@ env:
 
 jobs:
   run_test_items:
+    # ✅ Only at job layer (or step layer) to annotate and set secrets → env
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+
     environment: ${{ inputs.with-environment-variables }}
     runs-on: ${{ inputs.runtime_os }}
 
@@ -106,8 +111,8 @@ jobs:
         run: uv run pytest ${{ matrix.test-path }}
         continue-on-error: ${{ inputs.keep_run_if_test_fail }}
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          CODECOV_TOKEN: ${{ env.CODECOV_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
           SLACK_TEST_CHANNEL: ${{ vars.SLACK_TEST_CHANNEL }}
           SLACK_TEST_CHANNEL_ID: ${{ vars.SLACK_TEST_CHANNEL_ID }}
 
