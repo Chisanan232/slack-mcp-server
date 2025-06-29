@@ -17,11 +17,11 @@ class TestQueueBackendInterface:
         """Verify the protocol interface is correctly defined with required methods.
 
         This test checks that:
-        1. The protocol methods contain ellipsis placeholders as expected
+        1. The protocol methods contain appropriate placeholder implementations
         2. All required methods (publish, consume) exist
         3. The classmethod from_env is properly defined
 
-        Protocol methods with ellipsis (...) are properly excluded from coverage
+        Protocol methods with placeholders are properly excluded from coverage
         requirements via the .coveragerc configuration, as they are interface
         definitions rather than executable code.
         """
@@ -31,9 +31,10 @@ class TestQueueBackendInterface:
         publish_source = getsource(QueueBackend.publish)
         consume_source = getsource(QueueBackend.consume)
 
-        # Verify method bodies contain ellipsis as expected for Protocol interface definitions
+        # Verify method bodies contain appropriate placeholders for Protocol interface definitions
         assert "..." in publish_source, "publish method should have ellipsis placeholder"
-        assert "..." in consume_source, "consume method should have ellipsis placeholder"
+        # consume now uses a yield statement instead of ellipsis for proper AsyncIterator typing
+        assert "yield" in consume_source, "consume method should have a yield statement placeholder"
 
         # Verify from_env exists as a classmethod on the protocol
         assert hasattr(QueueBackend, "from_env"), "from_env classmethod should exist on the protocol"
