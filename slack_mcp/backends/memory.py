@@ -12,7 +12,9 @@ import os
 import warnings
 from typing import Dict, Any, AsyncIterator, Tuple, Optional, cast
 
-class MemoryBackend:
+from .protocol import QueueBackend
+
+class MemoryBackend(QueueBackend):
     """In-memory implementation of QueueBackend using asyncio.Queue.
     
     This class is intended for development and testing only.
