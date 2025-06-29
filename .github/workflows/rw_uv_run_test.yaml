@@ -105,6 +105,12 @@ jobs:
         run: |
           uv pip install --group=${{ inputs.install_dependency_with_group }}
 
+      - name: Verify the Slack bot token
+        run: |
+          curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
+
       - name: Run tests with pytest
         working-directory: ${{ inputs.test_working_directory }}
         run: uv run pytest ${{ matrix.test-path }}
