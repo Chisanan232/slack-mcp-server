@@ -45,6 +45,11 @@ Repository = "https://github.com/Chisanan232/slack-mcp-server"
 slack-mcp-server = "slack_mcp.entry:main"
 slack-events-server = "slack_mcp.slack_server:main"
 
+[project.entry-points."slack_mcp.queue_backends"]
+#memory = "slack_mcp.backends.memory:MemoryBackend"
+#redis = "slack_mcp_mq_redis.backend:RedisBackend"
+#kafka = "slack_mcp_mq_kafka.backend:KafkaBackend"
+
 [dependency-groups]
 dev = [
     "pytest>=8.1.1,<9",
