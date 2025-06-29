@@ -33,11 +33,6 @@ def load_env() -> None:  # noqa: D401 – fixture
         logger.warning(f"Environment file not found: {env_path}")
 
 
-def is_github_actions() -> bool:
-    """Check if we're running on GitHub Actions."""
-    return os.environ.get("GITHUB_ACTIONS") == "true"
-
-
 load_env()
 
 
@@ -60,15 +55,12 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     logger.info(f"Using unique message text: {unique_text}")
 
     # Verify token works with direct API call first
-    if not is_github_actions():
-        try:
-            test_client = AsyncWebClient(token=bot_token)
-            auth_test = await test_client.auth_test()
-            logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
-        except Exception as e:
-            pytest.fail(f"Slack API authentication failed: {e}")
-    else:
-        logger.info("Running in GitHub Actions - skipping authentication test")
+    try:
+        test_client = AsyncWebClient(token=bot_token)
+        auth_test = await test_client.auth_test()
+        logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+    except Exception as e:
+        pytest.fail(f"Slack API authentication failed: {e}")
 
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
