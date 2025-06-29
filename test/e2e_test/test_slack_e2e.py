@@ -31,6 +31,7 @@ def load_env() -> None:  # noqa: D401 – fixture
         logger.info("Environment loaded")
     else:
         logger.warning(f"Environment file not found: {env_path}")
+        logger.info(f'os.getenv("SLACK_TEST_CHANNEL_ID"): {os.getenv("SLACK_TEST_CHANNEL_ID")}')
 
 
 load_env()
