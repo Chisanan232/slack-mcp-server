@@ -142,7 +142,12 @@ class TestQueueBackendProtocol:
         async def use_backend(backend: QueueBackend) -> Dict[str, Any]:
             """Function that uses a queue backend through the protocol."""
             await backend.publish("test", {"value": 42})
-            async for message in backend.consume():
+
+            # Type annotation hack to help mypy understand this is an AsyncIterator
+            messages = backend.consume()
+            # Use a variable with explicit type to help mypy
+            iterator: AsyncIterator[Dict[str, Any]] = messages  # type: ignore
+            async for message in iterator:
                 return message
             raise ValueError("No message received")
 
@@ -163,14 +168,15 @@ class TestQueueBackendProtocol:
         await backend.publish("key1", {"id": 1})
         await backend.publish("key2", {"id": 2})
 
-        # Use the async generator interface directly
+        # Check that the consumer follows the async iterator protocol
+        # We need to be careful with type annotations here
         consumer = backend.consume()
         assert hasattr(consumer, "__aiter__")
         assert hasattr(consumer, "__anext__")
 
         # Use it in an async for loop
         messages = []
-        async for msg in consumer:
+        async for msg in backend.consume():
             messages.append(msg)
 
         assert len(messages) == 2
