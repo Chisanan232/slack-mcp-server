@@ -2,6 +2,10 @@ name: Run test and organize test coverage reports
 
 on:
   workflow_call:
+    secrets:
+      end-to-end_test_slack_bot_token:
+        description: "Set the Slack bot token for end-to-end test."
+        required: false
 
 jobs:
   prep_unit-test:
@@ -21,6 +25,8 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_get_tests.yaml@v7.3
     with:
       shell_arg: test/e2e_test/
+    secrets:
+      end-to-end_test_slack_bot_token: ${{ secrets.end-to-end_test_slack_bot_token }}
 
   prep_contract-test:
 #    name: Prepare all integration test items
