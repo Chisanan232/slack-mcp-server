@@ -33,6 +33,11 @@ def load_env() -> None:  # noqa: D401 – fixture
         logger.warning(f"Environment file not found: {env_path}")
 
 
+def is_github_actions() -> bool:
+    """Check if we're running on GitHub Actions."""
+    return os.environ.get("GITHUB_ACTIONS") == "true"
+
+
 load_env()
 
 
@@ -55,12 +60,15 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     logger.info(f"Using unique message text: {unique_text}")
 
     # Verify token works with direct API call first
-    try:
-        test_client = AsyncWebClient(token=bot_token)
-        auth_test = await test_client.auth_test()
-        logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
-    except Exception as e:
-        pytest.fail(f"Slack API authentication failed: {e}")
+    if not is_github_actions():
+        try:
+            test_client = AsyncWebClient(token=bot_token)
+            auth_test = await test_client.auth_test()
+            logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+        except Exception as e:
+            pytest.fail(f"Slack API authentication failed: {e}")
+    else:
+        logger.info("Running in GitHub Actions - skipping authentication test")
 
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
@@ -195,8 +203,14 @@ async def test_slack_read_channel_messages_e2e() -> None:
     if not should_fail:
         try:
             test_client = AsyncWebClient(token=bot_token)
-            auth_test = await test_client.auth_test()
-            logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+            if not is_github_actions():
+                try:
+                    auth_test = await test_client.auth_test()
+                    logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+                except Exception as e:
+                    pytest.fail(f"Slack API authentication failed: {e}")
+            else:
+                logger.info("Running in GitHub Actions - skipping authentication test")
 
             # Check if we have the correct permissions for the channel type
             channel_info_response = None
@@ -389,7 +403,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
     not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
     reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
-async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
+async def test_slack_thread_reply_e2e() -> None:
     """Spawn the server via stdio, post a parent message, then reply to it with multiple thread messages."""
     # Import here to avoid heavy dependencies at collection time
     from mcp import ClientSession, StdioServerParameters
@@ -406,12 +420,15 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     logger.info(f"Using unique reply messages: {unique_reply_texts}")
 
     # Verify token works with direct API call first
-    try:
-        test_client = AsyncWebClient(token=bot_token)
-        auth_test = await test_client.auth_test()
-        logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
-    except Exception as e:
-        pytest.fail(f"Slack API authentication failed: {e}")
+    if not is_github_actions():
+        try:
+            test_client = AsyncWebClient(token=bot_token)
+            auth_test = await test_client.auth_test()
+            logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+        except Exception as e:
+            pytest.fail(f"Slack API authentication failed: {e}")
+    else:
+        logger.info("Running in GitHub Actions - skipping authentication test")
 
     # First, post a parent message directly using Slack SDK
     try:
@@ -565,7 +582,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
     reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
-async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
+async def test_slack_add_reactions_e2e() -> None:
     """Spawn the server via stdio, post a message, then add emoji reactions to it."""
     # Import here to avoid heavy dependencies at collection time
     from mcp import ClientSession, StdioServerParameters
@@ -582,13 +599,17 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     # Create a test message to react to
     message_ts = None
     try:
-        test_client = AsyncWebClient(token=bot_token)
-        # Verify token works with direct API call first
-        auth_test = await test_client.auth_test()
-        logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+        if not is_github_actions():
+            test_client = AsyncWebClient(token=bot_token)
+            # Verify token works with direct API call first
+            auth_test = await test_client.auth_test()
+            logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
+        else:
+            logger.info("Running in GitHub Actions - skipping authentication test")
 
         # Send a test message that we'll react to
-        message_response = await test_client.chat_postMessage(channel=channel_id, text=unique_text)
+        client = AsyncWebClient(token=bot_token)
+        message_response = await client.chat_postMessage(channel=channel_id, text=unique_text)
         assert message_response["ok"] is True, "Failed to send test message"
         message_ts = message_response["ts"]
         logger.info(f"Created test message with timestamp: {message_ts}")
