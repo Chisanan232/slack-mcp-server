@@ -74,7 +74,7 @@ class MemoryBackend(QueueBackend):
                     # Get next message but ignore the key
                     message_in_progress = True
                     _, payload = await self._queue.get()
-                    
+
                     # Mark the message as processed before yielding to ensure proper queue accounting
                     # even if the consumer doesn't fully process the message
                     try:
@@ -82,7 +82,7 @@ class MemoryBackend(QueueBackend):
                     except ValueError:
                         # Handle "task_done() called too many times" error gracefully
                         logger.warning("task_done() called too many times - this may indicate a queue accounting issue")
-                    
+
                     message_in_progress = False
                     yield payload
                 except asyncio.CancelledError:
