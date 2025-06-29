@@ -146,7 +146,7 @@ class TestQueueBackendProtocol:
             # Type annotation hack to help mypy understand this is an AsyncIterator
             messages = backend.consume()
             # Use a variable with explicit type to help mypy
-            iterator: AsyncIterator[Dict[str, Any]] = messages  # type: ignore
+            iterator: AsyncIterator[Dict[str, Any]] = messages
             async for message in iterator:
                 return message
             raise ValueError("No message received")

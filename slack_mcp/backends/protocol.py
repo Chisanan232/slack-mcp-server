@@ -35,7 +35,7 @@ class QueueBackend(Protocol):
         Returns:
             An async iterator that yields message payloads
         """
-        ...
+        yield {}  # Placeholder for protocol definition
 
     @classmethod
     def from_env(cls) -> "QueueBackend":
