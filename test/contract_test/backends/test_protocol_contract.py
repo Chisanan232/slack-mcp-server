@@ -16,7 +16,7 @@ import pytest
 from slack_mcp.backends.protocol import QueueBackend
 
 
-class MockQueueBackend:
+class MockQueueBackend(QueueBackend):
     """A mock implementation of the QueueBackend protocol for testing."""
 
     def __init__(self):
@@ -41,7 +41,7 @@ class MockQueueBackend:
         return cls()
 
 
-class FailingQueueBackend:
+class FailingQueueBackend(QueueBackend):
     """A mock implementation that intentionally fails for testing error cases."""
 
     async def publish(self, key: str, payload: Dict[str, Any]) -> None:
@@ -59,7 +59,7 @@ class FailingQueueBackend:
         raise ValueError("Simulated from_env failure")
 
 
-class AsyncGenQueueBackend:
+class AsyncGenQueueBackend(QueueBackend):
     """A mock implementation that specifically tests async generator behavior."""
 
     def __init__(self):
