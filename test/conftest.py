@@ -9,7 +9,7 @@ import asyncio
 import os
 import sys
 import warnings
-from typing import AsyncGenerator, Generator
+from typing import Generator
 
 import pytest
 
@@ -25,12 +25,12 @@ def set_event_loop_policy():
         else:
             # For Linux/macOS in CI, use the default policy but with explicit cleanup
             policy = asyncio.DefaultEventLoopPolicy()
-        
+
         asyncio.set_event_loop_policy(policy)
-        
+
     # For local environments, use the default policy
     yield
-    
+
     # Clean up at the end of the session
     try:
         # Get the current event loop if one exists
@@ -52,14 +52,14 @@ def set_event_loop_policy():
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """
     Create an isolated event loop for each test.
-    
+
     This fixture overrides pytest-asyncio's default event_loop fixture to ensure
     proper setup and cleanup, particularly in CI environments.
     """
     # Create a new loop for the test
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    
+
     # Increase timeouts for CI environments
     if os.environ.get("CI", "").lower() == "true" or os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
         # CI environments might be slower, so use longer timeouts
@@ -70,9 +70,9 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
         # For local development, use shorter timeouts
         loop.slow_callback_duration = 0.25
         shutdown_timeout = 0.5
-    
+
     yield loop
-    
+
     # Clean up the loop after the test
     try:
         # Cancel all pending tasks
@@ -81,15 +81,12 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
             for task in pending_tasks:
                 if not task.done() and not task.cancelled():
                     task.cancel()
-            
+
             # Wait for tasks to be cancelled with a timeout
             try:
                 # Use gather with return_exceptions to avoid task cancellation errors
                 loop.run_until_complete(
-                    asyncio.wait_for(
-                        asyncio.gather(*pending_tasks, return_exceptions=True),
-                        timeout=shutdown_timeout
-                    )
+                    asyncio.wait_for(asyncio.gather(*pending_tasks, return_exceptions=True), timeout=shutdown_timeout)
                 )
             except (asyncio.CancelledError, asyncio.TimeoutError, RuntimeError):
                 # Ignore cancellation, timeout, and "loop is closed" errors
@@ -104,14 +101,14 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     except Exception as e:
         # Log other exceptions but don't fail the test
         warnings.warn(f"Exception during event loop cleanup: {e}")
-    
+
     # Close the loop if it's not already closed
     try:
         if not loop.is_closed():
             loop.close()
     except Exception:
         pass
-    
+
     # Create a new event loop and make it the current one
     # This ensures that subsequent tests don't reuse a closed loop
     asyncio.set_event_loop(asyncio.new_event_loop())
@@ -121,7 +118,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 def anyio_backend():
     """
     Configure anyio backend to use asyncio.
-    
+
     This ensures consistent behavior across all async tests.
     """
     return "asyncio"
