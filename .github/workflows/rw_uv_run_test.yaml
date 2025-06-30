@@ -76,6 +76,8 @@ env:
 jobs:
   run_test_items:
     environment: ${{ inputs.with-environment-variables }}
+    env:
+      SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
     runs-on: ${{ inputs.runtime_os }}
 
     strategy:
@@ -107,17 +109,15 @@ jobs:
 
       - name: Verify the Slack bot token
         run: |
-          curl -s https://slack.com/api/auth.test -H "Authorization: Bearer ${{ secrets.end-to-end_test_slack_bot_token }}"
-#          echo "SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}"
-#        env:
-#          SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
+          echo "SLACK_BOT_TOKEN: $SLACK_BOT_TOKEN"
+          curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"
 
       - name: Run tests with pytest
         working-directory: ${{ inputs.test_working_directory }}
         run: uv run pytest ${{ matrix.test-path }}
         continue-on-error: ${{ inputs.keep_run_if_test_fail }}
         env:
-          SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
+          SLACK_BOT_TOKEN: $SLACK_BOT_TOKEN
           SLACK_TEST_CHANNEL: ${{ vars.SLACK_TEST_CHANNEL }}
           SLACK_TEST_CHANNEL_ID: ${{ vars.SLACK_TEST_CHANNEL_ID }}
 
