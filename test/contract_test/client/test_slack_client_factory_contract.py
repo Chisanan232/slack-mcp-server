@@ -8,12 +8,17 @@ rather than implementation details.
 
 from abc import ABC, abstractmethod
 from typing import Any, Optional, Type
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.client_factory import DefaultSlackClientFactory, SlackClientFactory
+from slack_mcp.client_factory import (
+    DefaultSlackClientFactory,
+    RetryableSlackClientFactory,
+    SlackClientFactory,
+)
 from slack_mcp.model import SlackPostMessageInput, SlackThreadReplyInput
 
 
@@ -36,174 +41,227 @@ class SlackClientFactoryContractTest(ABC):
 
     # === CORE CONTRACT REQUIREMENTS ===
 
-    def test_factory_creates_async_web_client(self, factory):
+    @patch("slack_mcp.client_factory.AsyncWebClient")
+    def test_factory_creates_async_web_client(self, mock_async_client_class, factory):
         """
         CONTRACT: A factory must create an AsyncWebClient instance when
         create_async_client is called with a valid token.
         """
-        client = factory.create_async_client("xoxb-valid-test-token")
-        assert isinstance(client, AsyncWebClient)
+        # Setup mock to track instantiation
+        mock_instance = MagicMock()
+        mock_instance.retry_handlers = []
+        mock_async_client_class.return_value = mock_instance
 
-    def test_factory_creates_web_client(self, factory):
+        client = factory.create_async_client("xoxb-valid-test-token")
+
+        # Verify AsyncWebClient was instantiated with correct token
+        mock_async_client_class.assert_called_once()
+        args, kwargs = mock_async_client_class.call_args
+        assert kwargs.get("token") == "xoxb-valid-test-token"
+
+    @patch("slack_mcp.client_factory.WebClient")
+    def test_factory_creates_web_client(self, mock_web_client_class, factory):
         """
         CONTRACT: A factory must create a WebClient instance when
         create_sync_client is called with a valid token.
         """
-        client = factory.create_sync_client("xoxb-valid-test-token")
-        assert isinstance(client, WebClient)
+        # Setup mock to track instantiation
+        mock_instance = MagicMock()
+        mock_instance.retry_handlers = []
+        mock_web_client_class.return_value = mock_instance
 
-    def test_factory_creates_client_with_provided_token(self, factory):
+        client = factory.create_sync_client("xoxb-valid-test-token")
+
+        # Verify WebClient was instantiated with correct token
+        mock_web_client_class.assert_called_once()
+        args, kwargs = mock_web_client_class.call_args
+        assert kwargs.get("token") == "xoxb-valid-test-token"
+
+    @patch("slack_mcp.client_factory.AsyncWebClient")
+    @patch("slack_mcp.client_factory.WebClient")
+    def test_factory_creates_client_with_provided_token(
+        self, mock_web_client_class, mock_async_client_class, factory, monkeypatch
+    ):
         """
-        CONTRACT: A factory must use the provided token when creating clients.
+        CONTRACT: A factory must use the token explicitly provided to it
+        when creating clients, rather than falling back to environment
+        variables or other sources.
         """
-        test_token = "xoxb-provided-token"
+        # Set environment variables that should be ignored when token is provided
+        monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-env-token-should-not-be-used")
+        monkeypatch.setenv("SLACK_TOKEN", "xoxb-env-token-should-not-be-used")
+
+        # Setup mocks
+        mock_async_instance = MagicMock()
+        mock_async_instance.retry_handlers = []
+        mock_async_client_class.return_value = mock_async_instance
+
+        mock_sync_instance = MagicMock()
+        mock_sync_instance.retry_handlers = []
+        mock_web_client_class.return_value = mock_sync_instance
+
+        test_token = "xoxb-explicit-test-token"
+
+        # Test both sync and async clients
         async_client = factory.create_async_client(test_token)
         sync_client = factory.create_sync_client(test_token)
 
-        assert async_client.token == test_token
-        assert sync_client.token == test_token
+        # Verify correct token was used
+        async_args, async_kwargs = mock_async_client_class.call_args
+        assert async_kwargs.get("token") == test_token
 
-    def test_client_creation_from_input(self, factory, monkeypatch):
-        """
-        CONTRACT: A factory must be able to create clients from standard input objects.
-        """
-        # Set safe fallback token to test empty/missing token case
-        monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-fallback-token")
+        sync_args, sync_kwargs = mock_web_client_class.call_args
+        assert sync_kwargs.get("token") == test_token
 
-        # Test with SlackPostMessageInput
-        post_message_input = SlackPostMessageInput(
-            token="xoxb-test-post-message", channel="test-channel", text="Test message"
+    @patch("slack_mcp.client_factory.AsyncWebClient")
+    def test_client_creation_from_input(self, mock_async_client_class, factory, monkeypatch):
+        """
+        CONTRACT: A factory must be able to create a client from an input object
+        that has a token attribute, and use that token for the client.
+        """
+        # Setup mock
+        mock_async_instance = MagicMock()
+        mock_async_instance.retry_handlers = []
+        mock_async_client_class.return_value = mock_async_instance
+
+        test_token = "xoxb-from-input"
+
+        # Create input objects with token
+        message_input = SlackPostMessageInput(channel="test-channel", text="test message", token=test_token)
+
+        thread_input = SlackThreadReplyInput(
+            channel="test-channel", thread_ts="1234.5678", texts=["Reply 1", "Reply 2"], token=test_token
         )
 
-        async_client_1 = factory.create_async_client_from_input(post_message_input)
-        assert isinstance(async_client_1, AsyncWebClient)
-        assert async_client_1.token == "xoxb-test-post-message"
+        # Reset the mock between calls
+        inputs = [message_input, thread_input]
+        for input_obj in inputs:
+            mock_async_client_class.reset_mock()
+            client = factory.create_async_client_from_input(input_obj)
 
-        # Test with SlackThreadReplyInput
-        thread_reply_input = SlackThreadReplyInput(
-            token="xoxb-test-thread-reply", channel="test-channel", thread_ts="1234.5678", texts=["Test reply"]
-        )
-
-        async_client_2 = factory.create_async_client_from_input(thread_reply_input)
-        assert isinstance(async_client_2, AsyncWebClient)
-        assert async_client_2.token == "xoxb-test-thread-reply"
-
-        # Test with input that has no token
-        no_token_input = SlackPostMessageInput(channel="test-channel", text="Test with no token")
-
-        async_client_3 = factory.create_async_client_from_input(no_token_input)
-        assert isinstance(async_client_3, AsyncWebClient)
-        # Should use fallback token
-        assert async_client_3.token == "xoxb-fallback-token"
+            # Verify correct token from input was used
+            mock_async_client_class.assert_called_once()
+            args, kwargs = mock_async_client_class.call_args
+            assert kwargs.get("token") == test_token
 
     def test_required_token_error(self, factory, monkeypatch):
         """
-        CONTRACT: A factory must raise a ValueError when no token
-        is available and one is required.
+        CONTRACT: A factory must raise a ValueError when no token is provided
+        and none can be resolved from environment.
         """
-        # Clear environment tokens
+        # Ensure no token environment variables are set
         monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
         monkeypatch.delenv("SLACK_TOKEN", raising=False)
 
-        # Should raise ValueError when no token is provided
+        # Should raise ValueError when no token is available
         with pytest.raises(ValueError) as excinfo:
             factory.create_async_client()
 
         assert "token" in str(excinfo.value).lower()
 
-    # === BEHAVIORAL CONTRACTS ===
+    # === BEHAVIORAL CONTRACT REQUIREMENTS ===
 
     @pytest.mark.asyncio
-    async def test_async_slack_message_behavior(self, factory, monkeypatch):
+    @patch("slack_mcp.client_factory.AsyncWebClient")
+    async def test_async_slack_message_behavior(self, mock_async_client_class, factory):
         """
-        CONTRACT: A factory must produce clients that can be used to send messages
-        in the expected manner using async patterns.
+        CONTRACT: A factory must produce AsyncWebClient instances that can
+        correctly send messages to Slack channels.
         """
-        test_token = "xoxb-test-async"
-        test_channel = "C12345678"
-        test_text = "Test message"
+        test_token = "xoxb-async-test-token"
+        test_channel = "C123456789"
+        test_message = "Hello from async test"
 
-        # Create a post message input
-        input_obj = SlackPostMessageInput(token=test_token, channel=test_channel, text=test_text)
+        # Mock response data
+        expected_response = {
+            "ok": True,
+            "channel": test_channel,
+            "ts": "1234.5678",
+            "message": {"text": test_message, "user": "U123456"},
+        }
 
-        # Mock async client to verify expected behavior
-        class MockAsyncWebClient:
-            def __init__(self, token):
-                self.token = token
-                self.chat_postMessage_called = False
-                self.last_args = None
+        # Create a mock AsyncWebClient that returns our expected response
+        mock_instance = AsyncMock()
+        mock_instance.retry_handlers = []
+        mock_instance.chat_postMessage = AsyncMock(return_value=expected_response)
+        mock_async_client_class.return_value = mock_instance
 
-            async def chat_postMessage(self, **kwargs):
-                self.chat_postMessage_called = True
-                self.last_args = kwargs
-                return {"ok": True, "channel": kwargs.get("channel"), "ts": "1234.5678"}
+        # Create client using factory
+        client = factory.create_async_client(test_token)
 
-        # Patch AsyncWebClient
-        monkeypatch.setattr("slack_mcp.client_factory.AsyncWebClient", MockAsyncWebClient)
+        # Send message
+        response = await client.chat_postMessage(channel=test_channel, text=test_message)
 
-        # Get client from factory and use it
-        client = factory.create_async_client_from_input(input_obj)
-        response = await client.chat_postMessage(channel=input_obj.channel, text=input_obj.text)
+        # Verify message was sent with correct parameters
+        client.chat_postMessage.assert_called_once()
+        args, kwargs = client.chat_postMessage.call_args
+        assert kwargs.get("channel") == test_channel
+        assert kwargs.get("text") == test_message
+        assert response == expected_response
 
-        # Verify the contract behavior
-        assert client.chat_postMessage_called
-        assert client.last_args["channel"] == test_channel
-        assert client.last_args["text"] == test_text
-        assert response["ok"] is True
-        assert response["ts"] == "1234.5678"
-
-    def test_sync_slack_message_behavior(self, factory, monkeypatch):
+    @patch("slack_mcp.client_factory.WebClient")
+    def test_sync_slack_message_behavior(self, mock_web_client_class, factory):
         """
-        CONTRACT: A factory must produce clients that can be used to send messages
-        in the expected manner using sync patterns.
+        CONTRACT: A factory must produce WebClient instances that can
+        correctly send messages to Slack channels.
         """
-        test_token = "xoxb-test-sync"
-        test_channel = "C12345678"
-        test_text = "Test message"
+        test_token = "xoxb-sync-test-token"
+        test_channel = "C123456789"
+        test_message = "Hello from sync test"
 
-        # Create a post message input
-        input_obj = SlackPostMessageInput(token=test_token, channel=test_channel, text=test_text)
+        # Mock response data
+        expected_response = {
+            "ok": True,
+            "channel": test_channel,
+            "ts": "1234.5678",
+            "message": {"text": test_message, "user": "U123456"},
+        }
 
-        # Mock sync client to verify expected behavior
-        class MockWebClient:
-            def __init__(self, token):
-                self.token = token
-                self.chat_postMessage_called = False
-                self.last_args = None
+        # Create a mock WebClient that returns our expected response
+        mock_instance = MagicMock()
+        mock_instance.retry_handlers = []
+        mock_instance.chat_postMessage = MagicMock(return_value=expected_response)
+        mock_web_client_class.return_value = mock_instance
 
-            def chat_postMessage(self, **kwargs):
-                self.chat_postMessage_called = True
-                self.last_args = kwargs
-                return {"ok": True, "channel": kwargs.get("channel"), "ts": "1234.5678"}
-
-        # Patch WebClient
-        monkeypatch.setattr("slack_mcp.client_factory.WebClient", MockWebClient)
-
-        # Create client using factory with explicit token instead of input
+        # Create client using factory
         client = factory.create_sync_client(test_token)
-        response = client.chat_postMessage(channel=test_channel, text=test_text)
 
-        # Verify the contract behavior
-        assert client.chat_postMessage_called
-        assert client.last_args["channel"] == test_channel
-        assert client.last_args["text"] == test_text
-        assert response["ok"] is True
-        assert response["ts"] == "1234.5678"
+        # Send message
+        response = client.chat_postMessage(channel=test_channel, text=test_message)
+
+        # Verify message was sent with correct parameters
+        client.chat_postMessage.assert_called_once()
+        args, kwargs = client.chat_postMessage.call_args
+        assert kwargs.get("channel") == test_channel
+        assert kwargs.get("text") == test_message
+        assert response == expected_response
 
 
 class TestDefaultSlackClientFactoryContract(SlackClientFactoryContractTest):
     """Concrete contract tests for DefaultSlackClientFactory."""
 
-    def factory_class(self):
+    def factory_class(self) -> Type[SlackClientFactory]:
+        """Return the DefaultSlackClientFactory class."""
         return DefaultSlackClientFactory
+
+
+class TestRetryableSlackClientFactoryContract(SlackClientFactoryContractTest):
+    """Concrete contract tests for RetryableSlackClientFactory.
+
+    This ensures that the retry-enhanced factory correctly implements
+    the SlackClientFactory contract.
+    """
+
+    def factory_class(self) -> Type[SlackClientFactory]:
+        """Return the RetryableSlackClientFactory class."""
+        return RetryableSlackClientFactory
 
 
 # === MOCK IMPLEMENTATION FOR TESTING ===
 
 
 class MockSlackClientFactory(SlackClientFactory):
-    """
-    A mock implementation of SlackClientFactory used to validate
+    """A mock implementation of SlackClientFactory used to validate
     that the contract tests properly catch deviations.
 
     This implementation deliberately violates the contract by always
@@ -211,30 +269,39 @@ class MockSlackClientFactory(SlackClientFactory):
     """
 
     def create_async_client(self, token: Optional[str] = None) -> AsyncWebClient:
-        """Create an async Slack client."""
-        # Always use a fixed token, ignoring the provided one
-        return AsyncWebClient(token="xoxb-mock-fixed-token")
+        """Create an async Slack client.
+
+        This implementation deliberately ignores the provided token.
+        """
+        # Deliberately violate contract by using a fixed token
+        return AsyncWebClient(token="xoxb-fixed-token")
 
     def create_sync_client(self, token: Optional[str] = None) -> WebClient:
-        """Create a sync Slack client."""
-        # Always use a fixed token, ignoring the provided one
-        return WebClient(token="xoxb-mock-fixed-token")
+        """Create a sync Slack client.
+
+        This implementation deliberately ignores the provided token.
+        """
+        # Deliberately violate contract by using a fixed token
+        return WebClient(token="xoxb-fixed-token")
 
     def create_async_client_from_input(self, input_obj: Any) -> AsyncWebClient:
-        """Create an async client from an input object."""
-        # Always use a fixed token, ignoring the input object
+        """Create an async client from an input object.
+
+        This implementation deliberately ignores any token in the input.
+        """
+        # Deliberately violate contract by using a fixed token
         return self.create_async_client()
 
 
 @pytest.mark.xfail(reason="Mock implementation deliberately violates contract")
 class TestMockSlackClientFactoryFailsContract(SlackClientFactoryContractTest):
-    """
-    A test class that demonstrates the contract tests will fail
+    """A test class that demonstrates the contract tests will fail
     for implementations that don't respect the contract.
 
     This class is marked to expect failures since the MockSlackClientFactory
     deliberately violates the contract by not using provided tokens.
     """
 
-    def factory_class(self):
+    def factory_class(self) -> Type[SlackClientFactory]:
+        """Return the MockSlackClientFactory class."""
         return MockSlackClientFactory

@@ -9,8 +9,20 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import List, Optional
 
+from slack_sdk.http_retry.async_handler import AsyncRetryHandler
+from slack_sdk.http_retry.builtin_async_handlers import (
+    AsyncConnectionErrorRetryHandler,
+    AsyncRateLimitErrorRetryHandler,
+    AsyncServerErrorRetryHandler,
+)
+from slack_sdk.http_retry.builtin_handlers import (
+    ConnectionErrorRetryHandler,
+    RateLimitErrorRetryHandler,
+    ServerErrorRetryHandler,
+)
+from slack_sdk.http_retry.handler import RetryHandler
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
@@ -168,5 +180,141 @@ class DefaultSlackClientFactory(SlackClientFactory):
         return self.create_async_client(input_params.token)
 
 
-# Default global instance for easy access
+class RetryableSlackClientFactory(DefaultSlackClientFactory):
+    """Implementation of SlackClientFactory with built-in retry capabilities.
+
+    This class extends DefaultSlackClientFactory to provide Slack clients
+    configured with retry handlers for common error scenarios:
+    - Rate limit errors (HTTP 429)
+    - Server errors (HTTP 5xx)
+    - Connection errors
+
+    The retry behavior follows exponential backoff with jitter for optimal
+    handling of transient issues when interacting with Slack API.
+    """
+
+    def __init__(
+        self,
+        max_retry_count: int = 3,
+        include_rate_limit_retries: bool = True,
+        include_server_error_retries: bool = True,
+        include_connection_error_retries: bool = True,
+    ):
+        """Initialize the RetryableSlackClientFactory.
+
+        Parameters
+        ----------
+        max_retry_count : int, optional
+            Maximum number of retry attempts, by default 3
+        include_rate_limit_retries : bool, optional
+            Whether to retry on rate limit errors, by default True
+        include_server_error_retries : bool, optional
+            Whether to retry on server errors (5xx), by default True
+        include_connection_error_retries : bool, optional
+            Whether to retry on connection errors, by default True
+        """
+        super().__init__()
+        self.max_retry_count = max_retry_count
+        self.include_rate_limit_retries = include_rate_limit_retries
+        self.include_server_error_retries = include_server_error_retries
+        self.include_connection_error_retries = include_connection_error_retries
+
+    def _get_sync_retry_handlers(self) -> List[RetryHandler]:
+        """Get the list of synchronous retry handlers based on configuration.
+
+        Returns
+        -------
+        List[RetryHandler]
+            Configured retry handlers for synchronous clients
+        """
+        handlers = []
+        if self.include_rate_limit_retries:
+            handlers.append(RateLimitErrorRetryHandler(max_retry_count=self.max_retry_count))
+        if self.include_server_error_retries:
+            handlers.append(ServerErrorRetryHandler(max_retry_count=self.max_retry_count))
+        if self.include_connection_error_retries:
+            handlers.append(ConnectionErrorRetryHandler(max_retry_count=self.max_retry_count))
+        return handlers
+
+    def _get_async_retry_handlers(self) -> List[AsyncRetryHandler]:
+        """Get the list of asynchronous retry handlers based on configuration.
+
+        Returns
+        -------
+        List[AsyncRetryHandler]
+            Configured retry handlers for asynchronous clients
+        """
+        handlers = []
+        if self.include_rate_limit_retries:
+            handlers.append(AsyncRateLimitErrorRetryHandler(max_retry_count=self.max_retry_count))
+        if self.include_server_error_retries:
+            handlers.append(AsyncServerErrorRetryHandler(max_retry_count=self.max_retry_count))
+        if self.include_connection_error_retries:
+            handlers.append(AsyncConnectionErrorRetryHandler(max_retry_count=self.max_retry_count))
+        return handlers
+
+    def create_async_client(self, token: Optional[str] = None) -> AsyncWebClient:
+        """Create an AsyncWebClient with retry capabilities.
+
+        Parameters
+        ----------
+        token : Optional[str], optional
+            Slack token to use if provided, by default None
+
+        Returns
+        -------
+        AsyncWebClient
+            Initialized Slack AsyncWebClient instance with retry handlers
+        """
+        resolved_token = self._resolve_token(token)
+        client = AsyncWebClient(token=resolved_token)
+
+        # Add configured retry handlers
+        retry_handlers = self._get_async_retry_handlers()
+        for handler in retry_handlers:
+            client.retry_handlers.append(handler)
+
+        return client
+
+    def create_sync_client(self, token: Optional[str] = None) -> WebClient:
+        """Create a synchronous WebClient with retry capabilities.
+
+        Parameters
+        ----------
+        token : Optional[str], optional
+            Slack token to use if provided, by default None
+
+        Returns
+        -------
+        WebClient
+            Initialized Slack WebClient instance with retry handlers
+        """
+        resolved_token = self._resolve_token(token)
+        client = WebClient(token=resolved_token)
+
+        # Add configured retry handlers
+        retry_handlers = self._get_sync_retry_handlers()
+        for handler in retry_handlers:
+            client.retry_handlers.append(handler)
+
+        return client
+
+    def create_async_client_from_input(self, input_params: _BaseInput) -> AsyncWebClient:
+        """Create an AsyncWebClient with retry capabilities from MCP input parameters.
+
+        Parameters
+        ----------
+        input_params : _BaseInput
+            Input object containing an optional token parameter.
+
+        Returns
+        -------
+        AsyncWebClient
+            Initialized Slack AsyncWebClient instance with retry handlers
+        """
+        return self.create_async_client(input_params.token)
+
+
+# Default global instances for easy access
 default_factory = DefaultSlackClientFactory()
+retryable_factory = RetryableSlackClientFactory()

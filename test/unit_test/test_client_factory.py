@@ -10,8 +10,23 @@ import os
 from unittest import mock
 
 import pytest
+from slack_sdk.http_retry.builtin_async_handlers import (
+    AsyncConnectionErrorRetryHandler,
+    AsyncRateLimitErrorRetryHandler,
+    AsyncServerErrorRetryHandler,
+)
+from slack_sdk.http_retry.builtin_handlers import (
+    ConnectionErrorRetryHandler,
+    RateLimitErrorRetryHandler,
+    ServerErrorRetryHandler,
+)
 
-from slack_mcp.client_factory import DefaultSlackClientFactory, default_factory
+from slack_mcp.client_factory import (
+    DefaultSlackClientFactory,
+    RetryableSlackClientFactory,
+    default_factory,
+    retryable_factory,
+)
 from slack_mcp.model import SlackPostMessageInput, SlackThreadReplyInput, _BaseInput
 
 
@@ -214,3 +229,169 @@ class TestDefaultSlackClientFactory:
             with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
                 factory.create_async_client()
                 mock_client.assert_called_once_with(token=test_token)
+
+
+class TestRetryableSlackClientFactory:
+    """Unit tests for RetryableSlackClientFactory implementation."""
+
+    @pytest.fixture
+    def factory(self):
+        """Fixture providing a fresh RetryableSlackClientFactory instance."""
+        return RetryableSlackClientFactory()
+
+    @pytest.fixture
+    def mock_env_tokens(self, monkeypatch):
+        """Fixture to set up mock environment tokens."""
+        monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-retry-token")
+        return monkeypatch
+
+    def test_default_retry_handlers_async(self, factory):
+        """Test default retry handlers for async client."""
+        handlers = factory._get_async_retry_handlers()
+
+        # By default, all three handler types should be present
+        assert len(handlers) == 3
+
+        # Check handler types
+        handler_types = [type(h) for h in handlers]
+        assert AsyncRateLimitErrorRetryHandler in handler_types
+        assert AsyncServerErrorRetryHandler in handler_types
+        assert AsyncConnectionErrorRetryHandler in handler_types
+
+        # Check max retry count
+        for handler in handlers:
+            assert handler.max_retry_count == 3  # default value
+
+    def test_default_retry_handlers_sync(self, factory):
+        """Test default retry handlers for sync client."""
+        handlers = factory._get_sync_retry_handlers()
+
+        # By default, all three handler types should be present
+        assert len(handlers) == 3
+
+        # Check handler types
+        handler_types = [type(h) for h in handlers]
+        assert RateLimitErrorRetryHandler in handler_types
+        assert ServerErrorRetryHandler in handler_types
+        assert ConnectionErrorRetryHandler in handler_types
+
+        # Check max retry count
+        for handler in handlers:
+            assert handler.max_retry_count == 3  # default value
+
+    def test_custom_max_retry_count(self):
+        """Test custom max retry count configuration."""
+        custom_factory = RetryableSlackClientFactory(max_retry_count=5)
+
+        # Check both sync and async handlers
+        for handler in custom_factory._get_sync_retry_handlers():
+            assert handler.max_retry_count == 5
+
+        for handler in custom_factory._get_async_retry_handlers():
+            assert handler.max_retry_count == 5
+
+    def test_custom_handler_inclusion(self):
+        """Test custom inclusion/exclusion of retry handlers."""
+        # Only include rate limit retries
+        factory = RetryableSlackClientFactory(
+            include_rate_limit_retries=True, include_server_error_retries=False, include_connection_error_retries=False
+        )
+
+        async_handlers = factory._get_async_retry_handlers()
+        sync_handlers = factory._get_sync_retry_handlers()
+
+        # Should have exactly one handler of each type
+        assert len(async_handlers) == 1
+        assert len(sync_handlers) == 1
+
+        # Should be rate limit handlers
+        assert isinstance(async_handlers[0], AsyncRateLimitErrorRetryHandler)
+        assert isinstance(sync_handlers[0], RateLimitErrorRetryHandler)
+
+    def test_async_client_has_retry_handlers(self, factory, mock_env_tokens):
+        """Test that async clients are created with retry handlers attached."""
+        # Create a mock client with a retry_handlers list attribute
+        mock_client = mock.MagicMock()
+        mock_client.retry_handlers = []
+
+        # Create a mock client constructor that returns our mock client
+        mock_client_constructor = mock.MagicMock(return_value=mock_client)
+
+        with mock.patch("slack_mcp.client_factory.AsyncWebClient", mock_client_constructor):
+            client = factory.create_async_client()
+
+            # Client should have 3 retry handlers attached (default configuration)
+            assert len(client.retry_handlers) == 3
+
+            # Verify each handler type
+            handler_types = [type(h) for h in client.retry_handlers]
+            assert AsyncRateLimitErrorRetryHandler in handler_types
+            assert AsyncServerErrorRetryHandler in handler_types
+            assert AsyncConnectionErrorRetryHandler in handler_types
+
+    def test_sync_client_has_retry_handlers(self, factory, mock_env_tokens):
+        """Test that sync clients are created with retry handlers attached."""
+        # Create a mock client with a retry_handlers list attribute
+        mock_client = mock.MagicMock()
+        mock_client.retry_handlers = []
+
+        # Create a mock client constructor that returns our mock client
+        mock_client_constructor = mock.MagicMock(return_value=mock_client)
+
+        with mock.patch("slack_mcp.client_factory.WebClient", mock_client_constructor):
+            client = factory.create_sync_client()
+
+            # Client should have 3 retry handlers attached (default configuration)
+            assert len(client.retry_handlers) == 3
+
+            # Verify each handler type
+            handler_types = [type(h) for h in client.retry_handlers]
+            assert RateLimitErrorRetryHandler in handler_types
+            assert ServerErrorRetryHandler in handler_types
+            assert ConnectionErrorRetryHandler in handler_types
+
+    def test_async_client_from_input_has_retry_handlers(self, factory, mock_env_tokens):
+        """Test that async clients created from input have retry handlers attached."""
+        # Create a mock client with a retry_handlers list attribute
+        mock_client = mock.MagicMock()
+        mock_client.retry_handlers = []
+
+        # Create a mock client constructor that returns our mock client
+        mock_client_constructor = mock.MagicMock(return_value=mock_client)
+
+        with mock.patch("slack_mcp.client_factory.AsyncWebClient", mock_client_constructor):
+            client = factory.create_async_client_from_input(_BaseInput(token="xoxb-test-token"))
+
+            # Client should have retry handlers attached
+            assert len(client.retry_handlers) > 0
+
+    def test_inheritance_maintains_token_resolution(self, factory, mock_env_tokens):
+        """Test that token resolution still works correctly in retryable factory."""
+        test_token = "xoxb-explicit-test"
+
+        # Test explicit token
+        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_async:
+            factory.create_async_client(test_token)
+            mock_async.assert_called_once_with(token=test_token)
+
+        # Test env fallback
+        with mock.patch("slack_mcp.client_factory.WebClient") as mock_web:
+            factory.create_sync_client()
+            mock_web.assert_called_once_with(token="xoxb-test-retry-token")
+
+    def test_retryable_factory_global_instance(self):
+        """Test the global retryable factory instance."""
+        assert isinstance(retryable_factory, RetryableSlackClientFactory)
+
+        # Create a mock client with a retry_handlers list attribute
+        mock_client = mock.MagicMock()
+        mock_client.retry_handlers = []
+
+        # Create a mock client constructor that returns our mock client
+        mock_client_constructor = mock.MagicMock(return_value=mock_client)
+
+        with mock.patch("slack_mcp.client_factory.AsyncWebClient", mock_client_constructor):
+            client = retryable_factory.create_async_client("xoxb-test-token")
+
+            # Global instance should also add retry handlers
+            assert len(client.retry_handlers) > 0
