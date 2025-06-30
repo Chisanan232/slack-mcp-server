@@ -33,21 +33,12 @@ from slack_mcp.model import (
     SlackThreadReplyInput,
     _BaseInput,
 )
+from slack_mcp.client_factory import default_factory
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
 
 mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
-
-
-def _verify_slack_token_exist(input_params: _BaseInput) -> str:
-    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
-    if resolved_token is None:
-        raise ValueError(
-            "Slack token not found. Provide one via the 'token' argument or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
-    return resolved_token
 
 
 def _get_web_client(input_params: _BaseInput) -> AsyncWebClient:
@@ -68,8 +59,7 @@ def _get_web_client(input_params: _BaseInput) -> AsyncWebClient:
     ValueError
         If no token is supplied and the relevant environment variables are missing.
     """
-    resolved_token = _verify_slack_token_exist(input_params)
-    return AsyncWebClient(token=resolved_token)
+    return default_factory.create_async_client_from_input(input_params)
 
 
 @mcp.tool("slack_post_message")
