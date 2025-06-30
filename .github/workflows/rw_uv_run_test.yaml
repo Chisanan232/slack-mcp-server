@@ -107,10 +107,10 @@ jobs:
 
       - name: Verify the Slack bot token
         run: |
-          echo "SLACK_BOT_TOKEN: $SLACK_BOT_TOKEN"
-          curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"
-        env:
-          SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
+          curl -s https://slack.com/api/auth.test -H "Authorization: Bearer ${{ secrets.end-to-end_test_slack_bot_token }}"
+#          echo "SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}"
+#        env:
+#          SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
 
       - name: Run tests with pytest
         working-directory: ${{ inputs.test_working_directory }}
