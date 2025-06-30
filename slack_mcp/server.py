@@ -8,7 +8,6 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, Final, List
 
 from mcp.server.fastmcp import FastMCP
@@ -24,6 +23,7 @@ __all__: list[str] = [
     "add_slack_reactions",
 ]
 
+from slack_mcp.client_factory import default_factory
 from slack_mcp.model import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
@@ -33,7 +33,6 @@ from slack_mcp.model import (
     SlackThreadReplyInput,
     _BaseInput,
 )
-from slack_mcp.client_factory import default_factory
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
