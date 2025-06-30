@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import os
 import socket
+import warnings
+from contextlib import suppress
 from typing import Any, AsyncGenerator, Dict, Generator, Optional
 
 import aiohttp
@@ -49,6 +51,17 @@ class TestServer(uvicorn.Server):
         """Wait for the server to start."""
         await self._startup_done.wait()
 
+    async def safe_shutdown(self) -> None:
+        """Safely shut down the server, handling any event loop issues."""
+        if not self.started:
+            return
+
+        self.should_exit = True
+
+        with suppress(asyncio.TimeoutError):
+            # Give the server a brief moment to start shutting down
+            await asyncio.sleep(0.2)
+
 
 @pytest.fixture
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
@@ -86,6 +99,19 @@ def mock_slack_verification(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("slack_mcp.slack_app.verify_slack_request", mock_verify)
 
 
+async def safely_cancel_task(task: asyncio.Task) -> None:
+    """Safely cancel a task without raising exceptions."""
+    if task.done():
+        return
+
+    try:
+        task.cancel()
+        with suppress(asyncio.CancelledError, RuntimeError, asyncio.TimeoutError):
+            await asyncio.wait_for(task, timeout=0.5)
+    except Exception as e:
+        warnings.warn(f"Error while cancelling task: {e}")
+
+
 @pytest_asyncio.fixture
 async def sse_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[Dict[str, Any], None]:
     """Start an integrated server with SSE transport for e2e testing."""
@@ -109,13 +135,8 @@ async def sse_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[D
         yield {"port": port, "base_url": f"http://127.0.0.1:{port}"}
     finally:
         # Stop the server
-        server.should_exit = True
-        await asyncio.sleep(0.1)
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        await server.safe_shutdown()
+        await safely_cancel_task(task)
 
 
 @pytest_asyncio.fixture
@@ -141,13 +162,8 @@ async def http_server(fake_slack_credentials: Dict[str, str]) -> AsyncGenerator[
         yield {"port": port, "base_url": f"http://127.0.0.1:{port}"}
     finally:
         # Stop the server
-        server.should_exit = True
-        await asyncio.sleep(0.1)
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        await server.safe_shutdown()
+        await safely_cancel_task(task)
 
 
 @pytest.mark.asyncio
@@ -316,10 +332,5 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
                 assert data == {"challenge": "challenge_value"}
     finally:
         # Stop the server
-        server.should_exit = True
-        await asyncio.sleep(0.1)
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        await server.safe_shutdown()
+        await safely_cancel_task(task)
