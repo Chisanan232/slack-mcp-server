@@ -37,7 +37,8 @@ def load_env() -> None:  # noqa: D401 – fixture
 
 
 load_env()
-time.sleep(random.randint(0, 5))
+# Avoid it to HTTP 429 errors
+time.sleep(random.randint(0, 5) * 30)
 
 
 @pytest.mark.skipif(
