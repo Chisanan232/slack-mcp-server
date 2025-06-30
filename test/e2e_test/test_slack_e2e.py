@@ -15,6 +15,8 @@ import pytest
 from dotenv import load_dotenv
 from slack_sdk.web.async_client import AsyncWebClient
 
+from test.e2e_test.slack_retry_utils import retry_slack_api_call
+
 pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
@@ -35,6 +37,44 @@ def load_env() -> None:  # noqa: D401 – fixture
 
 
 load_env()
+
+
+@retry_slack_api_call
+async def _auth_test(client):
+    return await client.auth_test()
+
+
+@retry_slack_api_call
+async def _post_message(client, channel, text, thread_ts=None):
+    if thread_ts:
+        return await client.chat_postMessage(channel=channel, text=text, thread_ts=thread_ts)
+    else:
+        return await client.chat_postMessage(channel=channel, text=text)
+
+
+@retry_slack_api_call
+async def _get_conversation_history(client, channel, limit):
+    return await client.conversations_history(channel=channel, limit=limit)
+
+
+@retry_slack_api_call
+async def _get_conversations_info(client, channel):
+    return await client.conversations_info(channel=channel)
+
+
+@retry_slack_api_call
+async def _add_reaction(client, channel, name, timestamp):
+    return await client.reactions_add(channel=channel, name=name, timestamp=timestamp)
+
+
+@retry_slack_api_call
+async def _get_reactions(client, channel, timestamp):
+    return await client.reactions_get(channel=channel, timestamp=timestamp)
+
+
+@retry_slack_api_call
+async def _get_conversation_replies(client, channel, ts):
+    return await client.conversations_replies(channel=channel, ts=ts)
 
 
 @pytest.mark.skipif(
@@ -58,7 +98,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     # Verify token works with direct API call first
     try:
         test_client = AsyncWebClient(token=bot_token)
-        auth_test = await test_client.auth_test()
+        auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
     except Exception as e:
         pytest.fail(f"Slack API authentication failed: {e}")
@@ -154,7 +194,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     logger.info("Verifying message delivery...")
     try:
         client = AsyncWebClient(token=bot_token)
-        history = await client.conversations_history(channel=channel_id, limit=10)
+        history = await _get_conversation_history(client, channel=channel_id, limit=10)
 
         messages = history.get("messages", [])
         logger.info(f"Found {len(messages)} recent messages")
@@ -196,14 +236,14 @@ async def test_slack_read_channel_messages_e2e() -> None:
     if not should_fail:
         try:
             test_client = AsyncWebClient(token=bot_token)
-            auth_test = await test_client.auth_test()
+            auth_test = await _auth_test(test_client)
             logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
 
             # Check if we have the correct permissions for the channel type
             channel_info_response = None
             try:
                 # Try to get channel info (for public channels)
-                channel_info_response = await test_client.conversations_info(channel=channel_id)
+                channel_info_response = await _get_conversations_info(test_client, channel_id)
                 logger.info(f"Channel type: {channel_info_response.get('channel', {}).get('is_private')}")
             except Exception as channel_e:
                 logger.warning(f"Could not get channel info: {channel_e}")
@@ -217,7 +257,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
                 if is_private:
                     # Check if we can directly access history (to catch permission issues early)
                     try:
-                        history_test = await test_client.conversations_history(channel=channel_id, limit=1)
+                        history_test = await _get_conversation_history(test_client, channel_id, limit=1)
                         if not history_test.get("ok"):
                             scopes_needed = history_test.get("needed", "")
                             scopes_provided = history_test.get("provided", "")
@@ -242,7 +282,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
         try:
             client = AsyncWebClient(token=bot_token)
             unique_text = f"mcp-e2e-read-test-{uuid.uuid4()}"
-            message_result = await client.chat_postMessage(channel=channel_id, text=unique_text)
+            message_result = await _post_message(client, channel=channel_id, text=unique_text)
             logger.info(f"Test message sent with timestamp: {message_result.get('ts')}")
         except Exception as e:
             logger.warning(f"Failed to send test message: {e}")
@@ -409,7 +449,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     # Verify token works with direct API call first
     try:
         test_client = AsyncWebClient(token=bot_token)
-        auth_test = await test_client.auth_test()
+        auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
     except Exception as e:
         pytest.fail(f"Slack API authentication failed: {e}")
@@ -417,7 +457,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     # First, post a parent message directly using Slack SDK
     try:
         client = AsyncWebClient(token=bot_token)
-        parent_response = await client.chat_postMessage(channel=channel_id, text=unique_parent_text)
+        parent_response = await _post_message(client, channel=channel_id, text=unique_parent_text)
         assert parent_response["ok"] is True, "Failed to send parent message"
         parent_ts = parent_response["ts"]
         logger.info(f"Posted parent message with timestamp: {parent_ts}")
@@ -536,7 +576,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     logger.info("Verifying thread replies delivery...")
     try:
         client = AsyncWebClient(token=bot_token)
-        replies = await client.conversations_replies(channel=channel_id, ts=parent_ts)
+        replies = await _get_conversation_replies(client, channel=channel_id, ts=parent_ts)
 
         messages = replies.get("messages", [])
         logger.info(f"Found {len(messages)} messages in the thread")
@@ -585,11 +625,11 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     try:
         test_client = AsyncWebClient(token=bot_token)
         # Verify token works with direct API call first
-        auth_test = await test_client.auth_test()
+        auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
 
         # Send a test message that we'll react to
-        message_response = await test_client.chat_postMessage(channel=channel_id, text=unique_text)
+        message_response = await _post_message(test_client, channel=channel_id, text=unique_text)
         assert message_response["ok"] is True, "Failed to send test message"
         message_ts = message_response["ts"]
         logger.info(f"Created test message with timestamp: {message_ts}")
@@ -704,7 +744,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     logger.info("Verifying emoji reactions were added...")
     try:
         client = AsyncWebClient(token=bot_token)
-        reactions_response = await client.reactions_get(channel=channel_id, timestamp=message_ts)
+        reactions_response = await _get_reactions(client, channel=channel_id, timestamp=message_ts)
 
         assert reactions_response.get("ok") is True, f"Reactions API call failed: {reactions_response}"
         assert "message" in reactions_response, "Missing 'message' field in reactions response"
