@@ -117,6 +117,10 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     """Patch :pyclass:`AsyncWebClient` with the dummy implementation for tests."""
 
     monkeypatch.setattr(srv, "AsyncWebClient", _DummyAsyncWebClient)
+    # Also patch the AsyncWebClient in the client_factory module
+    from slack_mcp import client_factory
+    monkeypatch.setattr(client_factory, "AsyncWebClient", _DummyAsyncWebClient)
+    monkeypatch.setattr(client_factory, "WebClient", _DummyAsyncWebClient)  # Use same mock for sync client
 
 
 aSYNC_TOKEN_ENV_VARS = ("SLACK_BOT_TOKEN", "SLACK_TOKEN")
@@ -317,7 +321,7 @@ def test_verify_slack_token_exist(
     expected_result: str | None,
     should_raise: bool,
 ) -> None:
-    """Test _verify_slack_token_exist with different token sources."""
+    """Test token resolution with different token sources."""
     # Clear environment variables first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
@@ -326,15 +330,16 @@ def test_verify_slack_token_exist(
     for var_name, var_value in env_vars.items():
         monkeypatch.setenv(var_name, var_value)
 
-    # Create test input
-    test_input = TestBaseInput(token=token_param)
+    # Import the factory here to ensure it picks up the monkeypatched environment
+    from slack_mcp.client_factory import DefaultSlackClientFactory
+    factory = DefaultSlackClientFactory()
 
     if should_raise:
         with pytest.raises(ValueError) as excinfo:
-            srv._verify_slack_token_exist(test_input)
+            factory._resolve_token(token_param)
         assert "Slack token not found" in str(excinfo.value)
     else:
-        result = srv._verify_slack_token_exist(test_input)
+        result = factory._resolve_token(token_param)
         assert result == expected_result
 
 
