@@ -59,7 +59,7 @@ jobs:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') }}
     uses: ./.github/workflows/rw_build_and_test.yaml
     secrets:
-      end-to-end_test_slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+      e2e_test_slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
 
   unit-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov

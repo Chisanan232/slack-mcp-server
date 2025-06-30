@@ -3,7 +3,7 @@ name: Run test and organize test coverage reports
 on:
   workflow_call:
     secrets:
-      end-to-end_test_slack_bot_token:
+      e2e_test_slack_bot_token:
         description: "Set the Slack bot token for end-to-end test."
         required: false
 
@@ -59,7 +59,7 @@ jobs:
       all_test_items_paths: ${{needs.prep_e2e-test.outputs.all_test_items}}
       install_dependency_with_group: 'dev'
     secrets:
-      end-to-end_test_slack_bot_token: ${{ secrets.end-to-end_test_slack_bot_token }}
+      e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
 
   run_contract-test:
 #    name: Run all contract test items

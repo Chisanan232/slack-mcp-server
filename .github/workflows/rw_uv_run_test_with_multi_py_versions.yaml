@@ -42,7 +42,7 @@ on:
         required: false
         default: ''
     secrets:
-      end-to-end_test_slack_bot_token:
+      e2e_test_slack_bot_token:
         description: "Set the Slack bot token for end-to-end test."
         required: false
 
@@ -64,4 +64,4 @@ jobs:
       install_dependency_with_group: ${{ inputs.install_dependency_with_group }}
       with-environment-variables: ${{ inputs.with-environment-variables }}
     secrets:
-      end-to-end_test_slack_bot_token: ${{ secrets.end-to-end_test_slack_bot_token }}d
+      e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
