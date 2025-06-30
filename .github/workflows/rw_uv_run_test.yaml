@@ -75,7 +75,7 @@ env:
 
 jobs:
   run_test_items:
-    environment: ${{ inputs.with-environment-variables }}
+#    environment: ${{ inputs.with-environment-variables }}
     env:
       SLACK_BOT_TOKEN: ${{ secrets.end-to-end_test_slack_bot_token }}
     runs-on: ${{ inputs.runtime_os }}
