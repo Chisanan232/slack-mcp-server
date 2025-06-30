@@ -50,6 +50,28 @@ def _verify_slack_token_exist(input_params: _BaseInput) -> str:
     return resolved_token
 
 
+def _get_web_client(input_params: _BaseInput) -> AsyncWebClient:
+    """Create and return an AsyncWebClient instance with the resolved token.
+
+    Parameters
+    ----------
+    input_params
+        Input object containing an optional token parameter.
+
+    Returns
+    -------
+    AsyncWebClient
+        Initialized Slack AsyncWebClient instance.
+
+    Raises
+    ------
+    ValueError
+        If no token is supplied and the relevant environment variables are missing.
+    """
+    resolved_token = _verify_slack_token_exist(input_params)
+    return AsyncWebClient(token=resolved_token)
+
+
 @mcp.tool("slack_post_message")
 async def send_slack_message(
     input_params: SlackPostMessageInput,
@@ -73,11 +95,7 @@ async def send_slack_message(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.chat_postMessage(channel=input_params.channel, text=input_params.text)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
@@ -107,11 +125,7 @@ async def read_thread_messages(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.conversations_replies(
         channel=input_params.channel,
         ts=input_params.thread_ts,
@@ -145,11 +159,7 @@ async def read_slack_channel_messages(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.conversations_history(
         channel=input_params.channel,
         limit=input_params.limit,
@@ -185,11 +195,7 @@ async def send_slack_thread_reply(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     responses: List[Dict[str, Any]] = []
 
     # Send each text message as a separate reply to the thread
@@ -226,11 +232,7 @@ async def read_slack_emojis(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.emoji_list(include_categories=True)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
@@ -260,11 +262,7 @@ async def add_slack_reactions(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     responses: List[Dict[str, Any]] = []
 
     for emoji in input_params.emojis:
