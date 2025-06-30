@@ -33,7 +33,6 @@ from slack_mcp.model import (
     SlackThreadReplyInput,
     _BaseInput,
 )
-from slack_mcp.client_factory import default_factory
 
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"

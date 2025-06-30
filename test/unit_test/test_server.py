@@ -119,6 +119,7 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(srv, "AsyncWebClient", _DummyAsyncWebClient)
     # Also patch the AsyncWebClient in the client_factory module
     from slack_mcp import client_factory
+
     monkeypatch.setattr(client_factory, "AsyncWebClient", _DummyAsyncWebClient)
     monkeypatch.setattr(client_factory, "WebClient", _DummyAsyncWebClient)  # Use same mock for sync client
 
@@ -332,6 +333,7 @@ def test_verify_slack_token_exist(
 
     # Import the factory here to ensure it picks up the monkeypatched environment
     from slack_mcp.client_factory import DefaultSlackClientFactory
+
     factory = DefaultSlackClientFactory()
 
     if should_raise:
