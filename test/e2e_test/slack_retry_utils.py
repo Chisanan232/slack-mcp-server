@@ -4,15 +4,16 @@ import asyncio
 import functools
 import logging
 import random
-from typing import Any, Callable, TypeVar, cast
+from typing import Any, Awaitable, Callable, TypeVar
 
 from slack_sdk.errors import SlackApiError
 
 # Set up logging
 logger = logging.getLogger("slack_retry_utils")
 
-# Type variable for decorator
+# Type variables for decorator
 T = TypeVar("T")
+R = TypeVar("R")
 
 
 def with_slack_retry(
@@ -20,7 +21,7 @@ def with_slack_retry(
     initial_delay: float = 1.0,
     backoff_factor: float = 2.0,
     jitter: float = 0.1,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
+) -> Callable[[Callable[..., Awaitable[R]]], Callable[..., Awaitable[R]]]:
     """
     Decorator that retries a Slack API call when rate limits (HTTP 429) are hit.
 
@@ -34,9 +35,9 @@ def with_slack_retry(
         Decorated function that handles retries
     """
 
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
+    def decorator(func: Callable[..., Awaitable[R]]) -> Callable[..., Awaitable[R]]:
         @functools.wraps(func)
-        async def wrapper_async(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper_async(*args: Any, **kwargs: Any) -> R:
             last_exception = None
             delay = initial_delay
 
@@ -87,17 +88,11 @@ def with_slack_retry(
             assert last_exception is not None
             raise last_exception
 
-        @functools.wraps(func)
-        def wrapper_sync(*args: Any, **kwargs: Any) -> Any:
-            # This function exists to maintain the API signature, but will raise
-            # a TypeError if called on an async function
-            raise TypeError(f"Function {func.__name__} is async, use 'await'")
-
-        return cast(Callable[..., T], wrapper_async if asyncio.iscoroutinefunction(func) else wrapper_sync)
+        return wrapper_async
 
     return decorator
 
 
-def retry_slack_api_call(coro):
+def retry_slack_api_call(coro: Callable[..., Awaitable[R]]) -> Callable[..., Awaitable[R]]:
     """Simple decorator for retrying Slack API calls with default settings."""
     return with_slack_retry()(coro)
