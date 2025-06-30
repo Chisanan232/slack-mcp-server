@@ -18,7 +18,7 @@ R = TypeVar("R")
 
 def with_slack_retry(
     max_retries: int = 3,
-    initial_delay: float = 1.0,
+    initial_delay: float = 5.0,
     backoff_factor: float = 2.0,
     jitter: float = 0.1,
 ) -> Callable[[Callable[..., Awaitable[R]]], Callable[..., Awaitable[R]]]:
