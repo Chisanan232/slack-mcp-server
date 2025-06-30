@@ -41,6 +41,11 @@ on:
         type: string
         required: false
         default: ''
+      max-parallel:
+        description: "Set the max-parallel jobs."
+        type: number
+        required: false
+        default: 0
     secrets:
       e2e_test_slack_bot_token:
         description: "Set the Slack bot token for end-to-end test."
@@ -49,6 +54,7 @@ on:
 jobs:
   run_test_items:
     strategy:
+      max-parallel: ${{ inputs.max-parallel }}
       matrix:
         python-version: ['3.12','3.13']
         os: [ubuntu-latest,ubuntu-22.04,macos-latest,macos-14]

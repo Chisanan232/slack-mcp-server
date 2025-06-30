@@ -6,9 +6,7 @@ import asyncio
 import json
 import logging
 import os
-import random
 import sys
-import time
 import uuid
 from datetime import timedelta
 from pathlib import Path
@@ -37,8 +35,6 @@ def load_env() -> None:  # noqa: D401 – fixture
 
 
 load_env()
-# Avoid it to HTTP 429 errors
-time.sleep(random.randint(0, 5) * 30)
 
 
 @pytest.mark.skipif(
