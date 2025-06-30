@@ -16,6 +16,8 @@ import pytest
 from dotenv import load_dotenv
 from slack_sdk.web.async_client import AsyncWebClient
 
+from slack_mcp.client_factory import RetryableSlackClientFactory
+
 pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
@@ -35,6 +37,9 @@ def load_env() -> None:  # noqa: D401 – fixture
 
 
 load_env()
+
+# Create a retry-enabled client factory with a higher retry count for e2e tests
+client_factory = RetryableSlackClientFactory(max_retry_count=5)
 
 
 @retry_slack_api_call
@@ -70,7 +75,8 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
 
     # Verify token works with direct API call first
     try:
-        test_client = AsyncWebClient(token=bot_token)
+        # Use the RetryableSlackClientFactory instead of direct AsyncWebClient instantiation
+        test_client = client_factory.create_async_client(token=bot_token)
         auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
     except Exception as e:
@@ -95,6 +101,8 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     try:
         # First create a message with a thread for testing
         logger.info("Creating a test message with thread replies")
+        # Use the client factory with retry for test setup
+        test_client = client_factory.create_async_client(token=bot_token)
         parent_message = await _post_message(test_client, channel_id, unique_text)
         parent_ts = parent_message["ts"]
         logger.info(f"Posted parent message with ts: {parent_ts}")

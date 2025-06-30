@@ -16,6 +16,8 @@ import pytest
 from dotenv import load_dotenv
 from slack_sdk.web.async_client import AsyncWebClient
 
+from slack_mcp.client_factory import RetryableSlackClientFactory
+
 pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
@@ -36,6 +38,9 @@ def load_env() -> None:  # noqa: D401 – fixture
 
 
 load_env()
+
+# Create a retry-enabled client factory with a higher retry count for e2e tests
+client_factory = RetryableSlackClientFactory(max_retry_count=5)
 
 
 @retry_slack_api_call
@@ -96,7 +101,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
 
     # Verify token works with direct API call first
     try:
-        test_client = AsyncWebClient(token=bot_token)
+        test_client = client_factory.create_async_client(token=bot_token)
         auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
     except Exception as e:
@@ -192,7 +197,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     # Verify the message was actually delivered
     logger.info("Verifying message delivery...")
     try:
-        client = AsyncWebClient(token=bot_token)
+        client = client_factory.create_async_client(token=bot_token)
         history = await _get_conversation_history(client, channel=channel_id, limit=10)
 
         messages = history.get("messages", [])
@@ -234,7 +239,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
     # Stage 1: Verify token and permissions
     if not should_fail:
         try:
-            test_client = AsyncWebClient(token=bot_token)
+            test_client = client_factory.create_async_client(token=bot_token)
             auth_test = await _auth_test(test_client)
             logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
 
@@ -279,7 +284,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
     # Stage 2: Send a test message
     if not should_fail:
         try:
-            client = AsyncWebClient(token=bot_token)
+            client = client_factory.create_async_client(token=bot_token)
             unique_text = f"mcp-e2e-read-test-{uuid.uuid4()}"
             message_result = await _post_message(client, channel=channel_id, text=unique_text)
             logger.info(f"Test message sent with timestamp: {message_result.get('ts')}")
@@ -447,7 +452,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
     # Verify token works with direct API call first
     try:
-        test_client = AsyncWebClient(token=bot_token)
+        test_client = client_factory.create_async_client(token=bot_token)
         auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
     except Exception as e:
@@ -455,7 +460,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
     # First, post a parent message directly using Slack SDK
     try:
-        client = AsyncWebClient(token=bot_token)
+        client = client_factory.create_async_client(token=bot_token)
         parent_response = await _post_message(client, channel=channel_id, text=unique_parent_text)
         assert parent_response["ok"] is True, "Failed to send parent message"
         parent_ts = parent_response["ts"]
@@ -574,7 +579,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     # Verify the thread replies were actually delivered
     logger.info("Verifying thread replies delivery...")
     try:
-        client = AsyncWebClient(token=bot_token)
+        client = client_factory.create_async_client(token=bot_token)
         replies = await _get_conversation_replies(client, channel=channel_id, ts=parent_ts)
 
         messages = replies.get("messages", [])
@@ -622,7 +627,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     # Create a test message to react to
     message_ts = None
     try:
-        test_client = AsyncWebClient(token=bot_token)
+        test_client = client_factory.create_async_client(token=bot_token)
         # Verify token works with direct API call first
         auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
@@ -742,7 +747,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     # Verify the reactions were actually added
     logger.info("Verifying emoji reactions were added...")
     try:
-        client = AsyncWebClient(token=bot_token)
+        client = client_factory.create_async_client(token=bot_token)
         reactions_response = await _get_reactions(client, channel=channel_id, timestamp=message_ts)
 
         assert reactions_response.get("ok") is True, f"Reactions API call failed: {reactions_response}"
