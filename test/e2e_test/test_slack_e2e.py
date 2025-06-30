@@ -10,12 +10,11 @@ import sys
 import uuid
 from datetime import timedelta
 from pathlib import Path
+from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
 from dotenv import load_dotenv
 from slack_sdk.web.async_client import AsyncWebClient
-
-from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 pytestmark = pytest.mark.asyncio
 
