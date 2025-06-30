@@ -58,7 +58,7 @@ jobs:
       test_type: e2e-test
       all_test_items_paths: ${{needs.prep_e2e-test.outputs.all_test_items}}
       install_dependency_with_group: 'dev'
-      max-parallel: 2
+      max-parallel: 1
     secrets:
       e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
 
