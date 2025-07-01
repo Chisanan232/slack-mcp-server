@@ -54,7 +54,7 @@ def mock_dependencies(monkeypatch: pytest.MonkeyPatch) -> Dict[str, Any]:
 
     # Mock the server imports
     monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
-    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda token=None: mock_webhook_app)
+    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda token=None, retry=3: mock_webhook_app)
 
     return {
         "mock_mcp": mock_mcp,

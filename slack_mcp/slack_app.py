@@ -9,13 +9,14 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, Final, cast
+from typing import Any, Dict, Final, Optional, cast
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
+from .client_factory import RetryableSlackClientFactory
 from .event_handler import SlackEvent, register_handlers
 from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
@@ -23,9 +24,82 @@ __all__: list[str] = [
     "create_slack_app",
     "verify_slack_request",
     "handle_slack_event",
+    "slack_client",
+    "get_slack_client",
+    "initialize_slack_client",
 ]
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_app")
+
+# Global Slack client for common usage outside of this module
+slack_client: Optional[AsyncWebClient] = None
+
+
+def initialize_slack_client(token: str | None = None, retry: int = 0) -> AsyncWebClient:
+    """Initialize the global Slack client.
+
+    Parameters
+    ----------
+    token : str | None
+        The Slack bot token to use. If None, will use SLACK_BOT_TOKEN env var.
+    retry : int
+        Number of retry attempts for Slack API operations (default: 0).
+        If set to 0, no retry mechanism is used.
+        If set to a positive value, uses Slack SDK's built-in retry handlers
+        for rate limits, server errors, and connection issues.
+
+    Returns
+    -------
+    AsyncWebClient
+        The initialized Slack client
+
+    Raises
+    ------
+    ValueError
+        If no token is found (either from parameter or environment variables)
+        or if retry count is negative.
+    """
+    global slack_client
+
+    # Resolve token
+    resolved_token = token or os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
+    if not resolved_token:
+        raise ValueError(
+            "Slack token not found. Provide one via the 'token' parameter or set "
+            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
+        )
+
+    # Create Slack client
+    if retry < 0:
+        raise ValueError("Retry count must be non-negative")
+
+    if retry == 0:
+        slack_client = AsyncWebClient(token=resolved_token)
+    else:
+        # Create Slack client with retry capability using the RetryableSlackClientFactory
+        # This uses Slack SDK's built-in retry handlers for rate limits, server errors, etc.
+        client_factory = RetryableSlackClientFactory(max_retry_count=retry)
+        slack_client = client_factory.create_async_client(resolved_token)
+
+    return slack_client
+
+
+def get_slack_client() -> AsyncWebClient:
+    """Get the global Slack client.
+
+    Returns
+    -------
+    AsyncWebClient
+        The global Slack client
+
+    Raises
+    ------
+    ValueError
+        If the client has not been initialized
+    """
+    if slack_client is None:
+        raise ValueError("Slack client not initialized. Call initialize_slack_client first.")
+    return slack_client
 
 
 async def verify_slack_request(request: Request, signing_secret: str | None = None) -> bool:
@@ -101,31 +175,34 @@ async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> 
     return None
 
 
-def create_slack_app(token: str | None = None) -> FastAPI:
+def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
     """Create a FastAPI app for handling Slack events.
 
     Parameters
     ----------
     token : str | None
         The Slack bot token to use. If None, will use SLACK_BOT_TOKEN env var.
+    retry : int
+        Number of retry attempts for Slack API operations (default: 0).
+        If set to 0, no retry mechanism is used.
+        If set to a positive value, uses Slack SDK's built-in retry handlers
+        for rate limits, server errors, and connection issues.
 
     Returns
     -------
     FastAPI
         The FastAPI app
+
+    Raises
+    ------
+    ValueError
+        If no token is found (either from parameter or environment variables)
+        or if retry count is negative.
     """
     app = FastAPI(title="Slack MCP Server")
 
-    # Resolve token
-    resolved_token = token or os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
-    if not resolved_token:
-        raise ValueError(
-            "Slack token not found. Provide one via the 'token' parameter or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
-
-    # Create Slack client
-    client = AsyncWebClient(token=resolved_token)
+    # Initialize the global Slack client
+    client = initialize_slack_client(token, retry)
 
     @app.post("/slack/events")
     async def slack_events(request: Request) -> Response:

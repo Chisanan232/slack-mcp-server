@@ -36,7 +36,7 @@ def test_webhook_dotenv_loading_with_valid_env_file():
 
                         # Verify that run_slack_server was called with the default host/port
                         mock_run.assert_called_once()
-                        mock_server_run.assert_called_once_with(host="0.0.0.0", port=3000, token=None)
+                        mock_server_run.assert_called_once_with(host="0.0.0.0", port=3000, token=None, retry=3)
 
     finally:
         # Clean up the temporary file
@@ -62,7 +62,7 @@ def test_webhook_cmd_line_token_passed_to_server():
 
                     # Verify that run_slack_server was called with the token
                     mock_run.assert_called_once()
-                    mock_server_run.assert_called_once_with(host="0.0.0.0", port=3000, token=cmd_line_token)
+                    mock_server_run.assert_called_once_with(host="0.0.0.0", port=3000, token=cmd_line_token, retry=3)
 
 
 def test_webhook_create_slack_app_with_env_token():

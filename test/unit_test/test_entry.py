@@ -74,7 +74,7 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     mock_integrated_app = SimpleNamespace()
     monkeypatch.setattr(
         "slack_mcp.entry.create_integrated_app",
-        lambda token=None, mcp_transport=None, mcp_mount_path=None: mock_integrated_app,
+        lambda token=None, mcp_transport=None, mcp_mount_path=None, retry=0: mock_integrated_app,
     )
 
     # Re-import the module to update bindings
