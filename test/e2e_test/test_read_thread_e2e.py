@@ -10,10 +10,12 @@ import sys
 import uuid
 from datetime import timedelta
 from pathlib import Path
+from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
 from dotenv import load_dotenv
-from slack_sdk.web.async_client import AsyncWebClient
+
+from slack_mcp.client_factory import RetryableSlackClientFactory
 
 pytestmark = pytest.mark.asyncio
 
@@ -34,6 +36,22 @@ def load_env() -> None:  # noqa: D401 – fixture
 
 
 load_env()
+
+# Create a retry-enabled client factory with a higher retry count for e2e tests
+client_factory = RetryableSlackClientFactory(max_retry_count=5)
+
+
+@retry_slack_api_call
+async def _auth_test(client):
+    return await client.auth_test()
+
+
+@retry_slack_api_call
+async def _post_message(client, channel, text, thread_ts=None):
+    if thread_ts:
+        return await client.chat_postMessage(channel=channel, text=text, thread_ts=thread_ts)
+    else:
+        return await client.chat_postMessage(channel=channel, text=text)
 
 
 @pytest.mark.skipif(
@@ -56,8 +74,9 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
 
     # Verify token works with direct API call first
     try:
-        test_client = AsyncWebClient(token=bot_token)
-        auth_test = await test_client.auth_test()
+        # Use the RetryableSlackClientFactory instead of direct AsyncWebClient instantiation
+        test_client = client_factory.create_async_client(token=bot_token)
+        auth_test = await _auth_test(test_client)
         logger.info(f"Auth test successful: {auth_test['user']} / {auth_test['team']}")
     except Exception as e:
         pytest.fail(f"Slack API authentication failed: {e}")
@@ -81,19 +100,17 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     try:
         # First create a message with a thread for testing
         logger.info("Creating a test message with thread replies")
-        parent_message = await test_client.chat_postMessage(channel=channel_id, text=unique_text)
+        # Use the client factory with retry for test setup
+        test_client = client_factory.create_async_client(token=bot_token)
+        parent_message = await _post_message(test_client, channel_id, unique_text)
         parent_ts = parent_message["ts"]
         logger.info(f"Posted parent message with ts: {parent_ts}")
 
         # Post 2 replies to create a thread
-        reply1 = await test_client.chat_postMessage(
-            channel=channel_id, thread_ts=parent_ts, text=f"Reply 1 to {unique_text}"
-        )
+        reply1 = await _post_message(test_client, channel_id, f"Reply 1 to {unique_text}", parent_ts)
         logger.info(f"Posted reply 1 with ts: {reply1['ts']}")
 
-        reply2 = await test_client.chat_postMessage(
-            channel=channel_id, thread_ts=parent_ts, text=f"Reply 2 to {unique_text}"
-        )
+        reply2 = await _post_message(test_client, channel_id, f"Reply 2 to {unique_text}", parent_ts)
         logger.info(f"Posted reply 2 with ts: {reply2['ts']}")
 
         # Wait briefly to ensure messages are fully processed

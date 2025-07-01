@@ -40,11 +40,21 @@ on:
         description: "Set the specific environment for the environment variables."
         type: string
         required: false
-        default: development
+        default: ''
+      max-parallel:
+        description: "Set the max-parallel jobs."
+        type: number
+        required: false
+        default: 0
+    secrets:
+      e2e_test_slack_bot_token:
+        description: "Set the Slack bot token for end-to-end test."
+        required: false
 
 jobs:
   run_test_items:
     strategy:
+      max-parallel: ${{ inputs.max-parallel }}
       matrix:
         python-version: ['3.12','3.13']
         os: [ubuntu-latest,ubuntu-22.04,macos-latest,macos-14]
@@ -59,3 +69,5 @@ jobs:
       all_test_items_paths: ${{ inputs.all_test_items_paths }}
       install_dependency_with_group: ${{ inputs.install_dependency_with_group }}
       with-environment-variables: ${{ inputs.with-environment-variables }}
+    secrets:
+      e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
