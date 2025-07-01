@@ -36,6 +36,11 @@ on:
         type: string
         required: false
         default: ''
+      with-environment-variables:
+        description: "Set the specific environment for the environment variables."
+        type: string
+        required: false
+        default: development
 
 jobs:
   run_test_items:
@@ -53,3 +58,4 @@ jobs:
       test_type: ${{ inputs.test_type }}
       all_test_items_paths: ${{ inputs.all_test_items_paths }}
       install_dependency_with_group: ${{ inputs.install_dependency_with_group }}
+      with-environment-variables: ${{ inputs.with-environment-variables }}
