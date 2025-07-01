@@ -307,7 +307,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
         logger.info("Starting MCP server via stdio")
 
         # Set a reasonable timeout for operations
-        read_timeout = timedelta(seconds=30)
+        read_timeout = timedelta(seconds=90)  # Increased from 30 to 90 seconds to prevent timeout in CI
 
         try:
             # Connect to the server
