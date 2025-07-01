@@ -88,20 +88,20 @@ class AsyncLoopConsumer:
         It handles various exception scenarios gracefully with appropriate logging.
 
         Raises:
-            RuntimeError: If the shutdown process encounters unexpected errors that 
+            RuntimeError: If the shutdown process encounters unexpected errors that
                          aren't related to normal task cancellation.
         """
         if not self._running or not self._task:
             logger.debug("Shutdown called on consumer that is not running")
             return
-        
+
         logger.debug("Shutting down AsyncLoopConsumer")
         self._running = False
-        
+
         if not self._task.done():
             logger.debug("Cancelling consumer task")
             self._task.cancel()
-            
+
             try:
                 await self._task
             except asyncio.CancelledError:
@@ -111,7 +111,7 @@ class AsyncLoopConsumer:
                 logger.warning(f"Unexpected error during consumer shutdown: {e}", exc_info=True)
         else:
             logger.debug("Consumer task was already completed")
-            
+
         # Clean up regardless of how we got here
         self._task = None
         logger.debug("Consumer shutdown complete")
