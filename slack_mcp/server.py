@@ -60,6 +60,7 @@ _DEFAULT_TOKEN = os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKE
 
 mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
 
+
 def set_slack_client_retry_count(retry: int) -> None:
     """Set the retry count for Slack web client operations.
 
@@ -74,34 +75,35 @@ def set_slack_client_retry_count(retry: int) -> None:
     global _slack_client_retry_count, _retryable_factory, _slack_clients
     _slack_client_retry_count = retry
     _retryable_factory = RetryableSlackClientFactory(max_retry_count=retry)
-    
-    # Clear client cache when retry count changes to ensure all future clients 
+
+    # Clear client cache when retry count changes to ensure all future clients
     # use the new retry settings
     _slack_clients.clear()
     _LOG.info(f"Slack client retry count set to {retry} and client cache cleared")
 
+
 def get_slack_client(token: Optional[str] = None) -> AsyncWebClient:
     """Get or create a Slack client with the specified token.
-    
+
     Uses a singleton pattern to avoid creating multiple clients for the same token.
-    
+
     Parameters
     ----------
     token : Optional[str]
         The Slack token to use. If None, will use environment variables.
-        
+
     Returns
     -------
     AsyncWebClient
         The Slack client
-        
+
     Raises
     ------
     ValueError
         If no token is found or provided
     """
     global _slack_clients
-    
+
     # Resolve token
     resolved_token = token or _DEFAULT_TOKEN
     if not resolved_token:
@@ -109,45 +111,47 @@ def get_slack_client(token: Optional[str] = None) -> AsyncWebClient:
             "Slack token not found. Provide one via the parameter or set "
             "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
         )
-    
+
     # Return cached client if exists
     if resolved_token in _slack_clients:
         return _slack_clients[resolved_token]
-    
+
     # Create new client
     if _slack_client_retry_count > 0:
         client = _retryable_factory.create_async_client(resolved_token)
     else:
         client = AsyncWebClient(token=resolved_token)
-    
+
     # Cache the client
     _slack_clients[resolved_token] = client
     _LOG.debug(f"Created new Slack client for token ending with ...{resolved_token[-4:]}")
-    
+
     return client
+
 
 def clear_slack_clients() -> None:
     """Clear the Slack client cache.
-    
+
     This forces new clients to be created on the next request.
     """
     global _slack_clients
     _slack_clients.clear()
     _LOG.info("Slack client cache cleared")
 
+
 def update_slack_client(token: str, client: AsyncWebClient) -> None:
     """Update or add a Slack client in the global cache.
-    
+
     This allows replacing an existing client with a custom-configured one
     or adding a new client with specific configurations.
-    
+
     Parameters
     ----------
     token : str
         The token associated with this client
     client : AsyncWebClient
         The Slack client instance to cache
-        
+
     Raises
     ------
     ValueError
@@ -155,10 +159,11 @@ def update_slack_client(token: str, client: AsyncWebClient) -> None:
     """
     if not token:
         raise ValueError("Token cannot be empty or None")
-        
+
     global _slack_clients
     _slack_clients[token] = client
     _LOG.info(f"Updated Slack client for token ending with ...{token[-4:]}")
+
 
 def _get_web_client(input_params: _BaseInput) -> AsyncWebClient:
     """Get or create an AsyncWebClient instance with the resolved token.
@@ -183,6 +188,7 @@ def _get_web_client(input_params: _BaseInput) -> AsyncWebClient:
     # Extract token from input params if available
     token = getattr(input_params, "token", None)
     return get_slack_client(token)
+
 
 @mcp.tool("slack_post_message")
 async def send_slack_message(

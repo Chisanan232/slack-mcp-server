@@ -12,7 +12,8 @@ import uvicorn
 from dotenv import load_dotenv
 
 from .integrated_server import create_integrated_app
-from .server import mcp as _server_instance, set_slack_client_retry_count
+from .server import mcp as _server_instance
+from .server import set_slack_client_retry_count
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
 
@@ -104,13 +105,11 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
 
         # Create integrated app with both MCP and webhook functionality
         app = create_integrated_app(
-            token=args.slack_token, 
-            mcp_transport=args.transport, 
-            mcp_mount_path=args.mount_path,
-            retry=args.retry
+            token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
-        from .slack_app import slack_client
         from .server import update_slack_client
+        from .slack_app import slack_client
+
         update_slack_client(token=args.slack_token, client=slack_client)
 
         # Run the integrated FastAPI app

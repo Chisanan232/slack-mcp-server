@@ -34,6 +34,7 @@ _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_app")
 # Global Slack client for common usage outside of this module
 slack_client: Optional[AsyncWebClient] = None
 
+
 def initialize_slack_client(token: str | None = None, retry: int = 0) -> AsyncWebClient:
     """Initialize the global Slack client.
 
@@ -79,17 +80,18 @@ def initialize_slack_client(token: str | None = None, retry: int = 0) -> AsyncWe
         # This uses Slack SDK's built-in retry handlers for rate limits, server errors, etc.
         client_factory = RetryableSlackClientFactory(max_retry_count=retry)
         slack_client = client_factory.create_async_client(resolved_token)
-    
+
     return slack_client
+
 
 def get_slack_client() -> AsyncWebClient:
     """Get the global Slack client.
-    
+
     Returns
     -------
     AsyncWebClient
         The global Slack client
-    
+
     Raises
     ------
     ValueError
@@ -98,6 +100,7 @@ def get_slack_client() -> AsyncWebClient:
     if slack_client is None:
         raise ValueError("Slack client not initialized. Call initialize_slack_client first.")
     return slack_client
+
 
 async def verify_slack_request(request: Request, signing_secret: str | None = None) -> bool:
     """Verify that the request is coming from Slack.
