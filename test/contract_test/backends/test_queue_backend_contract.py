@@ -47,6 +47,8 @@ class QueueBackendContractTest(abc.ABC):
 
             # Fail the test if no message is received within timeout
             pytest.fail("No message received from consume()")
+            # MyPy requires this but it's unreachable after pytest.fail()
+            return {}  # pragma: no cover
 
         # Use asyncio.wait_for to avoid hanging if the backend doesn't yield
         received_msg = await asyncio.wait_for(get_first_message(), 2.0)
@@ -73,6 +75,7 @@ class QueueBackendContractTest(abc.ABC):
                 count += 1
                 if count >= len(messages):
                     break
+            return None
 
         # Use asyncio.wait_for to avoid hanging if the backend doesn't yield enough
         await asyncio.wait_for(collect_messages(), 2.0)
@@ -96,6 +99,8 @@ class QueueBackendContractTest(abc.ABC):
             async for msg in backend.consume(group="test-group"):
                 return msg
             pytest.fail("No message received from consume() with group")
+            # MyPy requires this but it's unreachable after pytest.fail()
+            return {}  # pragma: no cover
 
         # Backend may or may not support consumer groups; if it doesn't,
         # it should still work (possibly ignoring the group parameter)
@@ -124,11 +129,11 @@ class QueueBackendContractTest(abc.ABC):
         except (TypeError, AttributeError):
             # If we can't determine, skip the test
             pytest.skip("Cannot determine if backend preserves message order")
-            return
+            return None
 
         if not preserves_order:
             pytest.skip("This backend does not guarantee message ordering")
-            return
+            return None
 
         # Publish ordered messages
         messages = [{"order": i} for i in range(5)]
@@ -174,6 +179,8 @@ class QueueBackendContractTest(abc.ABC):
             async for msg in backend.consume():
                 return msg
             pytest.fail("No message received")
+            # MyPy requires this but it's unreachable after pytest.fail()
+            return {}  # pragma: no cover
 
         received = await asyncio.wait_for(get_complex_message(), 2.0)
 
@@ -191,6 +198,7 @@ class QueueBackendContractTest(abc.ABC):
             instance = backend_class.from_env()
         except Exception as e:
             pytest.fail(f"from_env failed to create instance: {e}")
+            return None
 
         # Verify the instance is of the correct type
         assert isinstance(instance, backend_class)
@@ -203,6 +211,8 @@ class QueueBackendContractTest(abc.ABC):
             async for msg in instance.consume():
                 return msg
             pytest.fail("No message received")
+            # MyPy requires this but it's unreachable after pytest.fail()
+            return {}  # pragma: no cover
 
         received = await asyncio.wait_for(get_message(), 2.0)
         assert received == test_payload
