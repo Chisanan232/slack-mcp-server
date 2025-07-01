@@ -161,7 +161,7 @@ class EventConsumerContractTest(abc.ABC):
     async def test_real_world_processing_with_memory_backend(self, memory_backend: MemoryBackend) -> None:
         """Test with a real memory backend to ensure end-to-end functionality."""
         # Create sample Slack-like messages
-        slack_messages = [
+        slack_messages: List[Dict[str, Any]] = [
             {
                 "type": "message",
                 "user": "U12345",
