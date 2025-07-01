@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
+from .client_factory import RetryableSlackClientFactory
 from .event_handler import SlackEvent, register_handlers
 from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
@@ -101,18 +102,29 @@ async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> 
     return None
 
 
-def create_slack_app(token: str | None = None) -> FastAPI:
+def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
     """Create a FastAPI app for handling Slack events.
 
     Parameters
     ----------
     token : str | None
         The Slack bot token to use. If None, will use SLACK_BOT_TOKEN env var.
+    retry : int
+        Number of retry attempts for Slack API operations (default: 0).
+        If set to 0, no retry mechanism is used.
+        If set to a positive value, uses Slack SDK's built-in retry handlers
+        for rate limits, server errors, and connection issues.
 
     Returns
     -------
     FastAPI
         The FastAPI app
+
+    Raises
+    ------
+    ValueError
+        If no token is found (either from parameter or environment variables)
+        or if retry count is negative.
     """
     app = FastAPI(title="Slack MCP Server")
 
@@ -125,7 +137,16 @@ def create_slack_app(token: str | None = None) -> FastAPI:
         )
 
     # Create Slack client
-    client = AsyncWebClient(token=resolved_token)
+    if retry < 0:
+        raise ValueError("Retry count must be non-negative")
+
+    if retry == 0:
+        client = AsyncWebClient(token=resolved_token)
+    else:
+        # Create Slack client with retry capability using the RetryableSlackClientFactory
+        # This uses Slack SDK's built-in retry handlers for rate limits, server errors, etc.
+        client_factory = RetryableSlackClientFactory(max_retry_count=retry)
+        client = client_factory.create_async_client(resolved_token)
 
     @app.post("/slack/events")
     async def slack_events(request: Request) -> Response:
