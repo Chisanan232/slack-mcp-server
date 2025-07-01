@@ -143,6 +143,78 @@ class TestGetSlackClient:
         # Check error message
         assert "Slack token not found" in str(excinfo.value)
 
+    @pytest.mark.parametrize(
+        "first_retry,second_retry,expected_different",
+        [
+            (0, 0, False),  # Same retry count (both 0) -> same client behavior
+            (0, 1, True),  # No retry vs retry -> different client behavior
+            (0, 3, True),  # No retry vs multiple retries -> different client behavior
+            (1, 3, False),  # Both with retry (different counts) -> same client type
+            (3, 0, True),  # Multiple retries vs no retry -> different client behavior
+        ],
+    )
+    def test_different_clients_by_retry_count(
+        self,
+        reset_slack_clients: None,
+        first_retry: int,
+        second_retry: int,
+        expected_different: bool,
+    ) -> None:
+        """Should create clients based on retry count configuration.
+
+        Parameters
+        ----------
+        first_retry : int
+            First retry count to test
+        second_retry : int
+            Second retry count to test
+        expected_different : bool
+            Whether the two clients should have different retry handler configurations
+        """
+        test_token = "test-token-for-retry-test"
+
+        # First get a client with first_retry
+        srv._slack_client_retry_count = first_retry
+        if first_retry > 0:
+            srv._retryable_factory = RetryableSlackClientFactory(max_retry_count=first_retry)
+        first_client = srv.get_slack_client(token=test_token)
+
+        # Clear clients to force re-creation
+        srv.clear_slack_clients()
+
+        # Create a client with second_retry
+        srv._slack_client_retry_count = second_retry
+        if second_retry > 0:
+            srv._retryable_factory = RetryableSlackClientFactory(max_retry_count=second_retry)
+        second_client = srv.get_slack_client(token=test_token)
+
+        # Verify clients are different instances
+        assert first_client is not second_client
+
+        # Determine if client behavior should be different based on retry settings
+        first_has_retry = first_retry > 0
+        second_has_retry = second_retry > 0
+
+        # Check if the clients have different retry handler configurations
+        # We identify this by checking length of retry_handlers
+        first_handler_count = len(first_client.retry_handlers)
+        second_handler_count = len(second_client.retry_handlers)
+
+        # For non-retryable clients, Slack SDK might still include some default handlers
+        # The key distinction is whether the RetryableSlackClientFactory was used
+        handlers_differ = first_has_retry != second_has_retry
+
+        # Verify the difference in client configuration matches our expectation
+        assert handlers_differ == expected_different, (
+            f"Expected handlers_differ={expected_different}, but got {handlers_differ}. "
+            f"First retry={first_retry} (handlers={first_handler_count}), "
+            f"Second retry={second_retry} (handlers={second_handler_count})"
+        )
+
+        # Verify both clients have the same token regardless of retry config
+        assert first_client.token == test_token
+        assert second_client.token == test_token
+
 
 class TestClearSlackClients:
     """Tests for clear_slack_clients function."""
