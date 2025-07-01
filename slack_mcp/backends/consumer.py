@@ -5,9 +5,13 @@ This module defines the EventConsumer protocol and provides concrete implementat
 """
 
 import asyncio
+import logging
 from typing import Any, Awaitable, Callable, Dict, Optional, Protocol
 
 from slack_mcp.backends.protocol import QueueBackend
+
+# Set up logger for this module
+logger = logging.getLogger(__name__)
 
 
 class EventConsumer(Protocol):
@@ -72,7 +76,7 @@ class AsyncLoopConsumer:
                 except Exception as e:
                     # In a real implementation, this would include better error handling
                     # such as dead-letter queues, retries, etc.
-                    print(f"Error processing message: {e}")
+                    logger.error(f"Error processing message: {e}", exc_info=True)
 
         self._task = asyncio.create_task(_consume())
         await self._task
@@ -81,12 +85,33 @@ class AsyncLoopConsumer:
         """Stop consuming messages.
 
         This method cancels the consumer task if it's running.
+        It handles various exception scenarios gracefully with appropriate logging.
+
+        Raises:
+            RuntimeError: If the shutdown process encounters unexpected errors that 
+                         aren't related to normal task cancellation.
         """
-        if self._running and self._task:
-            self._running = False
+        if not self._running or not self._task:
+            logger.debug("Shutdown called on consumer that is not running")
+            return
+        
+        logger.debug("Shutting down AsyncLoopConsumer")
+        self._running = False
+        
+        if not self._task.done():
+            logger.debug("Cancelling consumer task")
             self._task.cancel()
+            
             try:
                 await self._task
             except asyncio.CancelledError:
-                pass  # Normal cancellation
-            self._task = None
+                logger.debug("Consumer task cancelled successfully")
+            except Exception as e:
+                # Log unexpected exceptions but don't re-raise them to ensure cleanup happens
+                logger.warning(f"Unexpected error during consumer shutdown: {e}", exc_info=True)
+        else:
+            logger.debug("Consumer task was already completed")
+            
+        # Clean up regardless of how we got here
+        self._task = None
+        logger.debug("Consumer shutdown complete")
