@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from .integrated_server import create_integrated_app
 from .server import mcp as _server_instance
+from .server import set_slack_client_retry_count
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
 
@@ -66,6 +67,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:  # noqa: D
         action="store_true",
         help="Run MCP server integrated with webhook server in a single FastAPI application",
     )
+    parser.add_argument(
+        "--retry",
+        type=int,
+        default=3,
+        help="Number of retry attempts for network operations (default: 3)",
+    )
     return parser.parse_args(argv)
 
 
@@ -98,12 +105,19 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
 
         # Create integrated app with both MCP and webhook functionality
         app = create_integrated_app(
-            token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path
+            token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
+        from .server import update_slack_client
+        from .slack_app import slack_client
+
+        update_slack_client(token=args.slack_token, client=slack_client)
 
         # Run the integrated FastAPI app
         uvicorn.run(app, host=args.host, port=args.port)
     else:
+        if args.retry:
+            set_slack_client_retry_count(retry=args.retry)
+
         _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
 
         if args.transport in ["sse", "streamable-http"]:

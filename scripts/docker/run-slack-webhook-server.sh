@@ -13,6 +13,7 @@ set -e
 # SLACK_WEBHOOK_INTEGRATED → --integrated
 # SLACK_WEBHOOK_MCP_TRANSPORT → --mcp-transport
 # SLACK_WEBHOOK_MCP_MOUNT_PATH → --mcp-mount-path
+# SLACK_WEBHOOK_RETRY → --retry
 #
 
 # Initialize command line arguments array
@@ -63,6 +64,11 @@ if [ -n "${SLACK_WEBHOOK_INTEGRATED}" ] && [ "${SLACK_WEBHOOK_INTEGRATED}" = "tr
   if [ -n "${SLACK_WEBHOOK_MCP_MOUNT_PATH}" ]; then
     CMD_ARGS+=(--mcp-mount-path "${SLACK_WEBHOOK_MCP_MOUNT_PATH}")
   fi
+fi
+
+# RETRY: Number of retry attempts for network operations
+if [ -n "${SLACK_WEBHOOK_RETRY}" ]; then
+  CMD_ARGS+=(--retry "${SLACK_WEBHOOK_RETRY}")
 fi
 
 # Print the command that will be executed

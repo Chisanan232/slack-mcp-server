@@ -13,6 +13,7 @@ set -e
 # MCP_ENV_FILE → --env-file
 # MCP_NO_ENV_FILE → --no-env-file
 # MCP_INTEGRATED → --integrated
+# MCP_RETRY → --retry
 #
 
 # Initialize command line arguments array
@@ -63,6 +64,11 @@ fi
 # INTEGRATED: Run in integrated mode with webhook server
 if [ -n "${MCP_INTEGRATED}" ] && [ "${MCP_INTEGRATED}" = "true" ]; then
   CMD_ARGS+=(--integrated)
+fi
+
+# RETRY: Number of retry attempts for network operations
+if [ -n "${MCP_RETRY}" ]; then
+  CMD_ARGS+=(--retry "${MCP_RETRY}")
 fi
 
 # Print the command that will be executed
