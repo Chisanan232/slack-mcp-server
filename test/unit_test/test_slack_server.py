@@ -72,13 +72,13 @@ async def test_run_slack_server():
         await run_slack_server(host="localhost", port=8000, token="test_token")
 
         # Verify the app was created with the right token
-        mock_create_app.assert_called_once_with("test_token")
+        mock_create_app.assert_called_once_with("test_token", retry=3)
 
         # Verify the config was set correctly
         mock_config_cls.assert_called_once_with(app=mock_app, host="localhost", port=8000)
 
         # Verify the server was properly configured and started
-        mock_server_cls.assert_called_once_with(mock_config)
+        mock_server_cls.assert_called_once_with(config=mock_config)
         mock_server.serve.assert_called_once()
 
 
@@ -201,6 +201,7 @@ def test_main(
                 token=expected_token,
                 mcp_transport=expected_transport,
                 mcp_mount_path=expected_mount_path,
+                retry=3,  # Default retry value
             )
             mock_run_slack_server.assert_not_called()
         else:
@@ -208,6 +209,7 @@ def test_main(
                 host=expected_host,
                 port=expected_port,
                 token=expected_token,
+                retry=3,  # Default retry value
             )
             mock_run_integrated_server.assert_not_called()
 
@@ -269,11 +271,12 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
             token=token,
             mcp_transport=mcp_transport,
             mcp_mount_path=mcp_mount_path,
+            retry=3,  # Default retry value
         )
 
         # Verify the config was set correctly
         mock_config_cls.assert_called_once_with(app=mock_app, host=host, port=port)
 
         # Verify the server was properly configured and started
-        mock_server_cls.assert_called_once_with(mock_config)
+        mock_server_cls.assert_called_once_with(config=mock_config)
         mock_server.serve.assert_called_once()
