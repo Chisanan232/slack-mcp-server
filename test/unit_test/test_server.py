@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final, Optional
+from typing import Any, Callable, Final, Optional
 
 import pytest
 
@@ -131,18 +131,22 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     # Tests that need to test specific token behavior will override this
     original_get_slack_client = srv.get_slack_client
 
+    # Store the original function in a module-level variable for tests to access
+    global ORIGINAL_GET_SLACK_CLIENT
+    ORIGINAL_GET_SLACK_CLIENT = original_get_slack_client
+
     def patched_get_slack_client(token=None):
         """Return a dummy client for most tests, bypassing token validation."""
         if token:
             return _DummyAsyncWebClient(token=token)
         return _DummyAsyncWebClient(token="xoxb-default-test-token")
 
-    # Store original function for tests that need to restore it
-    patched_get_slack_client.original = original_get_slack_client
-
     # Apply the patch
     monkeypatch.setattr("slack_mcp.server.get_slack_client", patched_get_slack_client)
 
+
+# Create a global reference to the original function that can be restored in tests
+ORIGINAL_GET_SLACK_CLIENT: Callable[[Optional[str]], Any] = None  # type: ignore
 
 aSYNC_TOKEN_ENV_VARS = ("SLACK_BOT_TOKEN", "SLACK_TOKEN")
 
@@ -185,7 +189,7 @@ async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch)
         monkeypatch.delenv(var, raising=False)
 
     # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", srv.get_slack_client.original)
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.send_slack_message(input_params=SlackPostMessageInput(channel="#general", text="Hello"))
@@ -237,7 +241,7 @@ async def test_read_thread_messages_missing_token(monkeypatch: pytest.MonkeyPatc
         monkeypatch.delenv(var, raising=False)
 
     # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", srv.get_slack_client.original)
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_thread_messages(
@@ -322,7 +326,7 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
         monkeypatch.delenv(var, raising=False)
 
     # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", srv.get_slack_client.original)
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="#general"))
@@ -452,7 +456,7 @@ async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyP
         monkeypatch.delenv(var, raising=False)
 
     # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", srv.get_slack_client.original)
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
 
     thread_ts = "1620000000.000000"
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
@@ -519,7 +523,7 @@ async def test_read_slack_emojis_missing_token(monkeypatch: pytest.MonkeyPatch) 
         monkeypatch.delenv(var, raising=False)
 
     # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", srv.get_slack_client.original)
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
@@ -588,7 +592,7 @@ async def test_add_slack_reactions_missing_token(monkeypatch: pytest.MonkeyPatch
         monkeypatch.delenv(var, raising=False)
 
     # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", srv.get_slack_client.original)
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
 
     timestamp = "1620000000.000000"
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
