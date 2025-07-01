@@ -25,6 +25,7 @@ def create_integrated_app(
     token: Optional[str] = None,
     mcp_transport: str = "sse",
     mcp_mount_path: Optional[str] = "/mcp",
+    retry: int = 3,
 ) -> FastAPI:
     """Create an integrated FastAPI app with both MCP and webhook functionalities.
 
@@ -39,6 +40,8 @@ def create_integrated_app(
         The transport to use for the MCP server. Either "sse" or "streamable-http".
     mcp_mount_path : Optional[str]
         The path to mount the MCP server on. Only relevant for "sse" transport.
+    retry : int
+        Number of retry attempts for network operations (default: 3).
 
     Returns
     -------
@@ -57,7 +60,7 @@ def create_integrated_app(
         )
 
     # Create the webhook app first
-    app = create_slack_app(token)
+    app = create_slack_app(token, retry=retry)
 
     # Get the appropriate MCP app based on the transport
     if mcp_transport == "sse":

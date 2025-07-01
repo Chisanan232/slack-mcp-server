@@ -82,6 +82,7 @@ async def run_slack_server(
     host: str = "0.0.0.0",
     port: int = 3000,
     token: str | None = None,
+    retry: int = 3,
 ) -> None:
     """Run the Slack events server.
 
@@ -93,16 +94,19 @@ async def run_slack_server(
         The port to listen on
     token : str | None
         The Slack bot token to use. If None, will use environment variables.
+    retry : int
+        Number of retry attempts for network operations (default: 3)
     """
-    app = create_slack_app(token)
-
     _LOG.info(f"Starting Slack events server on {host}:{port}")
+
+    # Create the Slack app with the provided token
+    app = create_slack_app(token, retry=retry)
 
     # Using uvicorn for ASGI support with FastAPI
     import uvicorn
 
     config = uvicorn.Config(app=app, host=host, port=port)
-    server = uvicorn.Server(config)
+    server = uvicorn.Server(config=config)
     await server.serve()
 
 
@@ -112,6 +116,7 @@ async def run_integrated_server(
     token: str | None = None,
     mcp_transport: str = "sse",
     mcp_mount_path: str | None = "/mcp",
+    retry: int = 3,
 ) -> None:
     """Run the integrated server with both MCP and webhook functionalities.
 
@@ -127,11 +132,17 @@ async def run_integrated_server(
         The transport to use for the MCP server. Either "sse" or "streamable-http".
     mcp_mount_path : str | None
         The mount path for the MCP server. Only used for sse transport.
+    retry : int
+        Number of retry attempts for network operations (default: 3)
     """
+    _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {host}:{port}")
+
+    # Create the integrated app with both MCP and webhook functionalities
     app = create_integrated_app(
         token=token,
         mcp_transport=mcp_transport,
         mcp_mount_path=mcp_mount_path,
+        retry=retry,
     )
 
     _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {host}:{port}")
@@ -140,7 +151,7 @@ async def run_integrated_server(
     import uvicorn
 
     config = uvicorn.Config(app=app, host=host, port=port)
-    server = uvicorn.Server(config)
+    server = uvicorn.Server(config=config)
     await server.serve()
 
 
@@ -196,6 +207,12 @@ def main() -> None:
         default="/mcp",
         help="Mount path for MCP server when using sse transport (default: /mcp)",
     )
+    parser.add_argument(
+        "--retry",
+        type=int,
+        default=3,
+        help="Number of retry attempts for network operations (default: 3)",
+    )
 
     args = parser.parse_args()
 
@@ -223,11 +240,12 @@ def main() -> None:
                 token=args.slack_token,
                 mcp_transport=args.mcp_transport,
                 mcp_mount_path=args.mcp_mount_path,
+                retry=args.retry,
             )
         )
     else:
         # Run the standalone webhook server
-        asyncio.run(run_slack_server(host=args.host, port=args.port, token=args.slack_token))
+        asyncio.run(run_slack_server(host=args.host, port=args.port, token=args.slack_token, retry=args.retry))
 
 
 if __name__ == "__main__":

@@ -8,22 +8,14 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 
 from __future__ import annotations
 
+import logging
 import os
-from typing import Any, Dict, Final, List
+from typing import Any, Dict, Final, List, Optional
 
 from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
 
-__all__: list[str] = [
-    "mcp",
-    "send_slack_message",
-    "read_thread_messages",
-    "read_slack_channel_messages",
-    "send_slack_thread_reply",
-    "read_slack_emojis",
-    "add_slack_reactions",
-]
-
+from slack_mcp.client_factory import RetryableSlackClientFactory
 from slack_mcp.model import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
@@ -34,20 +26,168 @@ from slack_mcp.model import (
     _BaseInput,
 )
 
+__all__: list[str] = [
+    "mcp",
+    "send_slack_message",
+    "read_thread_messages",
+    "read_slack_channel_messages",
+    "send_slack_thread_reply",
+    "read_slack_emojis",
+    "add_slack_reactions",
+    "set_slack_client_retry_count",
+    "get_slack_client",
+    "clear_slack_clients",
+    "update_slack_client",
+]
+
 # A single FastMCP server instance to be discovered by the MCP runtime.
 SERVER_NAME: Final[str] = "SlackMCPServer"
+
+# Logger for this module
+_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.server")
+
+# Global setting for Slack client retry count
+_slack_client_retry_count: int = 3
+
+# Global retryable factory for Slack clients
+_retryable_factory = RetryableSlackClientFactory(max_retry_count=_slack_client_retry_count)
+
+# Client cache for singleton pattern - keyed by token
+_slack_clients: Dict[str, AsyncWebClient] = {}
+
+# Default token from environment
+_DEFAULT_TOKEN = os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
 
 mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
 
 
-def _verify_slack_token_exist(input_params: _BaseInput) -> str:
-    resolved_token: str | None = input_params.token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
-    if resolved_token is None:
+def set_slack_client_retry_count(retry: int) -> None:
+    """Set the retry count for Slack web client operations.
+
+    This only affects the Slack API client's built-in retry mechanism
+    and does not alter the core MCP server logic.
+
+    Parameters
+    ----------
+    retry : int
+        Number of retry attempts for Slack API operations
+    """
+    global _slack_client_retry_count, _retryable_factory, _slack_clients
+    _slack_client_retry_count = retry
+    _retryable_factory = RetryableSlackClientFactory(max_retry_count=retry)
+
+    # Clear client cache when retry count changes to ensure all future clients
+    # use the new retry settings
+    _slack_clients.clear()
+    _LOG.info(f"Slack client retry count set to {retry} and client cache cleared")
+
+
+def get_slack_client(token: Optional[str] = None) -> AsyncWebClient:
+    """Get or create a Slack client with the specified token.
+
+    Uses a singleton pattern to avoid creating multiple clients for the same token.
+
+    Parameters
+    ----------
+    token : Optional[str]
+        The Slack token to use. If None, will use environment variables.
+
+    Returns
+    -------
+    AsyncWebClient
+        The Slack client
+
+    Raises
+    ------
+    ValueError
+        If no token is found or provided
+    """
+    global _slack_clients
+
+    # Resolve token
+    resolved_token = token or _DEFAULT_TOKEN
+    if not resolved_token:
         raise ValueError(
-            "Slack token not found. Provide one via the 'token' argument or set "
+            "Slack token not found. Provide one via the parameter or set "
             "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
         )
-    return resolved_token
+
+    # Return cached client if exists
+    if resolved_token in _slack_clients:
+        return _slack_clients[resolved_token]
+
+    # Create new client
+    if _slack_client_retry_count > 0:
+        client = _retryable_factory.create_async_client(resolved_token)
+    else:
+        client = AsyncWebClient(token=resolved_token)
+
+    # Cache the client
+    _slack_clients[resolved_token] = client
+    _LOG.debug(f"Created new Slack client for token ending with ...{resolved_token[-4:]}")
+
+    return client
+
+
+def clear_slack_clients() -> None:
+    """Clear the Slack client cache.
+
+    This forces new clients to be created on the next request.
+    """
+    global _slack_clients
+    _slack_clients.clear()
+    _LOG.info("Slack client cache cleared")
+
+
+def update_slack_client(token: str, client: AsyncWebClient) -> None:
+    """Update or add a Slack client in the global cache.
+
+    This allows replacing an existing client with a custom-configured one
+    or adding a new client with specific configurations.
+
+    Parameters
+    ----------
+    token : str
+        The token associated with this client
+    client : AsyncWebClient
+        The Slack client instance to cache
+
+    Raises
+    ------
+    ValueError
+        If the token is empty or None
+    """
+    if not token:
+        raise ValueError("Token cannot be empty or None")
+
+    global _slack_clients
+    _slack_clients[token] = client
+    _LOG.info(f"Updated Slack client for token ending with ...{token[-4:]}")
+
+
+def _get_web_client(input_params: _BaseInput) -> AsyncWebClient:
+    """Get or create an AsyncWebClient instance with the resolved token.
+
+    Uses singleton pattern to reuse existing clients when possible.
+
+    Parameters
+    ----------
+    input_params
+        Input object containing an optional token parameter.
+
+    Returns
+    -------
+    AsyncWebClient
+        Initialized Slack AsyncWebClient instance.
+
+    Raises
+    ------
+    ValueError
+        If no token is supplied and the relevant environment variables are missing.
+    """
+    # Extract token from input params if available
+    token = getattr(input_params, "token", None)
+    return get_slack_client(token)
 
 
 @mcp.tool("slack_post_message")
@@ -73,11 +213,7 @@ async def send_slack_message(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.chat_postMessage(channel=input_params.channel, text=input_params.text)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
@@ -107,11 +243,7 @@ async def read_thread_messages(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.conversations_replies(
         channel=input_params.channel,
         ts=input_params.thread_ts,
@@ -145,11 +277,7 @@ async def read_slack_channel_messages(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.conversations_history(
         channel=input_params.channel,
         limit=input_params.limit,
@@ -185,11 +313,7 @@ async def send_slack_thread_reply(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     responses: List[Dict[str, Any]] = []
 
     # Send each text message as a separate reply to the thread
@@ -226,11 +350,7 @@ async def read_slack_emojis(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     response = await client.emoji_list(include_categories=True)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
@@ -260,11 +380,7 @@ async def add_slack_reactions(
         If no *token* is supplied and the relevant environment variables are
         missing as well.
     """
-
-    resolved_token = _verify_slack_token_exist(input_params)
-
-    client: AsyncWebClient = AsyncWebClient(token=resolved_token)
-
+    client = _get_web_client(input_params)
     responses: List[Dict[str, Any]] = []
 
     for emoji in input_params.emojis:
