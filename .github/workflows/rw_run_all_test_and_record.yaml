@@ -19,7 +19,7 @@ jobs:
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') }}
     uses: ./.github/workflows/rw_build_and_test.yaml
     secrets:
-      e2e_test_slack_bot_token: ${{ inputs.e2e_test_slack_bot_token }}
+      e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
 
   unit-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
@@ -27,7 +27,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ inputs.codecov_token }}
+      codecov_token: ${{ secrets.codecov_token }}
     with:
       test_type: unit-test
       upload-to-codecov: true
@@ -40,7 +40,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ inputs.codecov_token }}
+      codecov_token: ${{ secrets.codecov_token }}
     with:
       test_type: integration-test
       upload-to-codecov: true
@@ -49,11 +49,11 @@ jobs:
 
   e2e-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') || inputs.e2e_test_slack_bot_token != '' }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') || secrets.e2e_test_slack_bot_token != '' }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ inputs.codecov_token }}
+      codecov_token: ${{ secrets.codecov_token }}
     with:
       test_type: e2e-test
       upload-to-codecov: true
@@ -66,7 +66,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ inputs.codecov_token }}
+      codecov_token: ${{ secrets.codecov_token }}
     with:
       test_type: contract-test
       upload-to-codecov: true
@@ -79,7 +79,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ inputs.codecov_token }}
+      codecov_token: ${{ secrets.codecov_token }}
     with:
       test_type: all-test
       upload-to-codecov: true
@@ -92,6 +92,6 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_sonarqube_scan.yaml@v7.3
     secrets:
-      sonar_token: ${{ inputs.sonar_token }}
+      sonar_token: ${{ secrets.sonar_token }}
     with:
       download_path: ${{ inputs.download_path }}
