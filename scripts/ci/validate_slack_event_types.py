@@ -12,7 +12,8 @@ Usage:
 Options:
     --output   Output format: 'enum' (default), 'json', or 'list'
     --compare  Compare extracted events with current SlackEvent enum implementation
-    --validate Validate that SlackEvent enum contains all events from API spec, raising an exception if not
+    --validate Validate that SlackEvent enum contains all events from API spec
+               The script will exit with code 1 if validation fails
     --strict   When used with --validate, ensures the SlackEvent enum contains ONLY the events in the API spec
 """
 
@@ -229,7 +230,7 @@ def validate_enum_completeness(
     enum_standard_events: Set[str],
     enum_subtype_events: Set[str],
     strict: bool = False
-) -> None:
+) -> bool:
     """
     Validate that the SlackEvent enum contains all events from the API spec.
     
@@ -240,8 +241,8 @@ def validate_enum_completeness(
         enum_subtype_events: Subtype events from current enum
         strict: If True, ensures exact match (no extra events allowed in enum)
     
-    Raises:
-        ValueError: If validation fails
+    Returns:
+        True if validation succeeds, False if validation fails
     """
     # Check for missing events (API events not in enum)
     missing_standard = api_standard_events - enum_standard_events
@@ -298,12 +299,16 @@ def validate_enum_completeness(
         if strict and (extra_standard or extra_subtype):
             error_msg_parts.append("\nConsider removing events not in the API specification or disable strict mode.")
         
-        raise ValueError("\n".join(error_msg_parts))
+        # Print the error message instead of raising an exception
+        print("\nVALIDATION FAILED:", file=sys.stderr)
+        print("\n".join(error_msg_parts), file=sys.stderr)
+        return False
     else:
         if strict:
             print("\nValidation: SlackEvent enum exactly matches all events from API specification.")
         else:
             print("\nValidation: SlackEvent enum contains all events from API specification.")
+        return True
 
 
 def generate_update_code(
@@ -470,7 +475,7 @@ def main() -> None:
     parser.add_argument(
         "--validate",
         action="store_true",
-        help="Validate that all API events are in SlackEvent enum (raises exception if not)"
+        help="Validate that all API events are in SlackEvent enum (exits with code 1 if validation fails)"
     )
     parser.add_argument(
         "--strict",
@@ -498,6 +503,9 @@ def main() -> None:
     print("\nOutput:")
     print(formatted_output)
     
+    # Track validation status
+    validation_success = True
+    
     if args.compare or args.validate or args.generate_update:
         enum_standard_events, enum_subtype_events = get_current_enum_events()
         if enum_standard_events or enum_subtype_events:
@@ -510,7 +518,7 @@ def main() -> None:
                 )
             
             if args.validate:
-                validate_enum_completeness(
+                validation_success = validate_enum_completeness(
                     api_standard_events,
                     api_subtype_events,
                     enum_standard_events,
@@ -531,6 +539,13 @@ def main() -> None:
                 print("=" * 50)
         else:
             print("\nCould not load current SlackEvent enum for comparison or validation.")
+            if args.validate:
+                validation_success = False
+    
+    # Exit with appropriate code
+    if not validation_success:
+        print("\nValidation failed. Exiting with code 1.", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
