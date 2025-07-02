@@ -11,7 +11,7 @@ This module tests the SlackEvent enum functionality including:
 from __future__ import annotations
 
 import inspect
-from typing import Dict, Optional
+from typing import Dict, Optional, cast
 
 import pytest
 
@@ -20,10 +20,10 @@ from slack_mcp.events import SlackEvent
 
 def test_slack_event_values() -> None:
     """Test that SlackEvent enum values match their string representations."""
-    assert SlackEvent.MESSAGE == "message"
-    assert SlackEvent.REACTION_ADDED == "reaction_added"
-    assert SlackEvent.APP_MENTION == "app_mention"
-    assert SlackEvent.MESSAGE_CHANNELS == "message.channels"
+    assert str(SlackEvent.MESSAGE) == "message"
+    assert str(SlackEvent.REACTION_ADDED) == "reaction_added"
+    assert str(SlackEvent.APP_MENTION) == "app_mention"
+    assert str(SlackEvent.MESSAGE_CHANNELS) == "message.channels"
 
 
 def test_slack_event_from_type_subtype() -> None:
@@ -43,9 +43,9 @@ def test_slack_event_from_type_subtype() -> None:
 
 def test_slack_event_string_comparison() -> None:
     """Test that SlackEvent enums can be compared with strings."""
-    assert SlackEvent.MESSAGE == "message"
-    assert "app_mention" == SlackEvent.APP_MENTION
-    assert "message.channels" == SlackEvent.MESSAGE_CHANNELS
+    assert str(SlackEvent.MESSAGE) == "message"
+    assert "app_mention" == str(SlackEvent.APP_MENTION)
+    assert "message.channels" == str(SlackEvent.MESSAGE_CHANNELS)
 
 
 def test_invalid_event_type() -> None:
@@ -73,11 +73,11 @@ def test_from_type_subtype_parametrized(event_type: str, subtype: Optional[str],
 def test_newly_added_event_types() -> None:
     """Test that some of the newly added event types are correctly defined."""
     # Test a sample of the newly added event types
-    assert SlackEvent.WORKFLOW_STEP_EXECUTE == "workflow_step_execute"
-    assert SlackEvent.ASSISTANT_THREAD_STARTED == "assistant_thread_started"
-    assert SlackEvent.USER_HUDDLE_CHANGED == "user_huddle_changed"
-    assert SlackEvent.FILE_CREATED == "file_created"
-    assert SlackEvent.SUBTEAM_MEMBERS_CHANGED == "subteam_members_changed"
+    assert str(SlackEvent.WORKFLOW_STEP_EXECUTE) == "workflow_step_execute"
+    assert str(SlackEvent.ASSISTANT_THREAD_STARTED) == "assistant_thread_started"
+    assert str(SlackEvent.USER_HUDDLE_CHANGED) == "user_huddle_changed"
+    assert str(SlackEvent.FILE_CREATED) == "file_created"
+    assert str(SlackEvent.SUBTEAM_MEMBERS_CHANGED) == "subteam_members_changed"
 
 
 def test_all_enum_members_are_strings() -> None:
@@ -99,7 +99,7 @@ def test_all_message_subtypes() -> None:
 
     for subtype, enum_value in message_subtypes.items():
         # Check direct value
-        assert enum_value == f"message.{subtype}"
+        assert str(enum_value) == f"message.{subtype}"
 
         # Check from_type_subtype
         assert SlackEvent.from_type_subtype("message", subtype) == enum_value
@@ -310,7 +310,9 @@ def test_slack_event_dict_usage() -> None:
     assert handlers[SlackEvent.MESSAGE] == "handle_message"
 
     # Test lookup by string equivalent (this should work because SlackEvent inherits from str)
-    assert handlers["message"] == "handle_message"
+    # Using cast to make MyPy happy with this usage
+    message_key = cast(SlackEvent, "message")
+    assert handlers[message_key] == "handle_message"
 
     # Test using from_type_subtype result for lookup
     event_type = SlackEvent.from_type_subtype("reaction_added")
