@@ -13,3 +13,5 @@ jobs:
     uses: ./.github/workflows/rw_run_all_test_and_record.yaml
     secrets:
       e2e_test_slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
+      codecov_token: ${{ secrets.CODECOV_TOKEN }}
+      sonar_token: ${{ secrets.SONAR_TOKEN }}
