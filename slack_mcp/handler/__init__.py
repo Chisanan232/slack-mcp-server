@@ -1,12 +1,12 @@
 """
-Slack event handler package.
+Handler implementations for Slack events.
 
-This package provides different styles of Slack event handling:
-1. OO-style (inheritance-based)
-2. Decorator-style with enum arguments
-3. Decorator-style with attribute access
+This package contains the handler interfaces and implementations for Slack events.
+The base module provides a class-based handler pattern that maps event types to methods.
 """
 
-from .base import BaseSlackEventHandler
+from __future__ import annotations
 
-__all__ = ["BaseSlackEventHandler"]
+from .base import BaseSlackEventHandler, EventHandler
+
+__all__ = ["BaseSlackEventHandler", "EventHandler"]
