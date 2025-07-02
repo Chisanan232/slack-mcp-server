@@ -22,6 +22,7 @@ jobs:
 
   prep_e2e-test:
 #    name: Prepare all end-to-end test items
+    if: ${{ inputs.e2e_test_slack_bot_token != '' }}
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_get_tests.yaml@v7.3
     with:
       shell_arg: test/e2e_test/
