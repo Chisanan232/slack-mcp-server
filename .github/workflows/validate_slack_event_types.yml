@@ -1,9 +1,9 @@
 name: Validate Slack Event Types
 
 on:
+  # ── Every Tuesday 19:33 UTC (= Wednesday 03:33 in Taipei, UTC+8) ──
   schedule:
-    # ── Every Saturday at 00:00 UTC ─────────────────────────────
-    - cron: '0 0 * * 6'
+    - cron: '33 19 * * 2'
   workflow_dispatch:       # optional manual trigger
 
 jobs:
