@@ -27,6 +27,11 @@ on:
         description: "The testing type. In generally, it only has 2 options: 'unit-test' and 'integration-test'."
         required: true
         type: string
+      test_working_directory:
+        description: "The working directory for test running."
+        required: false
+        type: string
+        default: './'
       all_test_items_paths:
         description: "The target paths of test items under test."
         required: true
@@ -61,13 +66,52 @@ jobs:
         test-path: ${{fromJson(inputs.all_test_items_paths)}}
       fail-fast: false    # Fix issue in GitHub Action: FailFast: cancelling since parallel instance has failed
 
-    uses: ./.github/workflows/rw_uv_run_test.yaml
-    with:
-      runtime_os: ${{ matrix.os }}
-      python_version: ${{ matrix.python-version }}
-      test_type: ${{ inputs.test_type }}
-      all_test_items_paths: ${{ inputs.all_test_items_paths }}
-      install_dependency_with_group: ${{ inputs.install_dependency_with_group }}
-      with-environment-variables: ${{ inputs.with-environment-variables }}
-    secrets:
-      e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Activate the uv virtual environment
+        run: |
+          uv venv
+          . .venv/bin/activate
+
+      - name: Install all the project dependencies
+        if: ${{ inputs.install_dependency_with_group == '' }}
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build Python runtime environment by UV with dependency group *${{ inputs.install_dependency_with_group }}*
+        if: ${{ inputs.install_dependency_with_group != '' }}
+        working-directory: ${{ inputs.test_working_directory }}
+        run: |
+          uv pip install --group=${{ inputs.install_dependency_with_group }}
+
+      - name: Verify the Slack bot token
+        run: |
+          curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"
+
+      - name: Run tests with pytest
+        working-directory: ${{ inputs.test_working_directory }}
+        run: uv run pytest ${{ matrix.test-path }}
+        continue-on-error: ${{ inputs.keep_run_if_test_fail }}
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.e2e_test_slack_bot_token }}
+          SLACK_TEST_CHANNEL: ${{ vars.SLACK_TEST_CHANNEL }}
+          SLACK_TEST_CHANNEL_ID: ${{ vars.SLACK_TEST_CHANNEL_ID }}
+
+      - name: Rename the code coverage result file
+        working-directory: ${{ inputs.test_working_directory }}
+        run: |
+          mv ./.coverage ./.coverage.${{ inputs.test_type }}.${{ matrix.os }}-${{ matrix.python-version }}
+
+      - name: Upload code coverage result file
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage_${{ inputs.test_type }}_${{ matrix.os }}_${{ matrix.python-version }}
+          path: ${{ inputs.test_working_directory }}.coverage.${{ inputs.test_type }}.${{ matrix.os }}-${{ matrix.python-version }}
+          if-no-files-found: error
+          include-hidden-files: true
