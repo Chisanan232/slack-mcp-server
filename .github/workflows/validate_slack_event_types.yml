@@ -29,9 +29,6 @@ jobs:
           uv venv
           . .venv/bin/activate
 
-#      - name: Install all the project dependencies
-#        run: uv sync --locked --all-extras --dev
-
       - name: Run Slack event-type validator
         run: |
           uv run python ./scripts/ci/validate_slack_event_types.py --validate --strict
