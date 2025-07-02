@@ -12,17 +12,18 @@ from enum import StrEnum
 
 class SlackEvent(StrEnum):
     """Enumeration of Slack event types.
-    
+
     This StrEnum provides type-safe references to Slack event types that
     are also compatible with string operations, since StrEnum inherits from str.
-    
+
     Event types use the format:
     - Simple events: MESSAGE, REACTION_ADDED, etc.
     - Events with subtypes: MESSAGE_CHANNELS (equivalent to "message.channels")
-    
+
     The dot notation in Slack's event format (type.subtype) is converted to
     underscore for valid Python identifiers.
     """
+
     # Standard events
     APP_DELETED = "app_deleted"
     APP_HOME_OPENED = "app_home_opened"
@@ -118,30 +119,30 @@ class SlackEvent(StrEnum):
     WORKFLOW_STEP_DELETED = "workflow_step_deleted"
     WORKFLOW_STEP_EXECUTE = "workflow_step_execute"
     WORKFLOW_UNPUBLISHED = "workflow_unpublished"
-    
+
     # Message subtypes
     MESSAGE_APP_HOME = "message.app_home"
     MESSAGE_CHANNELS = "message.channels"
     MESSAGE_GROUPS = "message.groups"
     MESSAGE_IM = "message.im"
     MESSAGE_MPIM = "message.mpim"
-    
+
     @classmethod
     def from_type_subtype(cls, event_type: str, subtype: str | None = None) -> SlackEvent:
         """Create a SlackEvent from type and optional subtype.
-        
+
         Parameters
         ----------
         event_type : str
             The main event type (e.g., 'message')
         subtype : str | None, optional
             The event subtype, if any (e.g., 'channels')
-            
+
         Returns
         -------
         SlackEvent
             The corresponding SlackEvent enum value
-            
+
         Raises
         ------
         ValueError
@@ -154,6 +155,6 @@ class SlackEvent(StrEnum):
                 return cls(combined)
             except ValueError:
                 pass  # Fall back to just the type
-        
+
         # Try with just the type
         return cls(event_type)
