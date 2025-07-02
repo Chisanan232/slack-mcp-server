@@ -112,7 +112,7 @@ jobs:
 
   all_test_not_e2e_test_codecov:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') || inputs.run_e2e == false }}
+    if: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master')) && inputs.run_e2e == false }}
     needs: [run_unit-test, run_integration-test, run_contract-test]
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@v7.3
     with:
@@ -120,7 +120,7 @@ jobs:
 
   all_test_include_e2e_test_codecov:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') || inputs.run_e2e == true }}
+    if: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master')) && inputs.run_e2e == true }}
     needs: [run_unit-test, run_integration-test, run_contract-test, run_e2e-test]
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@v7.3
     with:
