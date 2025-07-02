@@ -2,6 +2,12 @@ name: Run test and organize test coverage reports
 
 on:
   workflow_call:
+    inputs:
+      run_e2e:
+        description: "The testing type. In generally, it only has 2 options: 'unit-test' and 'integration-test'."
+        type: boolean
+        required: false
+        default: false
     secrets:
       e2e_test_slack_bot_token:
         description: "Set the Slack bot token for end-to-end test."
@@ -22,6 +28,7 @@ jobs:
 
   prep_e2e-test:
 #    name: Prepare all end-to-end test items
+    if: ${{ inputs.run_e2e == true }}
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_get_tests.yaml@v7.3
     with:
       shell_arg: test/e2e_test/
@@ -103,10 +110,18 @@ jobs:
     with:
       test_type: contract-test
 
-  all_test_codecov:
+  all_test_not_e2e_test_codecov:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') }}
-    needs: [run_unit-test, run_integration-test, run_e2e-test]
+    if: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master')) && inputs.run_e2e == false }}
+    needs: [run_unit-test, run_integration-test, run_contract-test]
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@v7.3
+    with:
+      test_type: all-test
+
+  all_test_include_e2e_test_codecov:
+#    name: Organize and generate the testing report and upload it to Codecov
+    if: ${{ (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master')) && inputs.run_e2e == true }}
+    needs: [run_unit-test, run_integration-test, run_contract-test, run_e2e-test]
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@v7.3
     with:
       test_type: all-test
