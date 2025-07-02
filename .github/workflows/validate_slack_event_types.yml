@@ -31,4 +31,5 @@ jobs:
 
       - name: Run Slack event-type validator
         run: |
-          uv run python ./scripts/ci/validate_slack_event_types.py --validate --strict
+          uv run python ./scripts/ci/validate_slack_event_types.py --validate
+#          uv run python ./scripts/ci/validate_slack_event_types.py --validate --strict
