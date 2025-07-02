@@ -106,12 +106,12 @@ jobs:
       - name: Rename the code coverage result file
         working-directory: ${{ inputs.test_working_directory }}
         run: |
-          mv ./.coverage ./.coverage.${{ inputs.test_type }}.${{ inputs.runtime_os }}-${{ inputs.python_version }}
+          mv ./.coverage ./.coverage.${{ inputs.test_type }}.${{ matrix.os }}-${{ matrix.python-version }}
 
       - name: Upload code coverage result file
         uses: actions/upload-artifact@v4
         with:
-          name: coverage_${{ inputs.test_type }}_${{ inputs.runtime_os }}_${{ inputs.python_version }}
-          path: ${{ inputs.test_working_directory }}.coverage.${{ inputs.test_type }}.${{ inputs.runtime_os }}-${{ inputs.python_version }}
+          name: coverage_${{ inputs.test_type }}_${{ matrix.os }}_${{ matrix.python-version }}
+          path: ${{ inputs.test_working_directory }}.coverage.${{ inputs.test_type }}.${{ matrix.os }}-${{ matrix.python-version }}
           if-no-files-found: error
           include-hidden-files: true
