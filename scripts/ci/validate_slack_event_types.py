@@ -64,7 +64,7 @@ def fetch_api_spec(url: str) -> Dict[str, Any]:
         with urllib.request.urlopen(url) as response:
             return json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, json.JSONDecodeError) as e:
-        print(f"Error fetching API specification: {e}", file=sys.stderr)
+        print(f"🚨 Error fetching API specification: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -167,7 +167,7 @@ def get_current_enum_events() -> Tuple[Set[str], Set[str]]:
         return standard_events, subtype_events
         
     except (ImportError, AttributeError) as e:
-        print(f"Error importing SlackEvent enum: {e}", file=sys.stderr)
+        print(f"🚨 Error importing SlackEvent enum: {e}", file=sys.stderr)
         return set(), set()
 
 
@@ -196,32 +196,32 @@ def compare_events(
     extra_in_enum_subtype = enum_subtype_events - api_subtype_events
     
     # Report findings
-    print("\nComparison with current SlackEvent enum implementation:")
+    print("\n🔍 Comparison with current SlackEvent enum implementation:")
     print("=" * 50)
     
     if missing_in_enum_standard:
-        print("\nStandard events in API but missing in enum:")
+        print("\n❌ Standard events in API but missing in enum:")
         for event in sorted(missing_in_enum_standard):
-            print(f"    {event}")
+            print(f"    • {event}")
     
     if missing_in_enum_subtype:
-        print("\nSubtype events in API but missing in enum:")
+        print("\n❌ Subtype events in API but missing in enum:")
         for event in sorted(missing_in_enum_subtype):
-            print(f"    {event}")
+            print(f"    • {event}")
     
     if extra_in_enum_standard:
-        print("\nExtra standard events in enum not found in API:")
+        print("\n⚠️  Extra standard events in enum not found in API:")
         for event in sorted(extra_in_enum_standard):
-            print(f"    {event}")
+            print(f"    • {event}")
     
     if extra_in_enum_subtype:
-        print("\nExtra subtype events in enum not found in API:")
+        print("\n⚠️  Extra subtype events in enum not found in API:")
         for event in sorted(extra_in_enum_subtype):
-            print(f"    {event}")
+            print(f"    • {event}")
     
     if not (missing_in_enum_standard or missing_in_enum_subtype or 
             extra_in_enum_standard or extra_in_enum_subtype):
-        print("\nNo discrepancies found. SlackEvent enum is in sync with the API specification.")
+        print("\n✅ No discrepancies found. SlackEvent enum is in sync with the API specification.")
 
 
 def validate_enum_completeness(
@@ -257,39 +257,39 @@ def validate_enum_completeness(
     
     if missing_standard or missing_subtype:
         error_msg_parts.append(
-            "SlackEvent enum is missing events from the API specification:"
+            "❌ SlackEvent enum is missing events from the API specification:"
         )
         if missing_standard:
-            error_msg_parts.append("\nMissing standard events:")
+            error_msg_parts.append("\n🔴 Missing standard events:")
             for event in sorted(missing_standard):
-                error_msg_parts.append(f"  - {event}")
+                error_msg_parts.append(f"  • {event}")
         
         if missing_subtype:
-            error_msg_parts.append("\nMissing subtype events:")
+            error_msg_parts.append("\n🔴 Missing subtype events:")
             for event in sorted(missing_subtype):
-                error_msg_parts.append(f"  - {event}")
+                error_msg_parts.append(f"  • {event}")
     
     if strict and (extra_standard or extra_subtype):
         if not error_msg_parts:  # If this is the first error, add header
             error_msg_parts.append(
-                "SlackEvent enum contains events not present in the API specification:"
+                "⚠️  SlackEvent enum contains events not present in the API specification:"
             )
         else:
-            error_msg_parts.append("\nAdditionally, the enum contains extra events not in API:")
+            error_msg_parts.append("\n⚠️  Additionally, the enum contains extra events not in API:")
         
         if extra_standard:
-            error_msg_parts.append("\nExtra standard events:")
+            error_msg_parts.append("\n🟠 Extra standard events:")
             for event in sorted(extra_standard):
-                error_msg_parts.append(f"  - {event}")
+                error_msg_parts.append(f"  • {event}")
         
         if extra_subtype:
-            error_msg_parts.append("\nExtra subtype events:")
+            error_msg_parts.append("\n🟠 Extra subtype events:")
             for event in sorted(extra_subtype):
-                error_msg_parts.append(f"  - {event}")
+                error_msg_parts.append(f"  • {event}")
     
     if error_msg_parts:
         # Add suggestion for fixing the issue
-        error_msg_parts.append("\nSuggested action:")
+        error_msg_parts.append("\n🔧 Suggested action:")
         if missing_standard or missing_subtype:
             enum_additions = [f"    {convert_to_enum_name(e)} = \"{e}\"" for e in sorted(missing_standard)] + \
                             [f"    {convert_to_enum_name(e)} = \"{e}\"" for e in sorted(missing_subtype)]
@@ -300,14 +300,14 @@ def validate_enum_completeness(
             error_msg_parts.append("\nConsider removing events not in the API specification or disable strict mode.")
         
         # Print the error message instead of raising an exception
-        print("\nVALIDATION FAILED:", file=sys.stderr)
+        print("\n❌ VALIDATION FAILED:", file=sys.stderr)
         print("\n".join(error_msg_parts), file=sys.stderr)
         return False
     else:
         if strict:
-            print("\nValidation: SlackEvent enum exactly matches all events from API specification.")
+            print("\n✅ Validation: SlackEvent enum exactly matches all events from API specification.")
         else:
-            print("\nValidation: SlackEvent enum contains all events from API specification.")
+            print("\n✅ Validation: SlackEvent enum contains all events from API specification.")
         return True
 
 
@@ -489,18 +489,18 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    print(f"Fetching Slack Events API specification from: {SLACK_EVENTS_API_URL}")
+    print(f"📥 Fetching Slack Events API specification from: {SLACK_EVENTS_API_URL}")
     spec = fetch_api_spec(SLACK_EVENTS_API_URL)
     
-    print("Extracting event types...")
+    print("🔍 Extracting event types...")
     api_standard_events, api_subtype_events = extract_event_types(spec)
     
     total_events = len(api_standard_events) + len(api_subtype_events)
-    print(f"Found {len(api_standard_events)} standard event types and {len(api_subtype_events)} subtype events "
+    print(f"📊 Found {len(api_standard_events)} standard event types and {len(api_subtype_events)} subtype events "
           f"(total: {total_events})")
     
     formatted_output = format_output(api_standard_events, api_subtype_events, args.output)
-    print("\nOutput:")
+    print("\n📋 Output:")
     print(formatted_output)
     
     # Track validation status
@@ -533,18 +533,18 @@ def main() -> None:
                     enum_standard_events,
                     enum_subtype_events
                 )
-                print("\nGenerated code to update SlackEvent enum:")
+                print("\n🛠️  Generated code to update SlackEvent enum:")
                 print("=" * 50)
                 print(update_code)
                 print("=" * 50)
         else:
-            print("\nCould not load current SlackEvent enum for comparison or validation.")
+            print("\n⚠️  Could not load current SlackEvent enum for comparison or validation.")
             if args.validate:
                 validation_success = False
     
     # Exit with appropriate code
     if not validation_success:
-        print("\nValidation failed. Exiting with code 1.", file=sys.stderr)
+        print("\n❌ Validation failed. Exiting with code 1.", file=sys.stderr)
         sys.exit(1)
 
 
