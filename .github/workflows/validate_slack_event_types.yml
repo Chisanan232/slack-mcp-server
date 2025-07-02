@@ -1,0 +1,37 @@
+name: Validate Slack Event Types
+
+on:
+  # ── Every Tuesday 19:33 UTC (= Wednesday 03:33 in Taipei, UTC+8) ──
+  schedule:
+    - cron: '33 19 * * 2'
+  workflow_dispatch:       # optional manual trigger
+  # Just for testing or debugging
+#  push:
+#    branches:
+#      - "develop**"
+#    paths:
+#      - ".github/workflows/validate_slack_event_types.yml"
+#      - "scripts/ci/validate_slack_event_types.py"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.13
+
+      - name: Activate the uv virtual environment
+        run: |
+          uv venv
+          . .venv/bin/activate
+
+      - name: Run Slack event-type validator
+        run: |
+          uv run python ./scripts/ci/validate_slack_event_types.py --validate
+#          uv run python ./scripts/ci/validate_slack_event_types.py --validate --strict
