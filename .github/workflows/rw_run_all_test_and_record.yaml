@@ -6,6 +6,12 @@ on:
       e2e_test_slack_bot_token:
         description: "Set the Slack bot token for end-to-end test."
         required: false
+      codecov_token:
+        description: "The API token for uploading testing coverage report to Codecov."
+        required: false
+      sonar_token:
+        description: "The API token for uploading testing coverage report to Coveralls."
+        required: true
 
 jobs:
   build-and-test:
@@ -21,7 +27,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
+      codecov_token: ${{ inputs.codecov_token }}
     with:
       test_type: unit-test
       upload-to-codecov: true
@@ -34,7 +40,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
+      codecov_token: ${{ inputs.codecov_token }}
     with:
       test_type: integration-test
       upload-to-codecov: true
@@ -47,7 +53,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
+      codecov_token: ${{ inputs.codecov_token }}
     with:
       test_type: e2e-test
       upload-to-codecov: true
@@ -60,7 +66,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
+      codecov_token: ${{ inputs.codecov_token }}
     with:
       test_type: contract-test
       upload-to-codecov: true
@@ -73,7 +79,7 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
+      codecov_token: ${{ inputs.codecov_token }}
     with:
       test_type: all-test
       upload-to-codecov: true
@@ -86,6 +92,6 @@ jobs:
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_sonarqube_scan.yaml@v7.3
     secrets:
-      sonar_token: ${{ secrets.SONAR_TOKEN }}
+      sonar_token: ${{ inputs.sonar_token }}
     with:
       download_path: ${{ inputs.download_path }}
