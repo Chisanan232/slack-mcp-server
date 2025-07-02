@@ -38,7 +38,7 @@ class EventHandler(Protocol):
         ...
 
 
-class BaseSlackEventHandler:
+class BaseSlackEventHandler(EventHandler):
     """Base class for handling Slack events using OO-style inheritance.
 
     This class automatically routes Slack events to appropriate methods based on their
