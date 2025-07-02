@@ -24,12 +24,8 @@ jobs:
           uv venv
           . .venv/bin/activate
 
-      - name: Install all the project dependencies
-        run: uv sync --locked --all-extras --dev
-
-      - name: Build Python runtime environment by UV with dependency group **
-        run: |
-          uv pip install .
+#      - name: Install all the project dependencies
+#        run: uv sync --locked --all-extras --dev
 
       - name: Run Slack event-type validator
         run: |
