@@ -2,6 +2,12 @@ name: CI
 
 on:
   workflow_call:
+    inputs:
+      run_e2e:
+        description: "The testing type. In generally, it only has 2 options: 'unit-test' and 'integration-test'."
+        type: boolean
+        required: false
+        default: false
     secrets:
       e2e_test_slack_bot_token:
         description: "Set the Slack bot token for end-to-end test."
@@ -49,7 +55,7 @@ jobs:
 
   e2e-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') || secrets.e2e_test_slack_bot_token != '' }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref_name == 'master') || inputs.run_e2e == true }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
