@@ -24,6 +24,8 @@ jobs:
 #    name: Run all tests and organize all test reports
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') }}
     uses: ./.github/workflows/rw_build_and_test.yaml
+    with:
+      run_e2e: ${{ inputs.run_e2e }}
     secrets:
       e2e_test_slack_bot_token: ${{ secrets.e2e_test_slack_bot_token }}
 
