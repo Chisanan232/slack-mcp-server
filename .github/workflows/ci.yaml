@@ -58,8 +58,6 @@ jobs:
 #    name: Run all tests and organize all test reports
     if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') }}
     uses: ./.github/workflows/rw_run_all_test_and_record.yaml
-    secrets:
-      e2e_test_slack_bot_token: ${{ secrets.SLACK_BOT_TOKEN }}
 
 #  pre-building_test:
 ##    name: Check about it could work finely by installing the Python package with setup.py file
