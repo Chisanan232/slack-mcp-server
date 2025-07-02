@@ -5,11 +5,13 @@ on:
   schedule:
     - cron: '33 19 * * 2'
   workflow_dispatch:       # optional manual trigger
-  push:
-    branches:
-      - "develop**"
-    paths:
-      - ".github/workflows/validate_slack_event_types.yml"
+  # Just for testing or debugging
+#  push:
+#    branches:
+#      - "develop**"
+#    paths:
+#      - ".github/workflows/validate_slack_event_types.yml"
+#      - "scripts/ci/validate_slack_event_types.py"
 
 jobs:
   validate:
