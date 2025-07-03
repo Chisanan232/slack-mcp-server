@@ -18,12 +18,12 @@ import pytest
 
 from slack_mcp.backends.protocol import QueueBackend
 from slack_mcp.consumer import SlackEventConsumer
-from slack_mcp.events import SlackEvent
 from slack_mcp.handler.base import BaseSlackEventHandler
 from slack_mcp.handler.decorator import DecoratorHandler
 
 # Create a module-level instance of DecoratorHandler for decorating functions
 handler = DecoratorHandler()
+
 
 class MockQueueBackend(QueueBackend):
     """Mock implementation of QueueBackend for testing."""
@@ -195,26 +195,26 @@ class TestSlackEventConsumer:
         """Test that events are processed by both handler types when configured."""
         # Instead of trying to test the full consumer flow with both handlers,
         # let's simplify and just test that we can use both handler types together
-        
+
         # Create a test event
         test_event = {"type": "message", "text": "Hello"}
-        
+
         # Create a flag to track if the decorator handler was called
         decorator_called = False
-        
+
         # Register a handler for the test
         @handler.message
         async def handle_message(event: Dict[str, Any]) -> None:
             nonlocal decorator_called
             decorator_called = True
             event["handled_by_decorator"] = "message"
-        
+
         # Process the event with the OO handler
         await oo_handler.handle_event(test_event)
-        
+
         # Process the event with the decorator handler
         await handler.handle_event(test_event)
-        
+
         # Verify the event was processed by both handlers
         assert len(oo_handler.handled_events["message"]) == 1
         assert oo_handler.handled_events["message"][0]["text"] == "Hello"

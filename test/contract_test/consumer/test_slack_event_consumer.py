@@ -12,7 +12,7 @@ and provides expected behavior. They focus on:
 """
 
 import asyncio
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict
 from unittest import mock
 
 import pytest
@@ -107,7 +107,7 @@ class TestSlackEventConsumerContract:
             {"type": "message", "text": "Hello"},
             {"type": "reaction_added", "reaction": "+1"},
         ]
-        
+
         # Configure the mock to yield events and then wait indefinitely
         mock_backend.consume.return_value.__aiter__.return_value = self._async_iter(events)
 
@@ -117,16 +117,16 @@ class TestSlackEventConsumerContract:
 
         # Start the consumer in a task
         task = asyncio.create_task(consumer.run(handler=dummy_handler))
-        
+
         # Wait a bit to ensure it's running
         await asyncio.sleep(0.1)
-        
+
         # Shutdown the consumer
         await consumer.shutdown()
-        
+
         # Wait for the task to complete
         await asyncio.wait_for(task, timeout=1.0)
-        
+
         # Verify the task completed
         assert task.done()
 
@@ -145,34 +145,34 @@ class TestSlackEventConsumerContract:
         """Test that errors in event processing are caught and logged."""
         # Create consumer
         consumer = SlackEventConsumer(backend=mock_backend, handler=mock_handler)
-        
+
         # Set up the mock backend to yield a single event
         mock_backend.consume = mock.AsyncMock()
         mock_backend.consume.return_value.__aiter__ = mock.AsyncMock()
-        
+
         # Create a generator that yields one event and then raises an exception
         async def mock_generator():
             yield {"type": "message", "text": "Hello"}
-        
+
         mock_backend.consume.return_value.__aiter__.return_value = mock_generator()
-        
+
         # Make the handler raise an exception
         mock_handler.handle_event.side_effect = ValueError("Test error")
-        
+
         # Mock the logger
         with mock.patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
             # Start the consumer in a task
             task = asyncio.create_task(consumer.run(handler=mock_handler.handle_event))
-            
+
             # Wait a bit to ensure it processes the event
             await asyncio.sleep(0.1)
-            
+
             # Shutdown the consumer
             await consumer.shutdown()
-            
+
             # Wait for the task to complete
             await asyncio.wait_for(task, timeout=1.0)
-            
+
             # Verify the error was logged - check for "Unexpected error" which is what the consumer logs
             mock_log.exception.assert_called_once()
             assert any("error" in str(call).lower() for call in mock_log.exception.call_args_list)
@@ -182,37 +182,37 @@ class TestSlackEventConsumerContract:
         """Test integration with DecoratorHandler."""
         # Create a handler and register a test handler function
         handler = DecoratorHandler()
-        
+
         # Track calls to the handler
         calls = []
-        
+
         @handler.message
         async def handle_message(event: Dict[str, Any]) -> None:
             calls.append(event)
-        
+
         # Create consumer with the handler
         consumer = SlackEventConsumer(backend=memory_backend, handler=handler)
-        
+
         # Publish a test event
         test_event = {"type": "message", "text": "Hello"}
         await memory_backend.publish("test", test_event)
-        
+
         # Create a dummy handler for the run method
         async def dummy_handler(event: Dict[str, Any]) -> None:
             pass
 
         # Start the consumer in a task
         task = asyncio.create_task(consumer.run(handler=dummy_handler))
-        
+
         # Wait a bit to ensure it processes the event
         await asyncio.sleep(0.1)
-        
+
         # Shutdown the consumer
         await consumer.shutdown()
-        
+
         # Wait for the task to complete
         await asyncio.wait_for(task, timeout=1.0)
-        
+
         # Verify the handler was called
         assert len(calls) == 1
         assert calls[0]["text"] == "Hello"
@@ -223,23 +223,23 @@ class TestSlackEventConsumerContract:
         # Create consumer with group
         group_name = "test-group"
         consumer = SlackEventConsumer(backend=mock_backend, group=group_name)
-        
+
         # Create a dummy handler for the run method
         async def dummy_handler(event: Dict[str, Any]) -> None:
             pass
 
         # Start the consumer
         task = asyncio.create_task(consumer.run(handler=dummy_handler))
-        
+
         # Wait a bit
         await asyncio.sleep(0.1)
-        
+
         # Shutdown the consumer
         await consumer.shutdown()
-        
+
         # Wait for the task to complete
         await asyncio.wait_for(task, timeout=1.0)
-        
+
         # Verify the group was passed to the backend
         mock_backend.consume.assert_called_once_with(group=group_name)
 
@@ -248,10 +248,10 @@ class TestSlackEventConsumerContract:
         """Test that cancellation is handled gracefully."""
         # Create consumer
         consumer = SlackEventConsumer(backend=mock_backend, handler=mock.AsyncMock())
-        
+
         # Set up the mock backend to hang indefinitely
         mock_backend.consume.return_value.__aiter__.return_value = self._async_iter([])
-        
+
         # Mock the logger
         with mock.patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
             # Create a dummy handler for the run method
@@ -260,18 +260,18 @@ class TestSlackEventConsumerContract:
 
             # Start the consumer in a task
             task = asyncio.create_task(consumer.run(handler=dummy_handler))
-            
+
             # Wait a bit
             await asyncio.sleep(0.1)
-            
+
             # Cancel the task
             task.cancel()
-            
+
             # Wait for the task to complete or raise CancelledError
             try:
                 await task
             except asyncio.CancelledError:
                 pass
-            
+
             # Verify the cancellation was logged
             mock_log.info.assert_any_call("Slack event consumer stopped")
