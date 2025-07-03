@@ -101,7 +101,7 @@ async def run_slack_server(
 
     # Create the Slack app
     app = create_slack_app()
-    
+
     # Initialize the global Slack client with the provided token and retry settings
     initialize_slack_client(token, retry=retry)
 

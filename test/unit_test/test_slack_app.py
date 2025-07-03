@@ -207,7 +207,7 @@ def test_create_slack_app_with_routes():
 def test_create_slack_app_does_not_initialize_client(mock_initialize_client):
     """Test creating a Slack app doesn't initialize the client."""
     app = create_slack_app()
-    
+
     assert isinstance(app, FastAPI)
     mock_initialize_client.assert_not_called()
 
@@ -279,7 +279,7 @@ async def test_slack_events_endpoint_with_pydantic_model(
     """Test the /slack/events endpoint with a Pydantic model."""
     # Mock the verify_slack_request to return True
     mock_verify_slack_request.return_value = True
-    
+
     # Create a sample event model
     event_model = SlackEventModel(
         type="event_callback",

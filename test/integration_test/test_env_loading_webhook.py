@@ -77,13 +77,13 @@ def test_webhook_create_slack_app_with_initialize_client():
 
             # Create app which should NOT initialize client
             app = create_slack_app()
-            
+
             # Verify client was NOT created yet
             mock_client_cls.assert_not_called()
-            
+
             # Now initialize the client
             initialize_slack_client()
-            
+
             # Verify client was created with correct token
             mock_client_cls.assert_called_once_with(token=test_bot_token)
 
