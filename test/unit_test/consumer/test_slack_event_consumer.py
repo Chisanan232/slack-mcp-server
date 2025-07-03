@@ -354,7 +354,7 @@ class TestSlackEventConsumer:
             with patch.object(consumer, "_process_event", side_effect=mock_process_event):
                 # Run the consumer
                 task = asyncio.create_task(consumer.run(handler=dummy_handler))
-                
+
                 # Wait for the task to complete
                 await asyncio.sleep(0.2)
                 await consumer.shutdown()
@@ -393,13 +393,13 @@ class TestSlackEventConsumer:
         with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
             # Run the consumer
             task = asyncio.create_task(consumer.run(handler=dummy_handler))
-            
+
             # Wait for the task to complete
             await asyncio.sleep(0.2)
-            
+
             # Verify the task completed due to the exception
             assert task.done()
-            
+
             # Verify the error was logged
             mock_log.exception.assert_called_once()
             call_args = mock_log.exception.call_args[0][0]
@@ -436,13 +436,13 @@ class TestSlackEventConsumer:
         with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
             # Run the consumer
             task = asyncio.create_task(consumer.run(handler=dummy_handler))
-            
+
             # Wait for the task to complete
             await asyncio.sleep(0.2)
-            
+
             # Verify the task completed due to the cancellation
             assert task.done()
-            
+
             # Verify the cancellation was logged
             mock_log.info.assert_any_call("Consumer task was cancelled")
 
