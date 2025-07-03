@@ -145,18 +145,20 @@ async def mock_queue_backend() -> AsyncGenerator[MockQueueBackend, None]:
     """Create a mock queue backend and patch it into the system."""
     # Create the mock backend
     mock_backend = MockQueueBackend()
-    
+
     # Patch the _queue_backend global variable in slack_app.py
     with patch("slack_mcp.slack_app._queue_backend", mock_backend):
         yield mock_backend
 
 
 @pytest_asyncio.fixture
-async def sse_server(fake_slack_credentials: Dict[str, str], mock_queue_backend: MockQueueBackend) -> AsyncGenerator[Dict[str, Any], None]:
+async def sse_server(
+    fake_slack_credentials: Dict[str, str], mock_queue_backend: MockQueueBackend
+) -> AsyncGenerator[Dict[str, Any], None]:
     """Start an integrated server with SSE transport for e2e testing."""
     # Set environment variables for the test
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
-    
+
     port = find_free_port()
 
     # Create the integrated app
@@ -174,11 +176,7 @@ async def sse_server(fake_slack_credentials: Dict[str, str], mock_queue_backend:
 
     try:
         # Yield the server info
-        yield {
-            "port": port, 
-            "base_url": f"http://127.0.0.1:{port}",
-            "queue_backend": mock_queue_backend
-        }
+        yield {"port": port, "base_url": f"http://127.0.0.1:{port}", "queue_backend": mock_queue_backend}
     finally:
         # Stop the server
         await server.safe_shutdown()
@@ -186,11 +184,13 @@ async def sse_server(fake_slack_credentials: Dict[str, str], mock_queue_backend:
 
 
 @pytest_asyncio.fixture
-async def http_server(fake_slack_credentials: Dict[str, str], mock_queue_backend: MockQueueBackend) -> AsyncGenerator[Dict[str, Any], None]:
+async def http_server(
+    fake_slack_credentials: Dict[str, str], mock_queue_backend: MockQueueBackend
+) -> AsyncGenerator[Dict[str, Any], None]:
     """Start an integrated server with streamable-http transport for e2e testing."""
     # Set environment variables for the test
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
-    
+
     port = find_free_port()
 
     # Create the integrated app
@@ -208,11 +208,7 @@ async def http_server(fake_slack_credentials: Dict[str, str], mock_queue_backend
 
     try:
         # Yield the server info
-        yield {
-            "port": port, 
-            "base_url": f"http://127.0.0.1:{port}",
-            "queue_backend": mock_queue_backend
-        }
+        yield {"port": port, "base_url": f"http://127.0.0.1:{port}", "queue_backend": mock_queue_backend}
     finally:
         # Stop the server
         await server.safe_shutdown()
@@ -394,7 +390,7 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
     """Test that the webhook endpoints publish events to the queue backend."""
     base_url = sse_server["base_url"]
     mock_backend = sse_server["queue_backend"]
-    
+
     # Set a topic for Slack events - this might not take effect if the server has already started
     # So we'll check for either the default topic 'slack_events' or our custom topic
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
@@ -421,9 +417,9 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
                     "team_id": "T12345",
                     "user_id": "U12345",
                     "is_bot": True,
-                    "is_enterprise_install": False
+                    "is_enterprise_install": False,
                 }
-            ]
+            ],
         }
 
         # Add required Slack verification headers
@@ -438,23 +434,23 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
             assert response.status == 200
             response_data = await response.json()
             assert response_data == {"status": "ok"}
-        
+
         # Wait for the event to be published to the queue (with timeout)
         try:
             await asyncio.wait_for(mock_backend.event_received.wait(), timeout=5.0)
         except asyncio.TimeoutError:
             pytest.fail("Timed out waiting for event to be published to queue")
-        
+
         # Verify the event was published to the queue
         assert len(mock_backend.published_events) >= 1
-        
+
         # Find the published event with the app_mention type
         published_event = None
         for event in mock_backend.published_events:
             if event.get("event", {}).get("type") == "app_mention":
                 published_event = event
                 break
-        
+
         assert published_event is not None
         assert published_event["event"]["type"] == "app_mention"
         assert published_event["event"]["user"] == "U12345"
@@ -468,7 +464,7 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
     """Test that the webhook endpoints publish events to the queue backend with HTTP transport."""
     base_url = http_server["base_url"]
     mock_backend = http_server["queue_backend"]
-    
+
     # Set a topic for Slack events
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
 
@@ -494,9 +490,9 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
                     "team_id": "T12345",
                     "user_id": "U12345",
                     "is_bot": True,
-                    "is_enterprise_install": False
+                    "is_enterprise_install": False,
                 }
-            ]
+            ],
         }
 
         # Add required Slack verification headers
@@ -511,23 +507,23 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
             assert response.status == 200
             response_data = await response.json()
             assert response_data == {"status": "ok"}
-        
+
         # Wait for the event to be published to the queue (with timeout)
         try:
             await asyncio.wait_for(mock_backend.event_received.wait(), timeout=5.0)
         except asyncio.TimeoutError:
             pytest.fail("Timed out waiting for event to be published to queue")
-        
+
         # Verify the event was published to the queue
         assert len(mock_backend.published_events) >= 1
-        
+
         # Find the published event with the message type
         published_event = None
         for event in mock_backend.published_events:
             if event.get("event", {}).get("type") == "message":
                 published_event = event
                 break
-        
+
         assert published_event is not None
         assert published_event["event"]["type"] == "message"
         assert published_event["event"]["user"] == "U12345"

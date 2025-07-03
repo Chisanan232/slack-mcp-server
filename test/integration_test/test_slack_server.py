@@ -6,8 +6,8 @@ import pytest
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.slack_app import create_slack_app
 from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.slack_app import create_slack_app
 
 
 class MockQueueBackend(QueueBackend):
@@ -27,6 +27,7 @@ class MockQueueBackend(QueueBackend):
         """Mock consume method."""
         for _ in []:
             yield _
+
 
 @pytest.fixture
 def mock_client():
@@ -53,7 +54,7 @@ def test_e2e_app_mention():
 
         # Create a mock queue backend
         mock_backend = MockQueueBackend()
-        
+
         # Create the FastAPI app and test client
         with patch("slack_mcp.slack_app._queue_backend", mock_backend):
             app = create_slack_app()
@@ -101,7 +102,10 @@ def test_e2e_reaction_added():
     with (
         patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls,
         patch("slack_mcp.slack_app.verify_slack_request", AsyncMock(return_value=True)),
-        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token", "SLACK_BOT_ID": "B12345678", "SLACK_EVENTS_TOPIC": "slack_events"}),
+        patch.dict(
+            "os.environ",
+            {"SLACK_BOT_TOKEN": "test_token", "SLACK_BOT_ID": "B12345678", "SLACK_EVENTS_TOPIC": "slack_events"},
+        ),
     ):
         # Create a mock client
         mock_client = AsyncMock()
@@ -113,7 +117,7 @@ def test_e2e_reaction_added():
 
         # Create a mock queue backend
         mock_backend = MockQueueBackend()
-        
+
         # Create the FastAPI app and test client
         with patch("slack_mcp.slack_app._queue_backend", mock_backend):
             app = create_slack_app()

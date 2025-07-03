@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, Final, Optional, cast
+from typing import Any, Dict, Final, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
@@ -46,18 +46,18 @@ DEFAULT_SLACK_EVENTS_TOPIC: Final[str] = "slack_events"
 
 def get_queue_backend() -> QueueBackend:
     """Get or initialize the global queue backend.
-    
+
     Returns
     -------
     QueueBackend
         The global queue backend instance
     """
     global _queue_backend
-    
+
     if _queue_backend is None:
         _LOG.info("Initializing queue backend")
         _queue_backend = load_backend()
-        
+
     return _queue_backend
 
 
@@ -229,10 +229,10 @@ def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
 
     # Initialize the global Slack client
     client = initialize_slack_client(token, retry)
-    
+
     # Initialize the queue backend
     backend = get_queue_backend()
-    
+
     # Get the topic for Slack events from environment or use default
     slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
 
@@ -272,10 +272,10 @@ def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
             # Use the Pydantic model for logging
             event_type = slack_event_model.event.type if hasattr(slack_event_model.event, "type") else "unknown"
             _LOG.info(f"Received Slack event: {event_type}")
-            
+
             # Convert model to dict for publishing to queue
             event_dict = slack_event_model.model_dump()
-            
+
             # Publish event to queue
             try:
                 await backend.publish(slack_events_topic, event_dict)
@@ -286,7 +286,7 @@ def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
             # Fallback to original dictionary approach
             event_type = slack_event_dict.get("event", {}).get("type", "unknown")
             _LOG.info(f"Received Slack event: {event_type}")
-            
+
             # Publish event to queue
             try:
                 await backend.publish(slack_events_topic, slack_event_dict)
