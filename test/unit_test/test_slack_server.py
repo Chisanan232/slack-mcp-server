@@ -1,7 +1,7 @@
 """Unit tests for the Slack server module."""
 
 import asyncio
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -69,7 +69,7 @@ async def test_run_slack_server():
 
         # Verify create_slack_app was called correctly
         mock_create_app.assert_called_once()
-        
+
         # Verify initialize_slack_client was called with correct parameters
         mock_initialize_client.assert_called_once_with("test-token", retry=5)
 

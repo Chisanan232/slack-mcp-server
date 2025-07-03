@@ -350,7 +350,7 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
 
     # Create the webhook app
     app = create_slack_app()
-    
+
     # Initialize the Slack client with the fake token
     initialize_slack_client(token=fake_slack_credentials["token"])
 
