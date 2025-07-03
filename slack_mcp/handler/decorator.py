@@ -22,6 +22,7 @@ from typing import (
     List,
     TypeVar,
     Union,
+    cast,
     overload,
 )
 
@@ -103,7 +104,7 @@ class DecoratorHandler(EventHandler):
         """
         # Case 1: @handler (no args) - register for wildcard "*"
         if callable(ev) and not isinstance(ev, (str, SlackEvent)):
-            fn = ev
+            fn = cast(F, ev)
             self._handlers["*"].append(fn)
             return fn
 
