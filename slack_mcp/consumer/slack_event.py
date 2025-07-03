@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Callable, Dict, Optional, Union, Awaitable
+from typing import Any, Dict, Optional
 
 from ..backends.consumer import AsyncLoopConsumer
 from ..backends.protocol import QueueBackend
@@ -23,21 +23,16 @@ _LOG = logging.getLogger("slack_mcp.consumer.slack_event")
 
 class SlackEventConsumer(AsyncLoopConsumer):
     """Consumer that pulls events from a queue and routes them to handlers.
-    
+
     This class connects to a QueueBackend to receive Slack events and passes
     them to the appropriate handler, which can be either:
     1. An object following the EventHandler protocol (OO style)
     2. The dispatcher module's dispatch_event function (decorator style)
     """
-    
-    def __init__(
-        self, 
-        backend: QueueBackend, 
-        handler: Optional[EventHandler] = None,
-        group: Optional[str] = None
-    ):
+
+    def __init__(self, backend: QueueBackend, handler: Optional[EventHandler] = None, group: Optional[str] = None):
         """Initialize the consumer with a backend and optional handler.
-        
+
         Parameters
         ----------
         backend : QueueBackend
@@ -53,10 +48,10 @@ class SlackEventConsumer(AsyncLoopConsumer):
         # Store the Slack-specific handler
         self._slack_handler = handler
         self._stop = asyncio.Event()
-    
+
     async def run(self) -> None:
         """Start consuming events from the queue.
-        
+
         This method will run indefinitely until shutdown() is called.
         It pulls events from the queue backend and routes them to the handler.
         """
@@ -68,7 +63,7 @@ class SlackEventConsumer(AsyncLoopConsumer):
                     await self._process_event(event)
                 except Exception as e:
                     _LOG.exception(f"Error processing Slack event: {e}")
-                
+
                 if self._stop.is_set():
                     _LOG.info("Received stop signal, shutting down")
                     break
@@ -78,30 +73,30 @@ class SlackEventConsumer(AsyncLoopConsumer):
             _LOG.exception(f"Unexpected error in consumer: {e}")
         finally:
             _LOG.info("Slack event consumer stopped")
-    
+
     async def shutdown(self) -> None:
         """Signal the consumer to gracefully shut down.
-        
+
         This will cause the run() method to exit after processing any
         current event.
         """
         _LOG.info("Shutting down Slack event consumer")
         self._stop.set()
-        
+
         # We're handling shutdown ourselves, so we don't need to call the base class method
         # which would cancel the task. Instead, we'll let the run() method exit gracefully
         # when it sees the stop event.
-    
+
     async def _process_event(self, event: Dict[str, Any]) -> None:
         """Process a single event by routing it to the appropriate handler.
-        
+
         Parameters
         ----------
         event : Dict[str, Any]
             The Slack event payload
         """
         _LOG.debug(f"Processing event type={event.get('type')}, subtype={event.get('subtype')}")
-        
+
         if self._slack_handler is not None:
             # OO-style handler
             await self._slack_handler.handle_event(event)
