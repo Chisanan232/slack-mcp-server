@@ -346,9 +346,13 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
     port = find_free_port()
 
     # Create a simple Slack app without MCP integration to test webhook functionality
-    from slack_mcp.slack_app import create_slack_app
+    from slack_mcp.slack_app import create_slack_app, initialize_slack_client
 
-    app = create_slack_app(token=fake_slack_credentials["token"])
+    # Create the webhook app
+    app = create_slack_app()
+    
+    # Initialize the Slack client with the fake token
+    initialize_slack_client(token=fake_slack_credentials["token"])
 
     # Configure and start the server
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")

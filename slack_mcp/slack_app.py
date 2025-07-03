@@ -201,34 +201,15 @@ async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> 
     return None
 
 
-def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
+def create_slack_app() -> FastAPI:
     """Create a FastAPI app for handling Slack events.
-
-    Parameters
-    ----------
-    token : str | None
-        The Slack bot token to use. If None, will use SLACK_BOT_TOKEN env var.
-    retry : int
-        Number of retry attempts for Slack API operations (default: 0).
-        If set to 0, no retry mechanism is used.
-        If set to a positive value, uses Slack SDK's built-in retry handlers
-        for rate limits, server errors, and connection issues.
 
     Returns
     -------
     FastAPI
         The FastAPI app
-
-    Raises
-    ------
-    ValueError
-        If no token is found (either from parameter or environment variables)
-        or if retry count is negative.
     """
     app = FastAPI(title="Slack MCP Server")
-
-    # Initialize the global Slack client
-    client = initialize_slack_client(token, retry)
 
     # Initialize the queue backend
     backend = get_queue_backend()

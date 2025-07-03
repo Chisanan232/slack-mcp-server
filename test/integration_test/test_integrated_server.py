@@ -91,9 +91,13 @@ def test_http_webhook_endpoint(fake_slack_credentials: Dict[str, str], mock_slac
     """Test that the webhook endpoint works in the integrated server with HTTP transport."""
     # Since streamable-http transport requires running the task group,
     # we'll test just the webhook part by creating the app manually
-    from slack_mcp.slack_app import create_slack_app
+    from slack_mcp.slack_app import create_slack_app, initialize_slack_client
 
-    app = create_slack_app(token=fake_slack_credentials["token"])
+    # Create the webhook app
+    app = create_slack_app()
+    
+    # Initialize the Slack client with the fake token
+    initialize_slack_client(token=fake_slack_credentials["token"])
     client = TestClient(app)
 
     # Prepare a mock Slack challenge request
