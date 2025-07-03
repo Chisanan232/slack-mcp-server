@@ -12,7 +12,7 @@ and provides expected behavior. They focus on:
 """
 
 import asyncio
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 from unittest import mock
 
 import pytest
@@ -109,7 +109,7 @@ class TestSlackEventConsumerContract:
         consumer = SlackEventConsumer(backend=mock_backend, handler=mock_handler)
 
         # Start the consumer
-        consumer_task = asyncio.create_task(consumer.run())
+        consumer_task = asyncio.create_task(consumer.run(handler=mock_handler.handle_event))
 
         # Allow some time for processing
         await asyncio.sleep(0.1)
@@ -157,7 +157,7 @@ class TestSlackEventConsumerContract:
         consumer = SlackEventConsumer(backend=mock_backend, handler=mock_handler)
 
         # Start the consumer
-        consumer_task = asyncio.create_task(consumer.run())
+        consumer_task = asyncio.create_task(consumer.run(handler=mock_handler.handle_event))
 
         # Allow some time for processing
         await asyncio.sleep(0.1)
@@ -186,7 +186,7 @@ class TestSlackEventConsumerContract:
         handler = DecoratorHandler()
 
         # Track received events
-        received_events: List[Dict[str, Any]] = []
+        received_events: List[Tuple[str, Dict[str, Any]]] = []
 
         # Register handlers for different event types
         @handler.message
@@ -201,7 +201,7 @@ class TestSlackEventConsumerContract:
         consumer = SlackEventConsumer(backend=memory_backend, handler=handler)
 
         # Start the consumer
-        consumer_task = asyncio.create_task(consumer.run())
+        consumer_task = asyncio.create_task(consumer.run(handler=handler.handle_event))
 
         # Create test events
         test_events = [
@@ -229,10 +229,12 @@ class TestSlackEventConsumerContract:
 
         # Verify events were processed by the correct handlers
         assert len(received_events) == 2
-        assert received_events[0][0] == "message"
-        assert received_events[0][1]["text"] == "Hello"
-        assert received_events[1][0] == "reaction"
-        assert received_events[1][1]["reaction"] == "thumbsup"
+        event_type, event_data = received_events[0]
+        assert event_type == "message"
+        assert event_data["text"] == "Hello"
+        event_type, event_data = received_events[1]
+        assert event_type == "reaction"
+        assert event_data["reaction"] == "thumbsup"
 
     @pytest.mark.asyncio
     async def test_consumer_group_support(self, mock_backend: mock.AsyncMock) -> None:
@@ -245,7 +247,11 @@ class TestSlackEventConsumerContract:
         mock_backend.consume.return_value.__aiter__.return_value = []
 
         # Start the consumer
-        consumer_task = asyncio.create_task(consumer.run())
+        # For this test, we need a dummy handler since we're not testing event processing
+        async def dummy_handler(event: Dict[str, Any]) -> None:
+            pass
+
+        consumer_task = asyncio.create_task(consumer.run(handler=dummy_handler))
 
         # Allow some time for processing
         await asyncio.sleep(0.1)
@@ -269,7 +275,7 @@ class TestSlackEventConsumerContract:
         """Test that the consumer handles task cancellation gracefully."""
 
         # Set up mock backend to block indefinitely
-        async def never_ending_consume(*args, **kwargs):
+        async def never_ending_consume(*args: Any, **kwargs: Any):
             while True:
                 await asyncio.sleep(1000)
                 yield {"type": "message"}  # This will never be reached
@@ -280,7 +286,7 @@ class TestSlackEventConsumerContract:
         consumer = SlackEventConsumer(backend=mock_backend, handler=mock_handler)
 
         # Start the consumer
-        consumer_task = asyncio.create_task(consumer.run())
+        consumer_task = asyncio.create_task(consumer.run(handler=mock_handler.handle_event))
 
         # Allow some time to start
         await asyncio.sleep(0.1)

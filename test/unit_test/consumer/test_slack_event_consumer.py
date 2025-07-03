@@ -11,29 +11,30 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
-from typing import Any, Dict, List
+from typing import Any, Dict, Generator, List, Optional, cast
 from unittest.mock import patch
 
 import pytest
 
+from slack_mcp.backends.protocol import QueueBackend
 from slack_mcp.consumer import SlackEventConsumer
-from slack_mcp.dispatcher import slack_event
+from slack_mcp.dispatcher import dispatch_event, slack_event
 from slack_mcp.events import SlackEvent
 from slack_mcp.handler.base import BaseSlackEventHandler
 
 
-class MockQueueBackend:
+class MockQueueBackend(QueueBackend):
     """Mock implementation of QueueBackend for testing."""
 
     def __init__(self) -> None:
         self.events: List[Dict[str, Any]] = []
         self.published_events: List[Dict[str, Any]] = []
 
-    async def publish(self, event: Dict[str, Any], **kwargs: Any) -> None:
+    async def publish(self, key: str, payload: Dict[str, Any]) -> None:
         """Mock implementation of publish method."""
-        self.published_events.append(event)
+        self.published_events.append(payload)
 
-    async def consume(self, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
         """Mock implementation of consume method yielding events."""
         for event in self.events:
             yield event
@@ -41,7 +42,7 @@ class MockQueueBackend:
         await asyncio.sleep(0.1)
 
     @classmethod
-    def from_env(cls, **kwargs: Any) -> MockQueueBackend:
+    def from_env(cls) -> QueueBackend:
         """Mock implementation of from_env classmethod."""
         return cls()
 
@@ -76,20 +77,27 @@ class TestHandler(BaseSlackEventHandler):
 
 
 @pytest.fixture
-def clear_registry() -> None:
+def clear_registry() -> Generator[None, None, None]:
     """Fixture to clear the event handler registry between tests."""
     # Access the internal registry directly to clear it
     from slack_mcp.dispatcher import _HANDLERS
 
     _HANDLERS.clear()
-    yield
-    _HANDLERS.clear()
+    yield None
+    _HANDLERS.clear()  # Clean up after test
 
 
 @pytest.fixture
 def mock_backend() -> MockQueueBackend:
-    """Fixture providing a mock queue backend."""
+    """Create a mock backend for testing."""
     return MockQueueBackend()
+
+
+@pytest.fixture
+def mock_handler() -> Generator[TestHandler, None, None]:
+    """Create a mock handler for testing."""
+    handler = TestHandler()
+    yield handler
 
 
 @pytest.mark.usefixtures("clear_registry")
@@ -146,7 +154,7 @@ class TestSlackEventConsumer:
         ]
 
         # Create a task to run the consumer and wait briefly
-        task = asyncio.create_task(consumer_with_oo_handler.run())
+        task = asyncio.create_task(consumer_with_oo_handler.run(handler=oo_handler.handle_event))
         await asyncio.sleep(0.2)
 
         # Stop the consumer and wait for it to finish
@@ -169,7 +177,12 @@ class TestSlackEventConsumer:
         mock_backend.events = test_events.copy()
 
         # Create a task to run the consumer and wait briefly
-        task = asyncio.create_task(consumer_with_decorators.run())
+        # For decorator-based handlers, we need to use the dispatch_event function
+        # Create a wrapper to make the return type compatible
+        async def dispatch_wrapper(event: Dict[str, Any]) -> None:
+            await dispatch_event(event)
+
+        task = asyncio.create_task(consumer_with_decorators.run(handler=dispatch_wrapper))
         await asyncio.sleep(0.2)
 
         # Stop the consumer and wait for it to finish
@@ -189,7 +202,7 @@ class TestSlackEventConsumer:
         mock_backend.events = [{"type": "message", "text": "Hello"}]
 
         # Create a task to run the consumer and wait briefly
-        task = asyncio.create_task(consumer_with_both.run())
+        task = asyncio.create_task(consumer_with_both.run(handler=oo_handler.handle_event))
         await asyncio.sleep(0.2)
 
         # Stop the consumer and wait for it to finish
@@ -201,11 +214,15 @@ class TestSlackEventConsumer:
         assert len(oo_handler.handled_events["message"]) == 1
 
         # Create a separate consumer with only decorator handlers to verify they work too
-        decorator_only_consumer = SlackEventConsumer(mock_backend)  # No OO handler
+        decorator_only_consumer = SlackEventConsumer(backend=cast(QueueBackend, mock_backend))  # No OO handler
         mock_backend.events = [{"type": "message", "text": "Hello"}]
 
         # Run the decorator-only consumer
-        task = asyncio.create_task(decorator_only_consumer.run())
+        # Create a wrapper to make the return type compatible
+        async def dispatch_wrapper(event: Dict[str, Any]) -> None:
+            await dispatch_event(event)
+
+        task = asyncio.create_task(decorator_only_consumer.run(handler=dispatch_wrapper))
         await asyncio.sleep(0.2)
 
         # Stop the consumer and wait for it to finish
@@ -217,7 +234,7 @@ class TestSlackEventConsumer:
 
     @pytest.mark.asyncio
     async def test_error_handling(
-        self, mock_backend: MockQueueBackend, consumer_with_oo_handler: SlackEventConsumer
+        self, mock_backend: MockQueueBackend, consumer_with_oo_handler: SlackEventConsumer, oo_handler: TestHandler
     ) -> None:
         """Test that errors in event processing are caught and logged."""
         # The consumer uses the module-level logger, not an instance variable
@@ -228,7 +245,11 @@ class TestSlackEventConsumer:
             # Patch the _process_event method to raise an exception
             with patch.object(consumer_with_oo_handler, "_process_event", side_effect=ValueError("Test error")):
                 # Create a task to run the consumer and wait briefly
-                task = asyncio.create_task(consumer_with_oo_handler.run())
+                # Use a simple async handler that returns None to satisfy the type requirements
+                async def dummy_handler(event: Dict[str, Any]) -> None:
+                    pass
+
+                task = asyncio.create_task(consumer_with_oo_handler.run(handler=dummy_handler))
                 await asyncio.sleep(0.2)
 
                 # Stop the consumer and wait for it to finish
@@ -240,14 +261,18 @@ class TestSlackEventConsumer:
 
     @pytest.mark.asyncio
     async def test_graceful_shutdown(
-        self, mock_backend: MockQueueBackend, consumer_with_oo_handler: SlackEventConsumer
+        self, mock_backend: MockQueueBackend, consumer_with_oo_handler: SlackEventConsumer, oo_handler: TestHandler
     ) -> None:
         """Test that the consumer shuts down gracefully when stopped."""
         # Add a lot of test events
         mock_backend.events = [{"type": "message", "text": f"Message {i}"} for i in range(100)]
 
         # Create a task to run the consumer
-        task = asyncio.create_task(consumer_with_oo_handler.run())
+        # Use a simple async handler that returns None to satisfy the type requirements
+        async def dummy_handler(event: Dict[str, Any]) -> None:
+            pass
+
+        task = asyncio.create_task(consumer_with_oo_handler.run(handler=dummy_handler))
 
         # Allow some events to be processed
         await asyncio.sleep(0.1)
@@ -263,14 +288,22 @@ class TestSlackEventConsumer:
         """Test that the consumer stops processing when _stop event is set."""
 
         # Create a custom backend that will yield events indefinitely
-        class NeverEndingBackend:
-            async def consume(self, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        class NeverEndingBackend(QueueBackend):
+            async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
                 # This will keep yielding events until the consumer stops
                 counter = 0
                 while True:
                     yield {"type": "message", "text": f"Message {counter}"}
                     counter += 1
                     await asyncio.sleep(0.01)  # Small delay to avoid CPU hogging
+
+            async def publish(self, key: str, payload: Dict[str, Any]) -> None:
+                """Required by QueueBackend protocol but not used in this test."""
+
+            @classmethod
+            def from_env(cls) -> QueueBackend:
+                """Required by QueueBackend protocol but not used in this test."""
+                return cls()
 
         # Create a handler that counts processed events
         class CountingHandler(BaseSlackEventHandler):
@@ -288,7 +321,7 @@ class TestSlackEventConsumer:
 
         # Start the consumer
         with patch("slack_mcp.consumer.slack_event._LOG") as mock_logger:
-            consumer_task = asyncio.create_task(consumer.run())
+            consumer_task = asyncio.create_task(consumer.run(handler=handler.handle_event))
 
             # Let it process some events
             await asyncio.sleep(0.1)
@@ -310,8 +343,8 @@ class TestSlackEventConsumer:
         """Test that unexpected exceptions in the consumer's run method are caught and logged."""
 
         # Create a backend that raises an unexpected exception
-        class ExplodingBackend:
-            async def consume(self, **kwargs: Any) -> AsyncIterator[Dict[str, Any]]:
+        class ExplodingBackend(QueueBackend):
+            async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
                 # Process a few events normally
                 for i in range(3):
                     yield {"type": "message", "text": f"Message {i}"}
@@ -320,6 +353,14 @@ class TestSlackEventConsumer:
                 # Then simulate a connection error or other unexpected exception
                 raise ConnectionError("Simulated connection failure")
 
+            async def publish(self, key: str, payload: Dict[str, Any]) -> None:
+                """Required by QueueBackend protocol but not used in this test."""
+
+            @classmethod
+            def from_env(cls) -> QueueBackend:
+                """Required by QueueBackend protocol but not used in this test."""
+                return cls()
+
         # Create a handler and consumer
         handler = TestHandler()
         consumer = SlackEventConsumer(backend=ExplodingBackend(), handler=handler)
@@ -327,7 +368,7 @@ class TestSlackEventConsumer:
         # Start the consumer and verify exception handling
         with patch("slack_mcp.consumer.slack_event._LOG") as mock_logger:
             # Run the consumer - it should catch the exception and log it
-            await consumer.run()
+            await consumer.run(handler=handler.handle_event)
 
             # Verify the exception was logged
             mock_logger.exception.assert_called_once()

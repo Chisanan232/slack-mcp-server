@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Awaitable, Callable, Dict, Optional
 
 from ..backends.consumer import AsyncLoopConsumer
 from ..backends.protocol import QueueBackend
@@ -49,7 +49,7 @@ class SlackEventConsumer(AsyncLoopConsumer):
         self._slack_handler = handler
         self._stop = asyncio.Event()
 
-    async def run(self) -> None:
+    async def run(self, handler: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
         """Start consuming events from the queue.
 
         This method will run indefinitely until shutdown() is called.
