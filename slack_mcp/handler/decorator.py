@@ -110,9 +110,9 @@ class DecoratorHandler(EventHandler):
         # Case 2: @handler(SlackEvent.X) or @handler("event.subtype")
         event_name = str(ev_or_fn)  # Works for both str and SlackEvent
 
-        def decorator(fn: F) -> F:
-            self._handlers[event_name].append(fn)
-            return fn
+        def decorator(_fn: F) -> F:
+            self._handlers[event_name].append(_fn)
+            return _fn
 
         return decorator
 
