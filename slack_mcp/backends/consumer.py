@@ -38,7 +38,7 @@ class EventConsumer(Protocol):
         ...
 
 
-class AsyncLoopConsumer:
+class AsyncLoopConsumer(EventConsumer):
     """Simple consumer that processes messages in an asyncio loop.
 
     This implementation is suitable for light, single-instance deployments.
