@@ -8,5 +8,6 @@ The base module provides a class-based handler pattern that maps event types to 
 from __future__ import annotations
 
 from .base import BaseSlackEventHandler, EventHandler
+from .decorator import DecoratorHandler
 
-__all__ = ["BaseSlackEventHandler", "EventHandler"]
+__all__ = ["BaseSlackEventHandler", "EventHandler", "DecoratorHandler"]
