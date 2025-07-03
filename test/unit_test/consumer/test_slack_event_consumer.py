@@ -330,3 +330,121 @@ class TestSlackEventConsumer:
 
         # Restore the original consume method
         mock_backend.consume = original_consume  # type: ignore
+
+    @pytest.mark.asyncio
+    async def test_event_processing_exception(self, mock_backend: MockQueueBackend) -> None:
+        """Test that exceptions during event processing are caught and logged."""
+        # Create a consumer
+        consumer = SlackEventConsumer(mock_backend)
+
+        # Set up test events
+        test_event = {"type": "message", "text": "Hello"}
+        mock_backend.events = [test_event]
+
+        # Create a mock for _process_event that raises an exception
+        async def mock_process_event(_: Dict[str, Any]) -> None:
+            raise ValueError("Test processing error")
+
+        # Create a dummy handler for the run method
+        async def dummy_handler(event: Dict[str, Any]) -> None:
+            pass
+
+        # Mock the logger and _process_event
+        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+            with patch.object(consumer, "_process_event", side_effect=mock_process_event):
+                # Run the consumer
+                task = asyncio.create_task(consumer.run(handler=dummy_handler))
+                
+                # Wait for the task to complete
+                await asyncio.sleep(0.2)
+                await consumer.shutdown()
+                await task
+
+                # Verify the error was logged
+                mock_log.exception.assert_called_once()
+                call_args = mock_log.exception.call_args[0][0]
+                assert "Error processing Slack event" in call_args
+                assert "Test processing error" in call_args
+
+    @pytest.mark.asyncio
+    async def test_consumer_unexpected_exception(self, mock_backend: MockQueueBackend) -> None:
+        """Test that unexpected exceptions in the consumer loop are caught and logged."""
+        # Create a consumer
+        consumer = SlackEventConsumer(mock_backend)
+
+        # Create a consume method that raises an unexpected exception
+        async def failing_consume(group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
+            raise RuntimeError("Unexpected consumer error")
+            # This yield is unreachable but needed to satisfy the AsyncIterator return type
+            if False:  # pragma: no cover
+                yield {}
+
+        # Store the original consume method
+        original_consume = mock_backend.consume
+
+        # Replace with our failing method
+        mock_backend.consume = failing_consume  # type: ignore
+
+        # Create a dummy handler for the run method
+        async def dummy_handler(event: Dict[str, Any]) -> None:
+            pass
+
+        # Mock the logger
+        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+            # Run the consumer
+            task = asyncio.create_task(consumer.run(handler=dummy_handler))
+            
+            # Wait for the task to complete
+            await asyncio.sleep(0.2)
+            
+            # Verify the task completed due to the exception
+            assert task.done()
+            
+            # Verify the error was logged
+            mock_log.exception.assert_called_once()
+            call_args = mock_log.exception.call_args[0][0]
+            assert "Unexpected error in consumer" in call_args
+            assert "Unexpected consumer error" in call_args
+
+        # Restore the original consume method
+        mock_backend.consume = original_consume  # type: ignore
+
+    @pytest.mark.asyncio
+    async def test_cancelled_error_handling(self, mock_backend: MockQueueBackend) -> None:
+        """Test that CancelledError is caught and logged properly."""
+        # Create a consumer
+        consumer = SlackEventConsumer(mock_backend)
+
+        # Create a consume method that raises a CancelledError
+        async def cancelling_consume(group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
+            raise asyncio.CancelledError("Task cancelled")
+            # This yield is unreachable but needed to satisfy the AsyncIterator return type
+            if False:  # pragma: no cover
+                yield {}
+
+        # Store the original consume method
+        original_consume = mock_backend.consume
+
+        # Replace with our cancelling method
+        mock_backend.consume = cancelling_consume  # type: ignore
+
+        # Create a dummy handler for the run method
+        async def dummy_handler(event: Dict[str, Any]) -> None:
+            pass
+
+        # Mock the logger
+        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+            # Run the consumer
+            task = asyncio.create_task(consumer.run(handler=dummy_handler))
+            
+            # Wait for the task to complete
+            await asyncio.sleep(0.2)
+            
+            # Verify the task completed due to the cancellation
+            assert task.done()
+            
+            # Verify the cancellation was logged
+            mock_log.info.assert_any_call("Consumer task was cancelled")
+
+        # Restore the original consume method
+        mock_backend.consume = original_consume  # type: ignore
