@@ -524,14 +524,6 @@ class DecoratorHandler(EventHandler):
         """Register a handler for user_change events."""
         return self(SlackEvent.USER_CHANGE)(fn)
 
-    def user_profile_changed(self, fn: F) -> F:
-        """Register a handler for user_profile_changed events."""
-        return self(SlackEvent.USER_PROFILE_CHANGED)(fn)
-
-    def user_status_changed(self, fn: F) -> F:
-        """Register a handler for user_status_changed events."""
-        return self(SlackEvent.USER_STATUS_CHANGED)(fn)
-
     def workflow_deleted(self, fn: F) -> F:
         """Register a handler for workflow_deleted events."""
         return self(SlackEvent.WORKFLOW_DELETED)(fn)
