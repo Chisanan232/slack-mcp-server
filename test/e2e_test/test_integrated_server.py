@@ -115,12 +115,12 @@ async def safely_cancel_task(task: asyncio.Task) -> None:
 
 
 class MockQueueBackend(QueueBackend):
-    """Mock implementation of QueueBackend for testing."""
+    """Mock queue backend for testing."""
 
     def __init__(self) -> None:
-        """Initialize the mock backend with an empty list of published events."""
-        self.published_events = []
-        self.published_topics = []
+        """Initialize the mock queue backend."""
+        self.published_events: list[Dict[str, Any]] = []
+        self.published_topics: list[str] = []
         self.event_received = asyncio.Event()
 
     async def publish(self, topic: str, message: Dict[str, Any]) -> None:

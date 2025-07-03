@@ -22,8 +22,8 @@ class MockQueueBackend(QueueBackend):
 
     def __init__(self) -> None:
         """Initialize the mock backend with an empty list of published events."""
-        self.published_events = []
-        self.published_topics = []
+        self.published_events: list[Dict[str, Any]] = []
+        self.published_topics: list[str] = []
 
     async def publish(self, topic: str, message: dict) -> None:
         """Publish a message to the mock backend."""
