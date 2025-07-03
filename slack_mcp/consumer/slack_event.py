@@ -13,8 +13,8 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 
 from ..backends.consumer import AsyncLoopConsumer
 from ..backends.protocol import QueueBackend
-from ..dispatcher import dispatch_event
 from ..handler.base import EventHandler
+from ..handler.decorator import DecoratorHandler
 
 __all__ = ["SlackEventConsumer"]
 
@@ -27,7 +27,7 @@ class SlackEventConsumer(AsyncLoopConsumer):
     This class connects to a QueueBackend to receive Slack events and passes
     them to the appropriate handler, which can be either:
     1. An object following the EventHandler protocol (OO style)
-    2. The dispatcher module's dispatch_event function (decorator style)
+    2. A DecoratorHandler instance (decorator style)
     """
 
     def __init__(self, backend: QueueBackend, handler: Optional[EventHandler] = None, group: Optional[str] = None):
@@ -39,14 +39,14 @@ class SlackEventConsumer(AsyncLoopConsumer):
             The queue backend to consume events from
         handler : Optional[EventHandler], optional
             An event handler object (following the EventHandler protocol)
-            If not provided, uses the dispatcher module's dispatch_event function
+            If not provided, uses a default DecoratorHandler instance
         group : Optional[str], optional
             Consumer group name for queue backends that support consumer groups
         """
         # Initialize the base class
         super().__init__(backend=backend, group=group)
         # Store the Slack-specific handler
-        self._slack_handler = handler
+        self._slack_handler = handler if handler is not None else DecoratorHandler()
         self._stop = asyncio.Event()
 
     async def run(self, handler: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
@@ -97,9 +97,5 @@ class SlackEventConsumer(AsyncLoopConsumer):
         """
         _LOG.debug(f"Processing event type={event.get('type')}, subtype={event.get('subtype')}")
 
-        if self._slack_handler is not None:
-            # OO-style handler
-            await self._slack_handler.handle_event(event)
-        else:
-            # Decorator-style handler via dispatcher
-            await dispatch_event(event)
+        # Always use the handler (which is now guaranteed to exist)
+        await self._slack_handler.handle_event(event)
