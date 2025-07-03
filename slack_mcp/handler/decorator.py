@@ -81,9 +81,9 @@ class DecoratorHandler(EventHandler):
     def __call__(self, ev: str) -> Callable[[F], F]: ...
 
     @overload
-    def __call__(self, fn: F) -> F: ...
+    def __call__(self, ev: F) -> F: ...
 
-    def __call__(self, ev_or_fn: Union[SlackEvent, str, F]) -> Union[Callable[[F], F], F]:
+    def __call__(self, ev: Union[SlackEvent, str, F]) -> Union[Callable[[F], F], F]:
         """Register a function as a handler for a specific event type.
 
         This method can be used in two ways:
@@ -93,7 +93,7 @@ class DecoratorHandler(EventHandler):
 
         Parameters
         ----------
-        ev_or_fn : Union[SlackEvent, str, Callable]
+        ev : Union[SlackEvent, str, Callable]
             Either a SlackEvent enum, a string event type, or the function to decorate
 
         Returns
@@ -102,13 +102,13 @@ class DecoratorHandler(EventHandler):
             Either a decorator function or the decorated function
         """
         # Case 1: @handler (no args) - register for wildcard "*"
-        if callable(ev_or_fn) and not isinstance(ev_or_fn, (str, SlackEvent)):
-            fn = ev_or_fn
+        if callable(ev) and not isinstance(ev, (str, SlackEvent)):
+            fn = ev
             self._handlers["*"].append(fn)
             return fn
 
         # Case 2: @handler(SlackEvent.X) or @handler("event.subtype")
-        event_name = str(ev_or_fn)  # Works for both str and SlackEvent
+        event_name = str(ev)  # Works for both str and SlackEvent
 
         def decorator(_fn: F) -> F:
             self._handlers[event_name].append(_fn)
