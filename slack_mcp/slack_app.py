@@ -16,6 +16,8 @@ from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
+from .backends.loader import load_backend
+from .backends.protocol import QueueBackend
 from .client_factory import RetryableSlackClientFactory
 from .event_handler import SlackEvent, register_handlers
 from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
@@ -27,12 +29,36 @@ __all__: list[str] = [
     "slack_client",
     "get_slack_client",
     "initialize_slack_client",
+    "get_queue_backend",
 ]
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_app")
 
 # Global Slack client for common usage outside of this module
 slack_client: Optional[AsyncWebClient] = None
+
+# Global queue backend for publishing Slack events
+_queue_backend: Optional[QueueBackend] = None
+
+# Default topic/key for Slack events in the queue
+DEFAULT_SLACK_EVENTS_TOPIC: Final[str] = "slack_events"
+
+
+def get_queue_backend() -> QueueBackend:
+    """Get or initialize the global queue backend.
+    
+    Returns
+    -------
+    QueueBackend
+        The global queue backend instance
+    """
+    global _queue_backend
+    
+    if _queue_backend is None:
+        _LOG.info("Initializing queue backend")
+        _queue_backend = load_backend()
+        
+    return _queue_backend
 
 
 def initialize_slack_client(token: str | None = None, retry: int = 0) -> AsyncWebClient:
@@ -203,6 +229,12 @@ def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
 
     # Initialize the global Slack client
     client = initialize_slack_client(token, retry)
+    
+    # Initialize the queue backend
+    backend = get_queue_backend()
+    
+    # Get the topic for Slack events from environment or use default
+    slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
 
     @app.post("/slack/events")
     async def slack_events(request: Request) -> Response:
@@ -235,19 +267,32 @@ def create_slack_app(token: str | None = None, retry: int = 0) -> FastAPI:
             _LOG.info("Handling URL verification challenge (fallback)")
             return JSONResponse(content={"challenge": slack_event_dict["challenge"]})
 
-        # Handle the event
+        # Process the event
         if isinstance(slack_event_model, SlackEventModel):
-            # Use the Pydantic model for logging and processing
-            _LOG.info(
-                f"Received Slack event: {slack_event_model.event.type if hasattr(slack_event_model.event, 'type') else 'unknown'}"
-            )
-            # Convert model to dict for backward compatibility with handle_slack_event
+            # Use the Pydantic model for logging
+            event_type = slack_event_model.event.type if hasattr(slack_event_model.event, "type") else "unknown"
+            _LOG.info(f"Received Slack event: {event_type}")
+            
+            # Convert model to dict for publishing to queue
             event_dict = slack_event_model.model_dump()
-            await handle_slack_event(cast(SlackEvent, event_dict), client)
+            
+            # Publish event to queue
+            try:
+                await backend.publish(slack_events_topic, event_dict)
+                _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
+            except Exception as e:
+                _LOG.error(f"Error publishing event to queue: {e}")
         else:
             # Fallback to original dictionary approach
-            _LOG.info(f"Received Slack event: {slack_event_dict.get('event', {}).get('type')}")
-            await handle_slack_event(cast(SlackEvent, slack_event_dict), client)
+            event_type = slack_event_dict.get("event", {}).get("type", "unknown")
+            _LOG.info(f"Received Slack event: {event_type}")
+            
+            # Publish event to queue
+            try:
+                await backend.publish(slack_events_topic, slack_event_dict)
+                _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
+            except Exception as e:
+                _LOG.error(f"Error publishing event to queue: {e}")
 
         # Return 200 OK to acknowledge receipt of the event
         return JSONResponse(content={"status": "ok"})
