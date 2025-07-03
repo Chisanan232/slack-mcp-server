@@ -8,8 +8,9 @@ This module tests the DecoratorHandler functionality including:
 """
 
 import asyncio
+from typing import Any, Dict, List
+
 import pytest
-from typing import Dict, Any, List
 
 from slack_mcp.events import SlackEvent
 from slack_mcp.handler.decorator import DecoratorHandler
@@ -25,7 +26,7 @@ class TestDecoratorHandler:
             "message": [],
             "reaction_added": [],
             "app_mention": [],
-            "wildcard": []
+            "wildcard": [],
         }
 
     def test_attribute_style_registration(self) -> None:

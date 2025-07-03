@@ -13,14 +13,13 @@ and provides a developer-friendly interface. They focus on:
 
 import asyncio
 import inspect
+from typing import Any, Dict
+
 import pytest
-from typing import Dict, Any, List, Callable, Set, cast
-from unittest.mock import MagicMock, patch
 
 from slack_mcp.events import SlackEvent
-from slack_mcp.handler.decorator import DecoratorHandler
 from slack_mcp.handler.base import EventHandler
-from slack_mcp.consumer.slack_event import SlackEventConsumer
+from slack_mcp.handler.decorator import DecoratorHandler
 
 
 class TestDecoratorHandlerContract:
@@ -34,15 +33,15 @@ class TestDecoratorHandlerContract:
         """Test that DecoratorHandler implements the EventHandler protocol."""
         # Check that DecoratorHandler is an instance of EventHandler
         assert isinstance(self.handler, EventHandler)
-        
+
         # Check that it has the required handle_event method with correct signature
         assert hasattr(self.handler, "handle_event")
         sig = inspect.signature(self.handler.handle_event)
-        
+
         # The EventHandler protocol defines handle_event with just 'event' parameter
         # (self is implicit in method definitions)
         assert "event" in sig.parameters
-        
+
         # Check return annotation is a coroutine
         assert "Coroutine" in str(sig.return_annotation) or "None" in str(sig.return_annotation)
 
@@ -50,23 +49,23 @@ class TestDecoratorHandlerContract:
         """Test that both decorator styles work consistently."""
         handler = self.handler
         events_received = []
-        
+
         # Register handlers using both styles
         @handler.reaction_added
         def handle_reaction_attribute(event: Dict[str, Any]) -> None:
             events_received.append(("attribute", event))
-            
+
         @handler(SlackEvent.MESSAGE)
         def handle_message_enum(event: Dict[str, Any]) -> None:
             events_received.append(("enum", event))
-            
+
         # Get registered handlers
         handlers = handler.get_handlers()
-        
+
         # Verify both styles registered correctly
         assert "reaction_added" in handlers
         assert "message" in handlers
-        
+
         # Verify the functions are correctly registered
         assert handlers["reaction_added"][0] == handle_reaction_attribute
         assert handlers["message"][0] == handle_message_enum
@@ -74,16 +73,22 @@ class TestDecoratorHandlerContract:
     def test_common_slack_events_have_methods(self) -> None:
         """Test that common SlackEvent enum values have corresponding methods."""
         handler = self.handler
-        
+
         # Check a subset of common events that should definitely have methods
         common_events = [
-            "message", "reaction_added", "app_mention", "channel_created",
-            "user_change", "team_join", "pin_added", "emoji_changed"
+            "message",
+            "reaction_added",
+            "app_mention",
+            "channel_created",
+            "user_change",
+            "team_join",
+            "pin_added",
+            "emoji_changed",
         ]
-        
+
         # Convert to method names (dots to underscores)
         common_methods = [event.replace(".", "_") for event in common_events]
-        
+
         # Check that all common events have methods
         for method_name in common_methods:
             assert hasattr(handler, method_name), f"Missing method for event: {method_name}"
@@ -92,10 +97,10 @@ class TestDecoratorHandlerContract:
     def test_method_docstrings(self) -> None:
         """Test that all event methods have proper docstrings."""
         handler = self.handler
-        
+
         # Check a sample of methods to ensure they have docstrings
         sample_methods = ["message", "reaction_added", "app_mention", "channel_created"]
-        
+
         for method_name in sample_methods:
             method = getattr(handler, method_name)
             assert method.__doc__, f"Method {method_name} is missing a docstring"
@@ -105,25 +110,25 @@ class TestDecoratorHandlerContract:
     async def test_error_handling(self) -> None:
         """Test that handler errors are caught and don't crash the process."""
         handler = self.handler
-        
+
         # Register a handler that raises an exception
         @handler.message
         def handle_message_error(event: Dict[str, Any]) -> None:
             raise ValueError("Test error")
-            
+
         # Register a handler that should still be called after the error
         call_count = 0
-        
+
         @handler.message
         def handle_message_after_error(event: Dict[str, Any]) -> None:
             nonlocal call_count
             call_count += 1
-            
+
         # Handle an event - this should not raise an exception
         # We don't mock the logger here since the implementation might use a different logger
         # or error handling approach
         await handler.handle_event({"type": "message", "text": "test"})
-        
+
         # Verify the second handler was still called
         assert call_count == 1
 
@@ -132,17 +137,17 @@ class TestDecoratorHandlerContract:
         """Test that DecoratorHandler integrates with SlackEventConsumer."""
         handler = self.handler
         events_received = []
-        
+
         @handler.message
         def handle_message(event: Dict[str, Any]) -> None:
             events_received.append(event)
-            
+
         # Create a mock event
         test_event = {"type": "message", "text": "test"}
-        
+
         # Directly call handle_event to simulate what the consumer would do
         await handler.handle_event(test_event)
-        
+
         # Verify the event was processed by our handler
         assert len(events_received) == 1
         assert events_received[0]["text"] == "test"
@@ -150,16 +155,16 @@ class TestDecoratorHandlerContract:
     def test_handler_return_values(self) -> None:
         """Test that handler return values are properly handled."""
         handler = self.handler
-        
+
         # Register a handler that returns a value
         @handler.message
         def handle_message_with_return(event: Dict[str, Any]) -> str:
             return "test_return"
-            
+
         # Get the registered handler
         message_handlers = handler.get_handlers()["message"]
         assert len(message_handlers) == 1
-        
+
         # Call the handler directly
         result = message_handlers[0]({"type": "message"})
         assert result == "test_return"
@@ -169,18 +174,18 @@ class TestDecoratorHandlerContract:
         """Test registering and calling multiple handlers for the same event."""
         handler = self.handler
         calls = []
-        
+
         @handler.message
         def handle_message1(event: Dict[str, Any]) -> None:
             calls.append("handler1")
-            
+
         @handler.message
         def handle_message2(event: Dict[str, Any]) -> None:
             calls.append("handler2")
-            
+
         # Handle an event
         await handler.handle_event({"type": "message"})
-        
+
         # Verify both handlers were called
         assert len(calls) == 2
         assert "handler1" in calls
@@ -190,24 +195,24 @@ class TestDecoratorHandlerContract:
         """Test that handlers are executed in registration order."""
         handler = self.handler
         call_order = []
-        
+
         @handler.message
         def handle_message1(event: Dict[str, Any]) -> None:
             call_order.append("handler1")
-            
+
         @handler.message
         def handle_message2(event: Dict[str, Any]) -> None:
             call_order.append("handler2")
-            
+
         @handler.message
         def handle_message3(event: Dict[str, Any]) -> None:
             call_order.append("handler3")
-            
+
         # Get handlers and call them directly in the order they're registered
         message_handlers = handler.get_handlers()["message"]
         for h in message_handlers:
             h({"type": "message"})
-            
+
         # Verify the call order matches registration order
         assert call_order == ["handler1", "handler2", "handler3"]
 
@@ -215,16 +220,16 @@ class TestDecoratorHandlerContract:
         """Test handling custom event types not in SlackEvent enum."""
         handler = self.handler
         received_events = []
-        
+
         # Register a handler for a custom event type
         @handler("custom_event")
         def handle_custom(event: Dict[str, Any]) -> None:
             received_events.append(event)
-            
+
         # Handle a custom event
         event = {"type": "custom_event", "data": "test"}
         asyncio.run(handler.handle_event(event))
-        
+
         # Verify the event was handled
         assert len(received_events) == 1
         assert received_events[0] == event
@@ -232,39 +237,40 @@ class TestDecoratorHandlerContract:
     def test_invalid_event_handling(self) -> None:
         """Test that accessing an invalid event attribute is handled appropriately."""
         handler = self.handler
-        
+
         # Try to register a handler for a non-existent event type
         # This should not raise an exception as the implementation might handle this dynamically
         @handler("not_a_real_event_type")
         def handle_invalid(event: Dict[str, Any]) -> None:
             pass
-        
+
         # Verify the handler was registered under the custom name
         handlers = handler.get_handlers()
         assert "not_a_real_event_type" in handlers
-            
+
     def test_chained_decorators(self) -> None:
         """Test that the decorator can be chained with other decorators."""
         handler = self.handler
         calls = []
-        
+
         # Define a custom decorator
         def my_decorator(func):
             def wrapper(event):
                 calls.append("decorator_called")
                 return func(event)
+
             return wrapper
-        
+
         # Apply both decorators - order matters here!
         @handler.message
         @my_decorator
         def handle_message(event: Dict[str, Any]) -> None:
             calls.append("handler_called")
-            
+
         # Call the handler directly
         handlers = handler.get_handlers()["message"]
         handlers[0]({"type": "message"})
-        
+
         # Verify both the decorator and handler were called
         assert calls == ["decorator_called", "handler_called"]
 
@@ -272,23 +278,23 @@ class TestDecoratorHandlerContract:
         """Test that multiple handler instances are isolated from each other."""
         handler1 = DecoratorHandler()
         handler2 = DecoratorHandler()
-        
+
         # Register handlers on each instance
         @handler1.message
         def handle_message1(event: Dict[str, Any]) -> None:
             pass
-            
+
         @handler2.reaction_added
         def handle_reaction2(event: Dict[str, Any]) -> None:
             pass
-            
+
         # Verify handlers are isolated
         handlers1 = handler1.get_handlers()
         handlers2 = handler2.get_handlers()
-        
+
         assert "message" in handlers1
         assert "message" not in handlers2
-        
+
         assert "reaction_added" in handlers2
         assert "reaction_added" not in handlers1
 
