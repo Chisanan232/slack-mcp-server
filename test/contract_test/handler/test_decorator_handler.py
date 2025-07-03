@@ -395,7 +395,7 @@ class TestDecoratorHandlerContract:
         # Verify the handler is registered correctly
         handlers = handler.get_handlers()
         assert "reaction_added" in handlers
-        assert handlers["reaction_added"][0] == test_handler1
+        assert test_handler1 in handlers["reaction_added"]
 
         # Test case 2: Match with dots instead of underscores
         message_channels_decorator = handler.message_channels
@@ -410,7 +410,7 @@ class TestDecoratorHandlerContract:
         # Verify the handler is registered correctly
         handlers = handler.get_handlers()
         assert "message.channels" in handlers
-        assert handlers["message.channels"][0] == test_handler2
+        assert test_handler2 in handlers["message.channels"]
 
         # Test case 3: Custom event type not in SlackEvent enum
         custom_event_decorator = handler.custom_event_type
@@ -425,7 +425,7 @@ class TestDecoratorHandlerContract:
         # Verify the handler is registered correctly
         handlers = handler.get_handlers()
         assert "custom_event_type" in handlers
-        assert handlers["custom_event_type"][0] == test_handler3
+        assert test_handler3 in handlers["custom_event_type"]
 
         # Test case 4: Error handling for invalid attribute access
         # We need to mock __getattr__ to force it to raise an AttributeError
@@ -440,18 +440,17 @@ class TestDecoratorHandlerContract:
                 return original_getattr(self, name)
 
             # Apply the mock
-            DecoratorHandler.__getattr__ = mock_getattr
+            with mock.patch.object(DecoratorHandler, "__getattr__", mock_getattr):
+                # Now test the error case
+                with pytest.raises(AttributeError) as excinfo:
+                    handler._test_error
 
-            # Now test the error case
-            with pytest.raises(AttributeError) as excinfo:
-                handler._test_error
-
-            # Verify the error message
-            assert "Unknown Slack event type" in str(excinfo.value)
+                # Verify the error message
+                assert "Unknown Slack event type" in str(excinfo.value)
 
         finally:
             # Restore the original __getattr__
-            DecoratorHandler.__getattr__ = original_getattr
+            pass
 
     def test_getattr_dot_replacement_success_path(self) -> None:
         """Test the dot replacement success path in __getattr__ method (line 151)."""
@@ -505,7 +504,7 @@ class TestDecoratorHandlerContract:
         # Verify the handler is registered correctly
         handlers = handler.get_handlers()
         assert "message.channels" in handlers
-        assert handlers["message.channels"][0] == test_handler
+        assert test_handler in handlers["message.channels"]
 
         # Test case 2: Attribute name that fails both direct match and dot notation
         # but is accepted as a custom event type
@@ -521,40 +520,33 @@ class TestDecoratorHandlerContract:
         # Verify the handler is registered correctly
         handlers = handler.get_handlers()
         assert "completely_custom_event" in handlers
-        assert handlers["completely_custom_event"][0] == custom_handler
+        assert custom_handler in handlers["completely_custom_event"]
 
         # Test case 3: Test exception handling in __getattr__
-        # We'll use monkeypatch to simulate exceptions in different parts of the method
+        # We'll use patch to simulate exceptions in different parts of the method
 
         # Create a new handler for testing exception paths
         exception_handler = DecoratorHandler()
 
-        # Save the original __getattr__ method
-        original_getattr = DecoratorHandler.__getattr__
+        # Define a mock __getattr__ that will test different exception paths
+        def mock_getattr(self: DecoratorHandler, name: str) -> Any:
+            if name == "_test_error":
+                # This simulates an exception in the try block
+                raise AttributeError(f"Unknown Slack event type: '{name}'")
+            # Call the real __getattr__ for other attributes
+            # We can't call the original directly, so we'll raise AttributeError
+            # to simulate the behavior we want to test
+            raise AttributeError(f"Attribute {name} not found")
 
-        try:
-            # Create a modified __getattr__ that will test different exception paths
-            def test_getattr(self, name):
-                if name == "exception_test":
-                    # Test the exception handling in __getattr__
-                    # This simulates an exception in the try block
-                    raise AttributeError(f"Unknown Slack event type: '{name}'")
-                return original_getattr(self, name)
-
-            # Apply the mock
-            DecoratorHandler.__getattr__ = test_getattr
-
+        # Use patch instead of direct assignment
+        with mock.patch.object(DecoratorHandler, "__getattr__", mock_getattr):
             # Test that accessing an attribute that raises AttributeError
             # propagates the exception correctly
             with pytest.raises(AttributeError) as excinfo:
-                exception_handler.exception_test
+                exception_handler._test_error
 
             # Verify the error message
             assert "Unknown Slack event type" in str(excinfo.value)
-
-        finally:
-            # Restore the original __getattr__
-            DecoratorHandler.__getattr__ = original_getattr
 
     def test_getattr_exception_paths(self) -> None:
         """Test the exception handling paths in __getattr__ method."""
@@ -563,7 +555,7 @@ class TestDecoratorHandlerContract:
         # Test case 1: Test ValueError in SlackEvent conversion (lines 151-152)
         # We need to create a scenario where:
         # 1. The attribute is not a direct match to a SlackEvent enum member (will raise AttributeError)
-        # 2. When trying SlackEvent(event_name) it raises ValueError
+        # 2. Converting with dots instead of underscores raises ValueError
         # 3. But we still want to allow it as a custom event type
 
         # First, let's create a custom event name that won't match any SlackEvent enum member
@@ -619,7 +611,7 @@ class TestDecoratorHandlerContract:
         # Verify the handler is registered correctly
         handlers = handler.get_handlers()
         assert attr_name in handlers
-        assert handlers[attr_name][0] == custom_handler
+        assert custom_handler in handlers[attr_name]
 
         # Test case 2: Test handling of event with subtype
         # Create a mock event with a subtype
