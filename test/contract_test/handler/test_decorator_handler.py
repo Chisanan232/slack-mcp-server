@@ -13,13 +13,24 @@ and provides a developer-friendly interface. They focus on:
 
 import asyncio
 import inspect
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
 from slack_mcp.events import SlackEvent
 from slack_mcp.handler.base import EventHandler
 from slack_mcp.handler.decorator import DecoratorHandler
+
+
+# Generate test data from SlackEvent enum
+def generate_decorator_test_cases() -> List[Tuple[str, SlackEvent]]:
+    """Generate test cases for decorator methods from SlackEvent enum."""
+    test_cases = []
+    for event_enum in SlackEvent:
+        # Convert enum value to method name (replace dots with underscores)
+        method_name = str(event_enum).replace(".", "_")
+        test_cases.append((method_name, event_enum))
+    return test_cases
 
 
 class TestDecoratorHandlerContract:
@@ -298,6 +309,73 @@ class TestDecoratorHandlerContract:
         assert "reaction_added" in handlers2
         assert "reaction_added" not in handlers1
 
+    def test_specific_event_decorators(self) -> None:
+        """Test specific event decorator methods to ensure they register correctly."""
+        handler = self.handler
+        events_received = []
+
+        # Test assistant_thread_context_changed decorator
+        @handler.assistant_thread_context_changed
+        async def handle_assistant_thread_context_changed(event: Dict[str, Any]) -> None:
+            events_received.append(("assistant_thread_context_changed", event))
+
+        # Test assistant_thread_started decorator
+        @handler.assistant_thread_started
+        async def handle_assistant_thread_started(event: Dict[str, Any]) -> None:
+            events_received.append(("assistant_thread_started", event))
+
+        # Get registered handlers
+        handlers = handler.get_handlers()
+
+        # Verify the handlers are correctly registered
+        assert "assistant_thread_context_changed" in handlers
+        assert handlers["assistant_thread_context_changed"][0] == handle_assistant_thread_context_changed
+        
+        assert "assistant_thread_started" in handlers
+        assert handlers["assistant_thread_started"][0] == handle_assistant_thread_started
+
+        # Test that the handlers are called with the correct events
+        test_event_context_changed = {"type": "assistant_thread_context_changed", "data": "test"}
+        test_event_thread_started = {"type": "assistant_thread_started", "data": "test"}
+
+        # Run the handlers
+        asyncio.run(handler.handle_event(test_event_context_changed))
+        asyncio.run(handler.handle_event(test_event_thread_started))
+
+        # Verify the events were received
+        assert len(events_received) == 2
+        assert events_received[0] == ("assistant_thread_context_changed", test_event_context_changed)
+        assert events_received[1] == ("assistant_thread_started", test_event_thread_started)
+
+    @pytest.mark.parametrize(
+        "decorator_method,event_type",
+        generate_decorator_test_cases(),
+    )
+    def test_all_decorator_methods(self, decorator_method: str, event_type: SlackEvent) -> None:
+        """Test all decorator methods to ensure they register correctly."""
+        handler = self.handler
+        
+        # Skip if the handler doesn't have this method
+        if not hasattr(handler, decorator_method):
+            pytest.skip(f"Handler does not have method: {decorator_method}")
+        
+        # Get the decorator method
+        decorator = getattr(handler, decorator_method)
+        
+        # Define a simple handler function
+        async def test_handler(event: Dict[str, Any]) -> None:
+            pass
+        
+        # Register the handler
+        decorated_handler = decorator(test_handler)
+        
+        # Verify the handler is registered correctly
+        handlers = handler.get_handlers()
+        assert str(event_type) in handlers
+        assert handlers[str(event_type)][0] == test_handler
+        
+        # Verify the decorator returns the original function
+        assert decorated_handler == test_handler
 
 # if __name__ == "__main__":
 #     pytest.main(["-xvs", __file__])
