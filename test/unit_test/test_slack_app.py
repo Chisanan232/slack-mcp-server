@@ -10,6 +10,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.protocol import QueueBackend
 from slack_mcp.slack_app import (
+    DEFAULT_SLACK_EVENTS_TOPIC,
     create_slack_app,
     handle_slack_event,
     verify_slack_request,
@@ -256,6 +257,7 @@ async def test_slack_events_endpoint_event(
             "api_app_id": "A12345",
             "event_id": "Ev12345",
             "event_time": 1234567890,
+            "token": "test_token",
             "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
         },
         headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
@@ -483,6 +485,71 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
         mock_backend.publish.assert_awaited_once()
 
         # Verify handle_slack_event was not called since we're now publishing to queue
+        mock_handle_slack_event.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
+    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock
+) -> None:
+    """Test that errors during queue publishing are properly logged."""
+    # Mock the verify_slack_request to return True
+    mock_verify_slack_request.return_value = True
+
+    # Create a sample event
+    event_data = {
+        "type": "event_callback",
+        "event": {
+            "type": "app_mention",
+            "user": "U12345",
+            "text": "<@BOTID> Hello",
+            "channel": "C12345",
+            "ts": "1234567890.123456",
+        },
+        "team_id": "T12345",
+        "api_app_id": "A12345",
+        "event_id": "Ev12345",
+        "event_time": 1234567890,
+        "token": "test_token",
+    }
+
+    # Mock the deserialize function to return None to test the dictionary fallback path
+    mock_deserialize.return_value = None
+
+    # Create a specific exception to test error logging
+    test_exception = Exception("Test publish error")
+    
+    # Mock the queue backend to raise the exception
+    mock_backend = AsyncMock()
+    mock_backend.publish.side_effect = test_exception
+
+    # Create app and test client
+    with (
+        patch("slack_mcp.slack_app._queue_backend", mock_backend),
+        patch("slack_mcp.slack_app._LOG") as mock_logger,
+        patch("slack_mcp.slack_app.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events")  # Match the topic used in tests
+    ):
+        app = create_slack_app()
+        client = TestClient(app)
+
+        # Send request with event data
+        response = client.post(
+            "/slack/events",
+            json=event_data,
+            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+        )
+
+        # Verify response is still 200 OK despite the error
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+        # Verify the error was logged with the correct message
+        mock_logger.error.assert_called_once_with(f"Error publishing event to queue: {test_exception}")
+        
+        # Verify event publication was attempted with the test topic name
+        mock_backend.publish.assert_awaited_once_with("test_slack_events", event_data)
+        
+        # Verify handle_slack_event was not called
         mock_handle_slack_event.assert_not_awaited()
 
 
