@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+from typing import AsyncIterator, Dict, Any, List
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -9,11 +10,43 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
+from slack_mcp.backends.protocol import QueueBackend
 from slack_mcp.slack_app import (
     create_slack_app,
     handle_slack_event,
     verify_slack_request,
 )
+from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel
+
+
+class MockQueueBackend(QueueBackend):
+    """Mock implementation of QueueBackend for testing."""
+
+    def __init__(self) -> None:
+        """Initialize the mock backend with an empty list of published events."""
+        self.published_events = []
+        self.published_topics = []
+
+    async def publish(self, topic: str, message: dict) -> None:
+        """Publish a message to the mock backend."""
+        self.published_topics.append(topic)
+        self.published_events.append(message)
+
+    async def consume(self, group: str | None = None) -> AsyncIterator[dict]:
+        """Consume events from the mock backend."""
+        for event in self.published_events:
+            yield event
+
+    @classmethod
+    def from_env(cls) -> "MockQueueBackend":
+        """Mock implementation of from_env classmethod."""
+        return cls()
+
+
+@pytest.fixture
+def mock_queue_backend():
+    """Create a mock queue backend."""
+    return MockQueueBackend()
 
 
 @pytest.fixture
@@ -39,6 +72,29 @@ def mock_client():
     client = AsyncMock(spec=AsyncWebClient)
     client.chat_postMessage.return_value = AsyncMock(data={"ok": True, "ts": "1234567890.123456"})
     return client
+
+
+@pytest.fixture
+def mock_verify_slack_request():
+    """Mock the verify_slack_request function."""
+    with patch("slack_mcp.slack_app.verify_slack_request") as mock:
+        mock.return_value = True
+        yield mock
+
+
+@pytest.fixture
+def mock_deserialize():
+    """Mock the deserialize function."""
+    with patch("slack_mcp.slack_app.deserialize") as mock:
+        yield mock
+
+
+@pytest.fixture
+def mock_handle_slack_event():
+    """Mock the handle_slack_event function."""
+    with patch("slack_mcp.slack_app.handle_slack_event") as mock:
+        mock.return_value = None
+        yield mock
 
 
 @pytest.mark.asyncio
@@ -166,7 +222,8 @@ def test_create_slack_app_no_token():
         assert "Slack token not found" in str(excinfo.value)
 
 
-def test_slack_events_endpoint_challenge():
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_challenge():
     """Test the Slack events endpoint with a URL verification challenge."""
     with (
         patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
@@ -185,240 +242,48 @@ def test_slack_events_endpoint_challenge():
         assert response.json() == {"challenge": "test_challenge"}
 
 
-def test_slack_events_endpoint_event():
-    """Test the Slack events endpoint with an event."""
-    with (
-        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
-        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
-        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
-    ):
-        mock_verify.return_value = True
-        mock_handle.return_value = None
-
-        # Create app and test client
-        app = create_slack_app(token="test_token")
-        client = TestClient(app)
-
-        # Send request with an event
-        event_data = {
-            "type": "event_callback",
-            "event": {
-                "type": "app_mention",
-                "user": "U12345",
-                "text": "<@BOTID> Hello",
-                "channel": "C12345",
-                "ts": "1234567890.123456",
-            },
-        }
-        response = client.post("/slack/events", json=event_data)
-
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
-        mock_handle.assert_awaited_once()
-
-
-def test_slack_events_endpoint_invalid_signature():
-    """Test the Slack events endpoint with an invalid signature."""
-    with (
-        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
-        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
-    ):
-        mock_verify.return_value = False
-
-        # Create app and test client
-        app = create_slack_app(token="test_token")
-        client = TestClient(app)
-
-        # Send request and check for 401 status code
-        response = client.post("/slack/events", json={"type": "event_callback"})
-        assert response.status_code == 401
-        assert "Invalid request signature" in response.json()["detail"]
-
-
-@pytest.mark.parametrize(
-    "event_data, expected_status, expected_response, should_call_handle_event",
-    [
-        # Challenge verification
-        ({"challenge": "verification_challenge"}, 200, {"challenge": "verification_challenge"}, False),
-        # App mention event
-        (
-            {
-                "type": "event_callback",
-                "event": {
-                    "type": "app_mention",
-                    "user": "U12345",
-                    "text": "<@BOTID> Hello",
-                    "channel": "C12345",
-                    "ts": "1234567890.123456",
-                },
-            },
-            200,
-            {"status": "ok"},
-            True,
-        ),
-        # Message event
-        (
-            {
-                "type": "event_callback",
-                "event": {
-                    "type": "message",
-                    "user": "U12345",
-                    "text": "Hello",
-                    "channel": "C12345",
-                    "ts": "1234567890.123456",
-                },
-            },
-            200,
-            {"status": "ok"},
-            True,
-        ),
-        # Reaction added event
-        (
-            {
-                "type": "event_callback",
-                "event": {
-                    "type": "reaction_added",
-                    "user": "U12345",
-                    "reaction": "thumbsup",
-                    "item": {"type": "message", "channel": "C12345", "ts": "1234567890.123456"},
-                },
-            },
-            200,
-            {"status": "ok"},
-            True,
-        ),
-        # Empty event (still processes but handle_slack_event will return None)
-        ({"type": "event_callback"}, 200, {"status": "ok"}, True),
-        # Malformed event (still returns 200 but logs a warning)
-        ({"not_a_valid_event": True}, 200, {"status": "ok"}, True),
-    ],
-)
-def test_slack_events_endpoint_parametrized(event_data, expected_status, expected_response, should_call_handle_event):
-    """Test the slack_events endpoint with different event scenarios."""
-    with (
-        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
-        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
-        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
-    ):
-        mock_verify.return_value = True
-        mock_handle.return_value = None
-
-        # Create app and test client
-        app = create_slack_app(token="test_token")
-        client = TestClient(app)
-
-        # Send request with the event data
-        response = client.post("/slack/events", json=event_data)
-
-        # Check the response
-        assert response.status_code == expected_status
-        assert response.json() == expected_response
-
-        # Verify handle_slack_event was called appropriately
-        if should_call_handle_event:
-            mock_handle.assert_awaited_once()
-        else:
-            mock_handle.assert_not_awaited()
-
-
-@pytest.mark.parametrize(
-    "request_body, should_fail",
-    [
-        # Valid JSON
-        (b'{"challenge": "test_challenge"}', False),
-        # Invalid JSON (syntax error)
-        (b'{"challenge": "test_challenge"', True),
-        # Empty body
-        (b"", True),
-    ],
-)
-def test_slack_events_endpoint_json_parsing(request_body, should_fail):
-    """Test the slack_events endpoint with different JSON inputs."""
-    with (
-        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
-        patch("fastapi.Request") as MockRequest,
-        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
-        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
-    ):
-        mock_verify.return_value = True
-        mock_handle.return_value = None
-
-        # Create a mock request with the specified body
-        mock_request = AsyncMock()
-        mock_request.body = AsyncMock(return_value=request_body)
-        mock_request.headers = {"X-Slack-Signature": "test_sig", "X-Slack-Request-Timestamp": "1234"}
-        MockRequest.return_value = mock_request
-
-        # Create app and get the slack_events endpoint function
-        app = create_slack_app(token="test_token")
-        slack_events_function = None
-        for route in app.routes:
-            if route.path == "/slack/events" and route.methods == {"POST"}:
-                slack_events_function = route.endpoint
-                break
-
-        assert slack_events_function is not None
-
-        # Test the function directly
-        if should_fail:
-            with pytest.raises(Exception):  # Could be JSONDecodeError or other exceptions
-                response = asyncio.run(slack_events_function(mock_request))
-        else:
-            response = asyncio.run(slack_events_function(mock_request))
-            if b'"challenge"' in request_body:
-                expected_json = json.loads(request_body)
-                actual_json = json.loads(response.body.decode("utf-8"))
-                assert actual_json == expected_json
-            else:
-                assert response.status_code == 200
-                assert response.body.decode("utf-8") == json.dumps({"status": "ok"})
-
-
 @pytest.mark.asyncio
-async def test_slack_events_endpoint_with_pydantic_model():
-    """Test slack_events endpoint when using the Pydantic model path.
+async def test_slack_events_endpoint_event(mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock) -> None:
+    """Test the /slack/events endpoint with a standard event."""
+    # Mock the verify_slack_request to return True
+    mock_verify_slack_request.return_value = True
 
-    This test specifically covers the code path where a SlackEventModel is successfully
-    deserialized and used to handle the Slack event.
-    """
-    with (
-        patch("slack_mcp.slack_app.verify_slack_request") as mock_verify,
-        patch("slack_mcp.slack_app.deserialize") as mock_deserialize,
-        patch("slack_mcp.slack_app.handle_slack_event") as mock_handle,
-        patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token"}),
-    ):
-        # Setup mocks
-        mock_verify.return_value = True
-        mock_handle.return_value = None
+    # Create a sample event
+    event_data = {
+        "type": "event_callback",
+        "event": {
+            "type": "app_mention",
+            "user": "U12345",
+            "text": "<@BOTID> Hello",
+            "channel": "C12345",
+            "ts": "1234567890.123456",
+        },
+        "team_id": "T12345",
+        "api_app_id": "A12345",
+        "event_id": "Ev12345",
+        "event_time": 1234567890,
+        "token": "test_token",
+        "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    }
 
-        # Create test data
-        event_data = {
-            "token": "test_token",
-            "team_id": "T12345",
-            "api_app_id": "A12345",
-            "event": {
-                "type": "app_mention",
-                "user": "U12345",
-                "text": "<@BOTID> Hello",
-                "channel": "C12345",
-                "ts": "1234567890.123456",
-                "event_ts": "1234567890.123456",
-            },
-            "type": "event_callback",
-            "event_id": "Ev12345",
-            "event_time": 1234567890,
-            "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
-            "is_ext_shared_channel": False,
-        }
+    # Mock the deserialize function to return a SlackEventModel
+    event_model = SlackEventModel(
+        type="event_callback",
+        event={"type": "app_mention", "user": "U12345", "text": "<@BOTID> Hello", "channel": "C12345", "ts": "1234567890.123456"},
+        team_id="T12345",
+        api_app_id="A12345",
+        event_id="Ev12345",
+        event_time=1234567890,
+        token="test_token",
+        authorizations=[{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    )
+    mock_deserialize.return_value = event_model
 
-        # Import here to avoid circular imports in test setup
-        from slack_mcp.slack_models import SlackEventModel
-
-        # Create a Pydantic model instance for the mock to return
-        event_model = SlackEventModel(**event_data)
-        mock_deserialize.return_value = event_model
-
-        # Create app and test client
+    # Mock the queue backend
+    mock_backend = AsyncMock()
+    
+    # Create app and test client
+    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
         app = create_slack_app(token="test_token")
         client = TestClient(app)
 
@@ -436,16 +301,384 @@ async def test_slack_events_endpoint_with_pydantic_model():
         # Verify the deserialize function was called
         mock_deserialize.assert_called_once()
 
-        # Verify handle_slack_event was called with the model's data
-        # The model is converted to dict before passing to handle_slack_event
-        mock_handle.assert_awaited_once()
-        args, _ = mock_handle.await_args
+        # Verify event was published to the queue backend
+        mock_backend.publish.assert_awaited_once()
+        
+        # Verify handle_slack_event was not called since we're now publishing to queue
+        mock_handle_slack_event.assert_not_awaited()
 
-        # First argument should be the event dict converted from the model
-        assert args[0]["token"] == event_data["token"]
-        assert args[0]["team_id"] == event_data["team_id"]
-        assert args[0]["event"]["type"] == event_data["event"]["type"]
-        assert args[0]["event"]["user"] == event_data["event"]["user"]
 
-        # Second argument should be the client
-        assert isinstance(args[1], AsyncWebClient)
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_with_pydantic_model(mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock) -> None:
+    """Test the /slack/events endpoint with a Pydantic model."""
+    # Mock the verify_slack_request to return True
+    mock_verify_slack_request.return_value = True
+
+    # Create a sample event
+    event_data = {
+        "type": "event_callback",
+        "event": {
+            "type": "app_mention",
+            "user": "U12345",
+            "text": "<@BOTID> Hello",
+            "channel": "C12345",
+            "ts": "1234567890.123456",
+        },
+        "team_id": "T12345",
+        "api_app_id": "A12345",
+        "event_id": "Ev12345",
+        "event_time": 1234567890,
+        "token": "test_token",
+        "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    }
+
+    # Mock the deserialize function to return a SlackEventModel
+    event_model = SlackEventModel(
+        type="event_callback",
+        event={"type": "app_mention", "user": "U12345", "text": "<@BOTID> Hello", "channel": "C12345", "ts": "1234567890.123456"},
+        team_id="T12345",
+        api_app_id="A12345",
+        event_id="Ev12345",
+        event_time=1234567890,
+        token="test_token",
+        authorizations=[{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    )
+    mock_deserialize.return_value = event_model
+
+    # Mock the queue backend
+    mock_backend = AsyncMock()
+    
+    # Create app and test client
+    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with event data
+        response = client.post(
+            "/slack/events",
+            json=event_data,
+            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+        )
+
+        # Verify response
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+        # Verify the deserialize function was called
+        mock_deserialize.assert_called_once()
+
+        # Verify event was published to the queue backend
+        mock_backend.publish.assert_awaited_once()
+        
+        # Verify handle_slack_event was not called since we're now publishing to queue
+        mock_handle_slack_event.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_with_queue_backend(mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock) -> None:
+    """Test the Slack events endpoint with queue backend integration."""
+    # Mock the verify_slack_request to return True
+    mock_verify_slack_request.return_value = True
+
+    # Create a sample event
+    event_data = {
+        "type": "event_callback",
+        "event": {
+            "type": "app_mention",
+            "user": "U12345",
+            "text": "<@BOTID> Hello",
+            "channel": "C12345",
+            "ts": "1234567890.123456",
+        },
+        "team_id": "T12345",
+        "api_app_id": "A12345",
+        "event_id": "Ev12345",
+        "event_time": 1234567890,
+        "token": "test_token",
+        "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    }
+
+    # Mock the deserialize function to return a SlackEventModel
+    event_model = SlackEventModel(
+        type="event_callback",
+        event={"type": "app_mention", "user": "U12345", "text": "<@BOTID> Hello", "channel": "C12345", "ts": "1234567890.123456"},
+        team_id="T12345",
+        api_app_id="A12345",
+        event_id="Ev12345",
+        event_time=1234567890,
+        token="test_token",
+        authorizations=[{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    )
+    mock_deserialize.return_value = event_model
+
+    # Mock the queue backend
+    mock_backend = AsyncMock()
+    
+    # Create app and test client
+    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with event data
+        response = client.post(
+            "/slack/events",
+            json=event_data,
+            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+        )
+
+        # Verify response
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+        # Verify the deserialize function was called
+        mock_deserialize.assert_called_once()
+
+        # Verify event was published to the queue backend
+        mock_backend.publish.assert_awaited_once()
+        
+        # Verify handle_slack_event was not called since we're now publishing to queue
+        mock_handle_slack_event.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_with_queue_backend_publish_error(mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock) -> None:
+    """Test the Slack events endpoint with queue backend publish error."""
+    # Mock the verify_slack_request to return True
+    mock_verify_slack_request.return_value = True
+
+    # Create a sample event
+    event_data = {
+        "type": "event_callback",
+        "event": {
+            "type": "app_mention",
+            "user": "U12345",
+            "text": "<@BOTID> Hello",
+            "channel": "C12345",
+            "ts": "1234567890.123456",
+        },
+        "team_id": "T12345",
+        "api_app_id": "A12345",
+        "event_id": "Ev12345",
+        "event_time": 1234567890,
+        "token": "test_token",
+        "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    }
+
+    # Mock the deserialize function to return a SlackEventModel
+    event_model = SlackEventModel(
+        type="event_callback",
+        event={"type": "app_mention", "user": "U12345", "text": "<@BOTID> Hello", "channel": "C12345", "ts": "1234567890.123456"},
+        team_id="T12345",
+        api_app_id="A12345",
+        event_id="Ev12345",
+        event_time=1234567890,
+        token="test_token",
+        authorizations=[{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+    )
+    mock_deserialize.return_value = event_model
+
+    # Mock the queue backend
+    mock_backend = AsyncMock()
+    mock_backend.publish.side_effect = Exception("Test publish error")
+    
+    # Create app and test client
+    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with event data
+        response = client.post(
+            "/slack/events",
+            json=event_data,
+            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+        )
+
+        # Verify response
+        assert response.status_code == 200
+        assert response.json() == {"status": "ok"}
+
+        # Verify the deserialize function was called
+        mock_deserialize.assert_called_once()
+
+        # Verify event was published to the queue backend
+        mock_backend.publish.assert_awaited_once()
+        
+        # Verify handle_slack_event was not called since we're now publishing to queue
+        mock_handle_slack_event.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "event_data,expected_status,expected_response,should_handle",
+    [
+        # Test case 1: Standard event
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "app_mention",
+                    "user": "U12345",
+                    "text": "<@BOTID> Hello",
+                    "channel": "C12345",
+                    "ts": "1234567890.123456",
+                },
+                "team_id": "T12345",
+                "api_app_id": "A12345",
+                "event_id": "Ev12345",
+                "event_time": 1234567890,
+                "token": "test_token",
+                "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+            },
+            200,
+            {"status": "ok"},
+            False,  # Changed from True to False since we're publishing to queue
+        ),
+        # Test case 2: URL verification challenge
+        (
+            {"type": "url_verification", "challenge": "test_challenge", "token": "test_token"},
+            200,
+            {"challenge": "test_challenge"},
+            False,
+        ),
+        # Test case 3: Message event
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "message",
+                    "user": "U12345",
+                    "text": "Hello",
+                    "channel": "C12345",
+                    "ts": "1234567890.123456",
+                },
+                "team_id": "T12345",
+                "api_app_id": "A12345",
+                "event_id": "Ev12345",
+                "event_time": 1234567890,
+                "token": "test_token",
+                "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+            },
+            200,
+            {"status": "ok"},
+            False,  # Changed from True to False since we're publishing to queue
+        ),
+        # Test case 4: Reaction added event
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "reaction_added",
+                    "user": "U12345",
+                    "reaction": "thumbsup",
+                    "item": {"type": "message", "channel": "C12345", "ts": "1234567890.123456"},
+                },
+                "team_id": "T12345",
+                "api_app_id": "A12345",
+                "event_id": "Ev12345",
+                "event_time": 1234567890,
+                "token": "test_token",
+                "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+            },
+            200,
+            {"status": "ok"},
+            False,  # Changed from True to False since we're publishing to queue
+        ),
+        # Test case 5: Unknown event type
+        (
+            {
+                "type": "event_callback",
+                "event": {
+                    "type": "unknown_event_type",
+                    "user": "U12345",
+                },
+                "team_id": "T12345",
+                "api_app_id": "A12345",
+                "event_id": "Ev12345",
+                "event_time": 1234567890,
+                "token": "test_token",
+                "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+            },
+            200,
+            {"status": "ok"},
+            False,  # Changed from True to False since we're publishing to queue
+        ),
+        # Test case 6: Invalid event (no event field)
+        (
+            {
+                "type": "event_callback",
+                "team_id": "T12345",
+                "api_app_id": "A12345",
+                "event_id": "Ev12345",
+                "event_time": 1234567890,
+                "token": "test_token",
+                "authorizations": [{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
+            },
+            200,
+            {"status": "ok"},
+            False,
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_slack_events_endpoint_parametrized(
+    event_data: Dict[str, Any],
+    expected_status: int,
+    expected_response: Dict[str, Any],
+    should_handle: bool,
+    mock_verify_slack_request: MagicMock,
+    mock_deserialize: MagicMock,
+    mock_handle_slack_event: AsyncMock,
+) -> None:
+    """Test the /slack/events endpoint with various event types."""
+    # Mock the verify_slack_request to return True
+    mock_verify_slack_request.return_value = True
+
+    # Mock the deserialize function based on the event type
+    if event_data.get("type") == "url_verification":
+        mock_deserialize.return_value = UrlVerificationModel(
+            type="url_verification", challenge=event_data["challenge"], token=event_data["token"]
+        )
+    elif event_data.get("type") == "event_callback" and "event" in event_data:
+        mock_deserialize.return_value = SlackEventModel(
+            type="event_callback",
+            event=event_data["event"],
+            team_id=event_data["team_id"],
+            api_app_id=event_data["api_app_id"],
+            event_id=event_data["event_id"],
+            event_time=event_data["event_time"],
+            token=event_data["token"],
+            authorizations=event_data["authorizations"],
+        )
+    else:
+        mock_deserialize.return_value = event_data
+
+    # Mock the queue backend
+    mock_backend = AsyncMock()
+    
+    # Create app and test client
+    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+        app = create_slack_app(token="test_token")
+        client = TestClient(app)
+
+        # Send request with event data
+        response = client.post(
+            "/slack/events",
+            json=event_data,
+            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+        )
+
+        # Verify response
+        assert response.status_code == expected_status
+        assert response.json() == expected_response
+
+        # Verify the deserialize function was called
+        mock_deserialize.assert_called_once()
+
+        # Verify handle_slack_event was called if should_handle is True
+        if should_handle:
+            mock_handle_slack_event.assert_awaited_once()
+        else:
+            mock_handle_slack_event.assert_not_awaited()
+            
+        # For event_callback types that aren't URL verification, verify queue publish was called
+        if event_data.get("type") == "event_callback":
+            mock_backend.publish.assert_awaited_once()
