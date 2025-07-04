@@ -30,9 +30,9 @@ classifiers = [
 #    "Programming Language :: Python :: 3.14",  # TODO: Because of PyO3's maximum supported version (3.13)
 ]
 dependencies = [
-    "mcp[cli]>=1.9.4",
+    "mcp[cli]>=1.10.1",
     "slack-sdk>=3.35.0",
-    "fastapi>=0.109.0",
+    "fastapi>=0.115.14",
     "uvicorn>=0.27.0",
     "pydantic>=2.6.0",
 ]
