@@ -56,10 +56,10 @@ dev = [
     "pytest-cov>=6.2.1,<7",
     "coverage>=7.9.2,<8",
     "pytest-rerunfailures>=15.1,<16",
-    "aiohttp>=3.12.13",
+    "aiohttp>=3.12.13,<4",
     "pytest-asyncio>=1.0.0,<2",
-    "python-dotenv>=1.0.1,<2",
-    "httpx>=0.26.0", # For FastAPI testing
+    "python-dotenv>=1.1.1,<2",
+    "httpx>=0.28.1,<0.29", # For FastAPI testing
     "pytest-mock>=3.14.1,<4",
 ]
 pre-commit-ci = [

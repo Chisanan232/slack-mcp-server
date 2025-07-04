@@ -1015,15 +1015,15 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "aiohttp", specifier = ">=3.12.13" },
+    { name = "aiohttp", specifier = ">=3.12.13,<4" },
     { name = "coverage", specifier = ">=7.9.2,<8" },
-    { name = "httpx", specifier = ">=0.26.0" },
+    { name = "httpx", specifier = ">=0.28.1,<0.29" },
     { name = "pytest", specifier = ">=8.4.1,<9" },
     { name = "pytest-asyncio", specifier = ">=1.0.0,<2" },
     { name = "pytest-cov", specifier = ">=6.2.1,<7" },
     { name = "pytest-mock", specifier = ">=3.14.1,<4" },
     { name = "pytest-rerunfailures", specifier = ">=15.1,<16" },
-    { name = "python-dotenv", specifier = ">=1.0.1,<2" },
+    { name = "python-dotenv", specifier = ">=1.1.1,<2" },
 ]
 pre-commit-ci = [
     { name = "mypy", specifier = ">=1.2.0,<2" },
