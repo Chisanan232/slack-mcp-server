@@ -42,7 +42,7 @@ class MockQueueBackend(QueueBackend):
         return cls()
 
 
-class TestHandler(BaseSlackEventHandler):
+class _TestHandler(BaseSlackEventHandler):
     """Test handler implementation for testing."""
 
     def __init__(self) -> None:
@@ -51,10 +51,11 @@ class TestHandler(BaseSlackEventHandler):
             "message": [],
             "reaction_added": [],
             "app_mention": [],
+            "app_home_opened": [],
         }
 
     async def handle_event(self, event: Dict[str, Any]) -> None:
-        """Handle an event by storing it in the appropriate list."""
+        """Handle a Slack event by storing it in the appropriate list."""
         event_type = event.get("type", "unknown")
         if event_type in self.handled_events:
             self.handled_events[event_type].append(event)
@@ -74,9 +75,9 @@ class TestSlackEventConsumer:
         return MockQueueBackend()
 
     @pytest.fixture
-    def oo_handler(self) -> TestHandler:
+    def oo_handler(self) -> _TestHandler:
         """Fixture providing a test handler."""
-        return TestHandler()
+        return _TestHandler()
 
     @pytest.fixture
     def consumer(self, mock_backend: MockQueueBackend) -> SlackEventConsumer:
@@ -84,7 +85,7 @@ class TestSlackEventConsumer:
         return SlackEventConsumer(mock_backend)
 
     @pytest.fixture
-    def consumer_with_handler(self, mock_backend: MockQueueBackend, oo_handler: TestHandler) -> SlackEventConsumer:
+    def consumer_with_handler(self, mock_backend: MockQueueBackend, oo_handler: _TestHandler) -> SlackEventConsumer:
         """Fixture providing a SlackEventConsumer with a handler."""
         return SlackEventConsumer(mock_backend, handler=oo_handler)
 
@@ -113,7 +114,7 @@ class TestSlackEventConsumer:
 
     @pytest.mark.asyncio
     async def test_oo_handler_processing(
-        self, consumer_with_handler: SlackEventConsumer, oo_handler: TestHandler
+        self, consumer_with_handler: SlackEventConsumer, oo_handler: _TestHandler
     ) -> None:
         """Test that events are processed by the OO handler."""
         # Set up test events
@@ -178,12 +179,12 @@ class TestSlackEventConsumer:
         assert reaction_calls[0]["reaction"] == "+1"
 
     @pytest.fixture
-    def consumer_with_both(self, mock_backend: MockQueueBackend, oo_handler: TestHandler) -> SlackEventConsumer:
+    def consumer_with_both(self, mock_backend: MockQueueBackend, oo_handler: _TestHandler) -> SlackEventConsumer:
         """Fixture providing a SlackEventConsumer with both handler types."""
         return SlackEventConsumer(mock_backend, handler=oo_handler)
 
     @pytest.mark.asyncio
-    async def test_both_handler_types(self, consumer_with_both: SlackEventConsumer, oo_handler: TestHandler) -> None:
+    async def test_both_handler_types(self, consumer_with_both: SlackEventConsumer, oo_handler: _TestHandler) -> None:
         """Test that events are processed by both handler types when configured."""
         # Instead of trying to test the full consumer flow with both handlers,
         # let's simplify and just test that we can use both handler types together
