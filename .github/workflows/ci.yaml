@@ -56,7 +56,6 @@ on:
 jobs:
   build-and-test_all:
 #    name: Run all tests and organize all test reports
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') }}
     uses: ./.github/workflows/rw_run_all_test_and_record.yaml
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
