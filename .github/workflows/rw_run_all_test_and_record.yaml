@@ -30,7 +30,7 @@ jobs:
 
   unit-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'master')) }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) || (github.event_name == 'push' && github.ref_name == 'master')) }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
@@ -43,7 +43,7 @@ jobs:
 
   integration-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'master')) }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) || (github.event_name == 'push' && github.ref_name == 'master')) }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
@@ -56,7 +56,7 @@ jobs:
 
   e2e-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && ((github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'master'))) && inputs.run_e2e == true }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && ((contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) || (github.event_name == 'push' && github.ref_name == 'master'))) && inputs.run_e2e == true }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
@@ -69,7 +69,7 @@ jobs:
 
   contract-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'master')) }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) || (github.event_name == 'push' && github.ref_name == 'master')) }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
@@ -82,7 +82,7 @@ jobs:
 
   all-test_codecov_finish:
 #    name: Organize and generate the testing report and upload it to Codecov
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'master')) }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) || (github.event_name == 'push' && github.ref_name == 'master')) }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
     secrets:
@@ -95,7 +95,7 @@ jobs:
 
   sonarcloud_finish:
 #    name: SonarCloud Scan
-    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' || (github.event_name == 'push' && github.ref_name == 'master')) }}
+    if: ${{ !contains(github.event.pull_request.labels.*.name, 'dependencies') && (contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) || (github.event_name == 'push' && github.ref_name == 'master')) }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_sonarqube_scan.yaml@v7.3
     secrets:
