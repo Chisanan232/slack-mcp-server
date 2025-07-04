@@ -34,7 +34,7 @@ dependencies = [
     "slack-sdk>=3.35.0",
     "fastapi>=0.115.14",
     "uvicorn>=0.35.0",
-    "pydantic>=2.6.0",
+    "pydantic>=2.11.7",
 ]
 
 [project.urls]

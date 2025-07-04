@@ -1007,7 +1007,7 @@ pre-commit-ci = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.14" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.10.1" },
-    { name = "pydantic", specifier = ">=2.6.0" },
+    { name = "pydantic", specifier = ">=2.11.7" },
     { name = "slack-sdk", specifier = ">=3.35.0" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
