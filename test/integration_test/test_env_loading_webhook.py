@@ -65,25 +65,31 @@ def test_webhook_cmd_line_token_passed_to_server():
                     mock_server_run.assert_called_once_with(host="0.0.0.0", port=3000, token=cmd_line_token, retry=3)
 
 
-def test_webhook_create_slack_app_with_env_token():
-    """Test that create_slack_app uses token from environment variables."""
+def test_webhook_create_slack_app_with_initialize_client():
+    """Test that create_slack_app doesn't initialize client and initialize_slack_client does."""
     # Set environment variable
     test_bot_token = "xoxb-slack-app-env-token"
 
     with patch.dict("os.environ", {"SLACK_BOT_TOKEN": test_bot_token}):
         with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls:
             # Import here to use the patched environment
-            from slack_mcp.slack_app import create_slack_app
+            from slack_mcp.slack_app import create_slack_app, initialize_slack_client
 
-            # Create app which should use env var token
+            # Create app which should NOT initialize client
             app = create_slack_app()
+
+            # Verify client was NOT created yet
+            mock_client_cls.assert_not_called()
+
+            # Now initialize the client
+            initialize_slack_client()
 
             # Verify client was created with correct token
             mock_client_cls.assert_called_once_with(token=test_bot_token)
 
 
-def test_webhook_create_slack_app_with_param_token():
-    """Test that create_slack_app uses token from parameter over env var."""
+def test_webhook_initialize_client_with_param_token():
+    """Test that initialize_slack_client uses token from parameter over env var."""
     # Set environment variable
     env_token = "xoxb-slack-app-env-token"
     param_token = "xoxb-slack-app-param-token"
@@ -91,10 +97,10 @@ def test_webhook_create_slack_app_with_param_token():
     with patch.dict("os.environ", {"SLACK_BOT_TOKEN": env_token}):
         with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls:
             # Import here to use the patched environment
-            from slack_mcp.slack_app import create_slack_app
+            from slack_mcp.slack_app import initialize_slack_client
 
-            # Create app with explicit token parameter
-            app = create_slack_app(token=param_token)
+            # Initialize client with explicit token parameter
+            initialize_slack_client(token=param_token)
 
             # Verify client was created with parameter token, not env var
             mock_client_cls.assert_called_once_with(token=param_token)

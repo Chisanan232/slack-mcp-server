@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from .integrated_server import create_integrated_app
 from .server import FastMCP, mcp
-from .slack_app import create_slack_app
+from .slack_app import create_slack_app, initialize_slack_client
 
 __all__: list[str] = [
     "run_slack_server",
@@ -99,8 +99,11 @@ async def run_slack_server(
     """
     _LOG.info(f"Starting Slack events server on {host}:{port}")
 
-    # Create the Slack app with the provided token
-    app = create_slack_app(token, retry=retry)
+    # Create the Slack app
+    app = create_slack_app()
+
+    # Initialize the global Slack client with the provided token and retry settings
+    initialize_slack_client(token, retry=retry)
 
     # Using uvicorn for ASGI support with FastAPI
     import uvicorn

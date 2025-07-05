@@ -12,7 +12,7 @@ from typing import Final, Optional
 from fastapi import FastAPI
 
 from .server import mcp as _server_instance
-from .slack_app import create_slack_app
+from .slack_app import create_slack_app, initialize_slack_client
 
 __all__: list[str] = [
     "create_integrated_app",
@@ -60,7 +60,10 @@ def create_integrated_app(
         )
 
     # Create the webhook app first
-    app = create_slack_app(token, retry=retry)
+    app = create_slack_app()
+
+    # Initialize the global Slack client with the provided token and retry settings
+    initialize_slack_client(token, retry=retry)
 
     # Get the appropriate MCP app based on the transport
     if mcp_transport == "sse":

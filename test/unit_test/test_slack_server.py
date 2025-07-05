@@ -1,7 +1,7 @@
 """Unit tests for the Slack server module."""
 
 import asyncio
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -49,6 +49,7 @@ async def test_run_slack_server():
     """Test running the Slack server."""
     with (
         patch("slack_mcp.slack_server.create_slack_app") as mock_create_app,
+        patch("slack_mcp.slack_server.initialize_slack_client") as mock_initialize_client,
         patch("uvicorn.Server") as mock_server_cls,
         patch("uvicorn.Config") as mock_config_cls,
     ):
@@ -59,27 +60,25 @@ async def test_run_slack_server():
         mock_config = MagicMock()
         mock_config_cls.return_value = mock_config
 
-        # Mock the Server instance
         mock_server = MagicMock()
         mock_server_cls.return_value = mock_server
+        mock_server.serve = AsyncMock()
 
-        # Mock the serve method to return a completed future
-        serve_future = asyncio.Future()
-        serve_future.set_result(None)
-        mock_server.serve.return_value = serve_future
+        # Run the server
+        await run_slack_server(host="127.0.0.1", port=8000, token="test-token", retry=5)
 
-        # Call the function with test parameters
-        await run_slack_server(host="localhost", port=8000, token="test_token")
+        # Verify create_slack_app was called correctly
+        mock_create_app.assert_called_once()
 
-        # Verify the app was created with the right token
-        mock_create_app.assert_called_once_with("test_token", retry=3)
+        # Verify initialize_slack_client was called with correct parameters
+        mock_initialize_client.assert_called_once_with("test-token", retry=5)
 
-        # Verify the config was set correctly
-        mock_config_cls.assert_called_once_with(app=mock_app, host="localhost", port=8000)
+        # Verify uvicorn was configured correctly
+        mock_config_cls.assert_called_once_with(app=mock_app, host="127.0.0.1", port=8000)
 
-        # Verify the server was properly configured and started
+        # Verify server was started
         mock_server_cls.assert_called_once_with(config=mock_config)
-        mock_server.serve.assert_called_once()
+        mock_server.serve.assert_awaited_once()
 
 
 @pytest.mark.parametrize(
