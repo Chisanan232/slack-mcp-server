@@ -5,9 +5,11 @@ These tests focus on implementation-specific details and edge cases of the
 SlackClientManager, ensuring it correctly manages Slack web client instances.
 """
 
+from typing import Generator
 from unittest import mock
 
 import pytest
+from _pytest.monkeypatch import MonkeyPatch
 from slack_sdk.http_retry.builtin_async_handlers import AsyncRateLimitErrorRetryHandler
 from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 from slack_sdk.web.async_client import AsyncWebClient
@@ -20,7 +22,7 @@ class TestSlackClientManager:
     """Unit tests for SlackClientManager implementation."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self):
+    def reset_singleton(self) -> Generator[None, None, None]:
         """Reset the singleton instance before each test."""
         # Reset the singleton instance
         SlackClientManager._instance = None
@@ -29,19 +31,19 @@ class TestSlackClientManager:
         SlackClientManager._instance = None
 
     @pytest.fixture
-    def manager(self):
+    def manager(self) -> SlackClientManager:
         """Fixture providing a fresh SlackClientManager instance."""
         return SlackClientManager()
 
     @pytest.fixture
-    def mock_env_tokens(self, monkeypatch):
+    def mock_env_tokens(self, monkeypatch: MonkeyPatch) -> MonkeyPatch:
         """Fixture to set up mock environment tokens."""
         # Clear any existing token environment variables
         monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
         monkeypatch.delenv("SLACK_TOKEN", raising=False)
         return monkeypatch
 
-    def test_initialization(self):
+    def test_initialization(self) -> None:
         """Test that the manager initializes with correct default values."""
         manager = SlackClientManager()
 
@@ -52,12 +54,12 @@ class TestSlackClientManager:
         assert len(manager._async_clients) == 0
         assert len(manager._sync_clients) == 0
 
-    def test_initialization_with_custom_retry_count(self):
+    def test_initialization_with_custom_retry_count(self) -> None:
         """Test initialization with custom retry count."""
         manager = SlackClientManager(retry_count=5)
         assert manager._default_retry_count == 5
 
-    def test_singleton_pattern(self):
+    def test_singleton_pattern(self) -> None:
         """Test that SlackClientManager implements the singleton pattern correctly."""
         manager1 = SlackClientManager()
         manager2 = SlackClientManager()
@@ -69,7 +71,7 @@ class TestSlackClientManager:
         manager1._default_retry_count = 10
         assert manager2._default_retry_count == 10
 
-    def test_singleton_initialization_happens_once(self):
+    def test_singleton_initialization_happens_once(self) -> None:
         """Test that initialization only happens once for the singleton."""
         # Create first instance
         manager1 = SlackClientManager(retry_count=5)
@@ -82,7 +84,7 @@ class TestSlackClientManager:
         assert manager2._default_retry_count == 5
         assert manager1 is manager2
 
-    def test_get_async_client_with_explicit_token(self, manager):
+    def test_get_async_client_with_explicit_token(self, manager: SlackClientManager) -> None:
         """Test getting an async client with an explicitly provided token."""
         test_token = "xoxb-test-explicit"
 
@@ -108,7 +110,7 @@ class TestSlackClientManager:
             assert f"{test_token}:True" in manager._async_clients
             assert manager._async_clients[f"{test_token}:True"] is mock_client
 
-    def test_get_sync_client_with_explicit_token(self, manager):
+    def test_get_sync_client_with_explicit_token(self, manager: SlackClientManager) -> None:
         """Test getting a sync client with an explicitly provided token."""
         test_token = "xoxb-test-explicit"
 
@@ -134,7 +136,7 @@ class TestSlackClientManager:
             assert f"{test_token}:True" in manager._sync_clients
             assert manager._sync_clients[f"{test_token}:True"] is mock_client
 
-    def test_get_async_client_from_env(self, manager, mock_env_tokens):
+    def test_get_async_client_from_env(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test getting an async client using environment variables."""
         test_token = "xoxb-test-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
@@ -157,7 +159,7 @@ class TestSlackClientManager:
             # Verify client is cached
             assert f"{test_token}:True" in manager._async_clients
 
-    def test_get_sync_client_from_env(self, manager, mock_env_tokens):
+    def test_get_sync_client_from_env(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test getting a sync client using environment variables."""
         test_token = "xoxb-test-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
@@ -180,7 +182,7 @@ class TestSlackClientManager:
             # Verify client is cached
             assert f"{test_token}:True" in manager._sync_clients
 
-    def test_get_async_client_without_retries(self, manager):
+    def test_get_async_client_without_retries(self, manager: SlackClientManager) -> None:
         """Test getting an async client without retries."""
         test_token = "xoxb-test-no-retries"
 
@@ -203,7 +205,7 @@ class TestSlackClientManager:
             # Verify client is cached with the correct key
             assert f"{test_token}:False" in manager._async_clients
 
-    def test_get_sync_client_without_retries(self, manager):
+    def test_get_sync_client_without_retries(self, manager: SlackClientManager) -> None:
         """Test getting a sync client without retries."""
         test_token = "xoxb-test-no-retries"
 
@@ -226,7 +228,7 @@ class TestSlackClientManager:
             # Verify client is cached with the correct key
             assert f"{test_token}:False" in manager._sync_clients
 
-    def test_client_caching(self, manager):
+    def test_client_caching(self, manager: SlackClientManager) -> None:
         """Test that clients are properly cached and reused."""
         test_token = "xoxb-test-cache"
 
@@ -252,7 +254,7 @@ class TestSlackClientManager:
             # Verify both references are the same
             assert client1 is client2
 
-    def test_sync_client_caching(self, manager):
+    def test_sync_client_caching(self, manager: SlackClientManager) -> None:
         """Test that sync clients are properly cached and reused."""
         test_token = "xoxb-test-sync-cache"
 
@@ -287,7 +289,7 @@ class TestSlackClientManager:
                     # Factory should not be called again
                     assert mock_factory.create_sync_client.call_count == 1
 
-    def test_different_tokens_different_clients(self, manager):
+    def test_different_tokens_different_clients(self, manager: SlackClientManager) -> None:
         """Test that different tokens result in different clients."""
         token1 = "xoxb-test-token1"
         token2 = "xoxb-test-token2"
@@ -315,7 +317,7 @@ class TestSlackClientManager:
             assert f"{token1}:True" in manager._async_clients
             assert f"{token2}:True" in manager._async_clients
 
-    def test_clear_clients(self, manager):
+    def test_clear_clients(self, manager: SlackClientManager) -> None:
         """Test clearing client caches."""
         test_token = "xoxb-test-clear"
 
@@ -349,7 +351,7 @@ class TestSlackClientManager:
                 assert len(manager._async_clients) == 0
                 assert len(manager._sync_clients) == 0
 
-    def test_update_retry_count(self, manager):
+    def test_update_retry_count(self, manager: SlackClientManager) -> None:
         """Test updating retry count."""
         # Update retry count
         manager.update_retry_count(10)
@@ -377,14 +379,14 @@ class TestSlackClientManager:
             # Verify factory was created with updated retry count
             mock_factory_class.assert_called_once_with(max_retry_count=10)
 
-    def test_update_retry_count_negative(self, manager):
+    def test_update_retry_count_negative(self, manager: SlackClientManager) -> None:
         """Test updating retry count with negative value raises error."""
         with pytest.raises(ValueError) as excinfo:
             manager.update_retry_count(-1)
 
         assert "Retry count must be non-negative" in str(excinfo.value)
 
-    def test_update_client_async(self, manager):
+    def test_update_client_async(self, manager: SlackClientManager) -> None:
         """Test updating an async client in the cache."""
         test_token = "xoxb-test-update"
 
@@ -399,7 +401,7 @@ class TestSlackClientManager:
         assert f"{test_token}:True" in manager._async_clients
         assert manager._async_clients[f"{test_token}:True"] is mock_client
 
-    def test_update_client_sync(self, manager):
+    def test_update_client_sync(self, manager: SlackClientManager) -> None:
         """Test updating a sync client in the cache."""
         test_token = "xoxb-test-update"
 
@@ -414,7 +416,7 @@ class TestSlackClientManager:
         assert f"{test_token}:True" in manager._sync_clients
         assert manager._sync_clients[f"{test_token}:True"] is mock_client
 
-    def test_update_client_empty_token(self, manager):
+    def test_update_client_empty_token(self, manager: SlackClientManager) -> None:
         """Test updating a client with empty token raises error."""
         mock_client = mock.MagicMock(spec=AsyncWebClient)
 
@@ -423,7 +425,7 @@ class TestSlackClientManager:
 
         assert "Token cannot be empty or None" in str(excinfo.value)
 
-    def test_update_client_wrong_type(self, manager):
+    def test_update_client_wrong_type(self, manager: SlackClientManager) -> None:
         """Test updating a client with wrong type raises error."""
         test_token = "xoxb-test-type-error"
 
@@ -441,7 +443,7 @@ class TestSlackClientManager:
             manager.update_client(test_token, mock_async_client, is_async=False)
         assert "Client must be a WebClient" in str(excinfo.value)
 
-    def test_no_token_error(self, manager, mock_env_tokens):
+    def test_no_token_error(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test error when no token is available."""
         with pytest.raises(ValueError) as excinfo:
             manager.get_async_client()
@@ -458,7 +460,7 @@ class TestGetClientManager:
     """Tests for the get_client_manager singleton function."""
 
     @pytest.fixture(autouse=True)
-    def reset_singleton(self):
+    def reset_singleton(self) -> Generator[None, None, None]:
         """Reset the singleton instance before each test."""
         # Reset the singleton instance
         SlackClientManager._instance = None
@@ -466,7 +468,7 @@ class TestGetClientManager:
         # Clean up after test
         SlackClientManager._instance = None
 
-    def test_get_client_manager_returns_singleton(self):
+    def test_get_client_manager_returns_singleton(self) -> None:
         """Test that get_client_manager returns the singleton instance."""
         # Get instance directly and through function
         direct_instance = SlackClientManager()
@@ -476,7 +478,7 @@ class TestGetClientManager:
         assert direct_instance is function_instance
         assert isinstance(direct_instance, SlackClientManager)
 
-    def test_get_client_manager_consistent(self):
+    def test_get_client_manager_consistent(self) -> None:
         """Test that get_client_manager returns the same instance each time."""
         # Get instance twice through function
         manager1 = get_client_manager()

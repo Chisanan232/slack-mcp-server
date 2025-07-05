@@ -18,6 +18,7 @@ from slack_sdk.web.client import WebClient
 from slack_mcp.client_factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
+    SlackClientFactory,
 )
 
 __all__: list[str] = [
@@ -117,6 +118,7 @@ class SlackClientManager:
             return self._async_clients[cache_key]
 
         # Create new client based on retry setting
+        factory: SlackClientFactory
         if use_retries:
             factory = RetryableSlackClientFactory(max_retry_count=self._default_retry_count)
             client = factory.create_async_client(resolved_token)
@@ -169,6 +171,7 @@ class SlackClientManager:
             return self._sync_clients[cache_key]
 
         # Create new client based on retry setting
+        factory: SlackClientFactory
         if use_retries:
             factory = RetryableSlackClientFactory(max_retry_count=self._default_retry_count)
             client = factory.create_sync_client(resolved_token)
