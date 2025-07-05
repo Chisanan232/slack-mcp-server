@@ -254,6 +254,41 @@ class TestSlackClientManager:
             # Verify both references are the same
             assert client1 is client2
 
+    def test_sync_client_caching(self, manager):
+        """Test that sync clients are properly cached and reused."""
+        test_token = "xoxb-test-sync-cache"
+        
+        # Mock RetryableSlackClientFactory and its create_sync_client method
+        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+            mock_factory = mock.MagicMock()
+            mock_factory_class.return_value = mock_factory
+            
+            mock_client = mock.MagicMock()
+            mock_client.retry_handlers = []
+            mock_factory.create_sync_client.return_value = mock_client
+            
+            # Get client first time - should create new
+            client1 = manager.get_sync_client(test_token)
+            assert mock_factory_class.call_count == 1
+            assert mock_factory.create_sync_client.call_count == 1
+            
+            # Get client second time - should reuse cached
+            client2 = manager.get_sync_client(test_token)
+            assert mock_factory_class.call_count == 1  # No additional calls
+            assert mock_factory.create_sync_client.call_count == 1  # No additional calls
+            
+            # Verify both references are the same
+            assert client1 is client2
+            
+            # Verify the client is returned from cache
+            with mock.patch.dict(manager._sync_clients, {f"{test_token}:True": mock_client}):
+                with mock.patch.object(manager, "_get_default_token") as mock_get_token:
+                    # This should return the cached client without calling the factory again
+                    cached_client = manager.get_sync_client(test_token)
+                    assert cached_client is mock_client
+                    # Factory should not be called again
+                    assert mock_factory.create_sync_client.call_count == 1
+
     def test_different_tokens_different_clients(self, manager):
         """Test that different tokens result in different clients."""
         token1 = "xoxb-test-token1"
