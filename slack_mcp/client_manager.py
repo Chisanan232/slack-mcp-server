@@ -69,7 +69,8 @@ class SlackClientManager:
         self._initialized = True
         _LOG.debug("SlackClientManager singleton initialized")
 
-    def _get_default_token(self) -> Optional[str]:
+    @property
+    def _default_token(self) -> Optional[str]:
         """Get the default token from environment variables.
 
         Returns
@@ -102,7 +103,7 @@ class SlackClientManager:
             If no token is found or provided
         """
         # Resolve token
-        resolved_token = token or self._get_default_token()
+        resolved_token = token or self._default_token
         if not resolved_token:
             raise ValueError(
                 "Slack token not found. Provide one via the parameter or set "
@@ -155,7 +156,7 @@ class SlackClientManager:
             If no token is found or provided
         """
         # Resolve token
-        resolved_token = token or self._get_default_token()
+        resolved_token = token or self._default_token
         if not resolved_token:
             raise ValueError(
                 "Slack token not found. Provide one via the parameter or set "

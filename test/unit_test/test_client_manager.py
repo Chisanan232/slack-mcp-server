@@ -282,12 +282,11 @@ class TestSlackClientManager:
 
             # Verify the client is returned from cache
             with mock.patch.dict(manager._sync_clients, {f"{test_token}:True": mock_client}):
-                with mock.patch.object(manager, "_get_default_token") as mock_get_token:
-                    # This should return the cached client without calling the factory again
-                    cached_client = manager.get_sync_client(test_token)
-                    assert cached_client is mock_client
-                    # Factory should not be called again
-                    assert mock_factory.create_sync_client.call_count == 1
+                # This should return the cached client without calling the factory again
+                cached_client = manager.get_sync_client(test_token)
+                assert cached_client is mock_client
+                # Factory should not be called again
+                assert mock_factory.create_sync_client.call_count == 1
 
     def test_different_tokens_different_clients(self, manager: SlackClientManager) -> None:
         """Test that different tokens result in different clients."""
