@@ -54,7 +54,8 @@ def mock_dependencies(monkeypatch: pytest.MonkeyPatch) -> Dict[str, Any]:
 
     # Mock the server imports
     monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
-    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda token=None, retry=3: mock_webhook_app)
+    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
+    monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
     return {
         "mock_mcp": mock_mcp,
@@ -113,7 +114,8 @@ def test_create_integrated_app_streamable_http(mock_dependencies: Dict[str, Any]
 def test_create_integrated_app_with_invalid_transport(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test creating an integrated app with an invalid transport."""
     # Mock create_slack_app to avoid token validation
-    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda token=None: FastAPI())
+    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: FastAPI())
+    monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
     with pytest.raises(ValueError) as excinfo:
         create_integrated_app(token="test-token", mcp_transport="invalid-transport")
