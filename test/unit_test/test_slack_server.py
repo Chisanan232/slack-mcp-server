@@ -1,6 +1,5 @@
 """Unit tests for the Slack server module."""
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -273,6 +272,6 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
 
         # Verify the server was properly configured and started
         mock_server_cls.assert_called_once_with(config=mock_config)
-        
+
         # Verify serve was called and properly awaited
         mock_server.serve.assert_called_once()

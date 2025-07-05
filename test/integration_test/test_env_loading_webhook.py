@@ -2,7 +2,7 @@
 
 import os
 import tempfile
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 
 def test_webhook_dotenv_loading_with_valid_env_file():

@@ -29,7 +29,7 @@ class EventCallbackModel(BaseModel):
     reaction: Optional[str] = None
     event_ts: Optional[str] = None
     thread_ts: Optional[str] = None
-    
+
     # Use model_config instead of inner Config class for Pydantic v2 compatibility
     model_config = {
         "extra": "allow",
@@ -48,7 +48,7 @@ class SlackEventModel(BaseModel):
     event_time: int
     authorizations: List[Dict[str, Any]]
     is_ext_shared_channel: Optional[bool] = False
-    
+
     # Use model_config instead of inner Config class for Pydantic v2 compatibility
     model_config = {
         "extra": "allow",
