@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Dict, Final, Optional, ClassVar
+from typing import ClassVar, Dict, Final, Optional
 
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
@@ -36,10 +36,10 @@ class SlackClientManager:
     Slack web client instances. It uses a singleton pattern to ensure that
     only one client is created per token, improving resource utilization.
     """
-    
+
     # Class variable for the singleton instance
     _instance: ClassVar[Optional[SlackClientManager]] = None
-    
+
     def __new__(cls, *args, **kwargs):
         """Ensure only one instance of SlackClientManager exists."""
         if cls._instance is None:
@@ -56,15 +56,15 @@ class SlackClientManager:
             The default retry count to use for retryable clients, by default 3.
         """
         # Only initialize once
-        if getattr(self, '_initialized', False):
+        if getattr(self, "_initialized", False):
             return
-            
+
         self._default_retry_count = retry_count
-        
+
         # Client caches - keyed by token
         self._async_clients: Dict[str, AsyncWebClient] = {}
         self._sync_clients: Dict[str, WebClient] = {}
-        
+
         self._initialized = True
         _LOG.debug("SlackClientManager singleton initialized")
 
@@ -78,9 +78,7 @@ class SlackClientManager:
         """
         return os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
 
-    def get_async_client(
-        self, token: Optional[str] = None, use_retries: bool = True
-    ) -> AsyncWebClient:
+    def get_async_client(self, token: Optional[str] = None, use_retries: bool = True) -> AsyncWebClient:
         """Get or create an AsyncWebClient with the specified token.
 
         Uses a singleton pattern to avoid creating multiple clients for the same token.
@@ -132,9 +130,7 @@ class SlackClientManager:
 
         return client
 
-    def get_sync_client(
-        self, token: Optional[str] = None, use_retries: bool = True
-    ) -> WebClient:
+    def get_sync_client(self, token: Optional[str] = None, use_retries: bool = True) -> WebClient:
         """Get or create a synchronous WebClient with the specified token.
 
         Uses a singleton pattern to avoid creating multiple clients for the same token.
@@ -206,7 +202,7 @@ class SlackClientManager:
             raise ValueError("Retry count must be non-negative")
 
         self._default_retry_count = retry_count
-        
+
         # Clear client caches to ensure all future clients use the new retry settings
         self.clear_clients()
         _LOG.info(f"Updated retry count to {retry_count} and cleared client caches")
@@ -220,9 +216,7 @@ class SlackClientManager:
         self._sync_clients.clear()
         _LOG.info("All client caches cleared")
 
-    def update_client(
-        self, token: str, client: AsyncWebClient | WebClient, is_async: bool = True
-    ) -> None:
+    def update_client(self, token: str, client: AsyncWebClient | WebClient, is_async: bool = True) -> None:
         """Update or add a client in the cache.
 
         This allows replacing an existing client with a custom-configured one
