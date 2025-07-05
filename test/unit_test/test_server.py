@@ -333,7 +333,7 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
 
 
 @dataclass(slots=True, kw_only=True)
-class TestBaseInput(_BaseInput):
+class _TestBaseInput(_BaseInput):
     """Test implementation of _BaseInput for testing purposes."""
 
 

@@ -2,7 +2,7 @@
 
 import os
 import tempfile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 def test_webhook_dotenv_loading_with_valid_env_file():
@@ -20,7 +20,7 @@ def test_webhook_dotenv_loading_with_valid_env_file():
         # Run slack_server.main with our temp .env file
         with patch("sys.argv", ["slack-events-server", "--env-file", temp_env_path]):
             with patch("asyncio.run") as mock_run:
-                with patch("slack_mcp.slack_server.run_slack_server") as mock_server_run:
+                with patch("slack_mcp.slack_server.run_slack_server", new_callable=MagicMock) as mock_server_run:
                     mock_run.side_effect = lambda coro: None  # Don't actually run the coroutine
 
                     with patch.dict("os.environ", {}, clear=True):
@@ -50,7 +50,7 @@ def test_webhook_cmd_line_token_passed_to_server():
     # Run slack_server.main with command line token
     with patch("sys.argv", ["slack-events-server", "--slack-token", cmd_line_token]):
         with patch("asyncio.run") as mock_run:
-            with patch("slack_mcp.slack_server.run_slack_server") as mock_server_run:
+            with patch("slack_mcp.slack_server.run_slack_server", new_callable=MagicMock) as mock_server_run:
                 mock_run.side_effect = lambda coro: None  # Don't actually run the coroutine
 
                 with patch.dict("os.environ", {}, clear=True):

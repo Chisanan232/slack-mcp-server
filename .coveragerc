@@ -1,7 +1,8 @@
 [run]
 parallel = True
 relative_files = True
-include=./slack_mcp
+source=./slack_mcp
+#include=./slack_mcp
 
 omit =
 #    */__init__.py

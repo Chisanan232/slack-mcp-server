@@ -1,6 +1,5 @@
 """Unit tests for the Slack server module."""
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -154,8 +153,8 @@ def test_main(
         patch("slack_mcp.slack_server.load_dotenv") as mock_load_dotenv,
         patch("slack_mcp.slack_server.pathlib.Path") as mock_path,
         patch("slack_mcp.slack_server.register_mcp_tools") as mock_register_mcp_tools,
-        patch("slack_mcp.slack_server.run_integrated_server") as mock_run_integrated_server,
-        patch("slack_mcp.slack_server.run_slack_server") as mock_run_slack_server,
+        patch("slack_mcp.slack_server.run_integrated_server", new_callable=MagicMock) as mock_run_integrated_server,
+        patch("slack_mcp.slack_server.run_slack_server", new_callable=MagicMock) as mock_run_slack_server,
     ):
         # Configure the mock path to simulate env file existence
         mock_path_instance = MagicMock()
@@ -247,14 +246,9 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
         mock_config = MagicMock()
         mock_config_cls.return_value = mock_config
 
-        # Mock the Server instance
-        mock_server = MagicMock()
+        # Mock the Server instance with an AsyncMock to handle the await server.serve() call
+        mock_server = AsyncMock()
         mock_server_cls.return_value = mock_server
-
-        # Mock the serve method to return a completed future
-        serve_future = asyncio.Future()
-        serve_future.set_result(None)
-        mock_server.serve.return_value = serve_future
 
         # Call the function with test parameters
         await run_integrated_server(
@@ -278,4 +272,6 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
 
         # Verify the server was properly configured and started
         mock_server_cls.assert_called_once_with(config=mock_config)
+
+        # Verify serve was called and properly awaited
         mock_server.serve.assert_called_once()

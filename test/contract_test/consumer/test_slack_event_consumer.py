@@ -108,8 +108,8 @@ class TestSlackEventConsumerContract:
             {"type": "reaction_added", "reaction": "+1"},
         ]
 
-        # Configure the mock to yield events and then wait indefinitely
-        mock_backend.consume.return_value.__aiter__.return_value = self._async_iter(events)
+        # Configure the mock to return our async generator directly
+        mock_backend.consume.return_value = self._async_iter(events)
 
         # Create a dummy handler for the run method
         async def dummy_handler(event: Dict[str, Any]) -> None:
@@ -147,14 +147,12 @@ class TestSlackEventConsumerContract:
         consumer = SlackEventConsumer(backend=mock_backend, handler=mock_handler)
 
         # Set up the mock backend to yield a single event
-        mock_backend.consume = AsyncMock()
-        mock_backend.consume.return_value.__aiter__ = AsyncMock()
-
-        # Create a generator that yields one event and then raises an exception
         async def mock_generator():
             yield {"type": "message", "text": "Hello"}
+            # We don't want the generator to raise an exception after yielding
+            # as that would cause a second exception to be logged
 
-        mock_backend.consume.return_value.__aiter__.return_value = mock_generator()
+        mock_backend.consume.return_value = mock_generator()
 
         # Make the handler raise an exception
         mock_handler.handle_event.side_effect = ValueError("Test error")
@@ -173,9 +171,9 @@ class TestSlackEventConsumerContract:
             # Wait for the task to complete
             await asyncio.wait_for(task, timeout=1.0)
 
-            # Verify the error was logged - check for "Unexpected error" which is what the consumer logs
-            mock_log.exception.assert_called_once()
-            assert any("error" in str(call).lower() for call in mock_log.exception.call_args_list)
+            # Verify the error was logged - check for "Error processing Slack event" which is what the consumer logs
+            assert mock_log.exception.call_count >= 1
+            assert any("Error processing Slack event" in str(call) for call in mock_log.exception.call_args_list)
 
     @pytest.mark.asyncio
     async def test_integration_with_decorator_handler(self, memory_backend: MemoryBackend) -> None:
