@@ -8,10 +8,24 @@ particularly to prevent "Event loop is closed" errors in CI environments.
 import asyncio
 import os
 import sys
+import threading
+import tracemalloc
 import warnings
 from typing import Generator
 
 import pytest
+
+
+@pytest.fixture(scope="session", autouse=True)
+def enable_tracemalloc():
+    """Enable tracemalloc at the start of the test session for better debugging of warnings."""
+    tracemalloc.start(5)  # Start with 5 frames to get detailed allocation info
+    yield
+    tracemalloc.stop()
+
+
+# Enable tracemalloc for threads as well
+threading.excepthook = lambda args: tracemalloc.get_object_traceback(args.exc_value)
 
 
 @pytest.fixture(scope="session", autouse=True)
