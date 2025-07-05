@@ -108,8 +108,8 @@ class TestSlackEventConsumerContract:
             {"type": "reaction_added", "reaction": "+1"},
         ]
 
-        # Configure the mock to yield events and then wait indefinitely
-        mock_backend.consume.return_value.__aiter__.return_value = self._async_iter(events)
+        # Configure the mock to return our async generator directly
+        mock_backend.consume.return_value = self._async_iter(events)
 
         # Create a dummy handler for the run method
         async def dummy_handler(event: Dict[str, Any]) -> None:
