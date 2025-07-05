@@ -21,6 +21,15 @@ from slack_mcp.client_manager import SlackClientManager, get_client_manager
 class TestSlackClientManager:
     """Unit tests for SlackClientManager implementation."""
 
+    @pytest.fixture(autouse=True)
+    def reset_singleton(self):
+        """Reset the singleton instance before each test."""
+        # Reset the singleton instance
+        SlackClientManager._instance = None
+        yield
+        # Clean up after test
+        SlackClientManager._instance = None
+
     @pytest.fixture
     def manager(self):
         """Fixture providing a fresh SlackClientManager instance."""
@@ -49,6 +58,31 @@ class TestSlackClientManager:
         """Test initialization with custom retry count."""
         manager = SlackClientManager(retry_count=5)
         assert manager._default_retry_count == 5
+
+    def test_singleton_pattern(self):
+        """Test that SlackClientManager implements the singleton pattern correctly."""
+        manager1 = SlackClientManager()
+        manager2 = SlackClientManager()
+        
+        # Both references should point to the same instance
+        assert manager1 is manager2
+        
+        # Changing retry count on one should affect the other
+        manager1._default_retry_count = 10
+        assert manager2._default_retry_count == 10
+
+    def test_singleton_initialization_happens_once(self):
+        """Test that initialization only happens once for the singleton."""
+        # Create first instance
+        manager1 = SlackClientManager(retry_count=5)
+        assert manager1._default_retry_count == 5
+        
+        # Create second instance with different retry count
+        manager2 = SlackClientManager(retry_count=10)
+        
+        # The retry count should not change as initialization should be skipped
+        assert manager2._default_retry_count == 5
+        assert manager1 is manager2
 
     def test_get_async_client_with_explicit_token(self, manager):
         """Test getting an async client with an explicitly provided token."""
@@ -390,36 +424,31 @@ class TestSlackClientManager:
 class TestGetClientManager:
     """Tests for the get_client_manager singleton function."""
 
-    def test_singleton_pattern(self):
-        """Test that get_client_manager returns the same instance each time."""
-        # Reset the singleton instance before test
-        import slack_mcp.client_manager
-        slack_mcp.client_manager._client_manager_instance = None
+    @pytest.fixture(autouse=True)
+    def reset_singleton(self):
+        """Reset the singleton instance before each test."""
+        # Reset the singleton instance
+        SlackClientManager._instance = None
+        yield
+        # Clean up after test
+        SlackClientManager._instance = None
+
+    def test_get_client_manager_returns_singleton(self):
+        """Test that get_client_manager returns the singleton instance."""
+        # Get instance directly and through function
+        direct_instance = SlackClientManager()
+        function_instance = get_client_manager()
         
-        # Get instance twice
+        # Verify both references are the same
+        assert direct_instance is function_instance
+        assert isinstance(direct_instance, SlackClientManager)
+
+    def test_get_client_manager_consistent(self):
+        """Test that get_client_manager returns the same instance each time."""
+        # Get instance twice through function
         manager1 = get_client_manager()
         manager2 = get_client_manager()
         
         # Verify both references are the same
         assert manager1 is manager2
         assert isinstance(manager1, SlackClientManager)
-
-    def test_initialization_happens_once(self):
-        """Test that initialization only happens once."""
-        # Reset the singleton instance before test
-        import slack_mcp.client_manager
-        slack_mcp.client_manager._client_manager_instance = None
-        
-        # Mock SlackClientManager to track initialization
-        with mock.patch("slack_mcp.client_manager.SlackClientManager") as mock_manager_class:
-            mock_instance = mock.MagicMock()
-            mock_manager_class.return_value = mock_instance
-            
-            # Get instance twice
-            manager1 = get_client_manager()
-            manager2 = get_client_manager()
-            
-            # Verify constructor was only called once
-            mock_manager_class.assert_called_once()
-            assert manager1 is manager2
-            assert manager1 is mock_instance

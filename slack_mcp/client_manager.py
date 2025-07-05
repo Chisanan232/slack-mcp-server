@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Dict, Final, Optional
+from typing import Dict, Final, Optional, ClassVar
 
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
@@ -28,9 +28,6 @@ __all__: list[str] = [
 # Logger for this module
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.client_manager")
 
-# Global singleton instance
-_client_manager_instance: Optional[SlackClientManager] = None
-
 
 class SlackClientManager:
     """Manages Slack web client instances.
@@ -39,6 +36,16 @@ class SlackClientManager:
     Slack web client instances. It uses a singleton pattern to ensure that
     only one client is created per token, improving resource utilization.
     """
+    
+    # Class variable for the singleton instance
+    _instance: ClassVar[Optional[SlackClientManager]] = None
+    
+    def __new__(cls, *args, **kwargs):
+        """Ensure only one instance of SlackClientManager exists."""
+        if cls._instance is None:
+            cls._instance = super(SlackClientManager, cls).__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self, retry_count: int = 3):
         """Initialize the SlackClientManager.
@@ -48,13 +55,18 @@ class SlackClientManager:
         retry_count : int, optional
             The default retry count to use for retryable clients, by default 3.
         """
+        # Only initialize once
+        if getattr(self, '_initialized', False):
+            return
+            
         self._default_retry_count = retry_count
         
         # Client caches - keyed by token
         self._async_clients: Dict[str, AsyncWebClient] = {}
         self._sync_clients: Dict[str, WebClient] = {}
         
-        _LOG.debug("SlackClientManager initialized")
+        self._initialized = True
+        _LOG.debug("SlackClientManager singleton initialized")
 
     def _get_default_token(self) -> Optional[str]:
         """Get the default token from environment variables.
@@ -103,6 +115,7 @@ class SlackClientManager:
 
         # Return cached client if exists
         if cache_key in self._async_clients:
+            _LOG.debug(f"Returning cached async client for token ending with ...{resolved_token[-4:]}")
             return self._async_clients[cache_key]
 
         # Create new client based on retry setting
@@ -156,6 +169,7 @@ class SlackClientManager:
 
         # Return cached client if exists
         if cache_key in self._sync_clients:
+            _LOG.debug(f"Returning cached sync client for token ending with ...{resolved_token[-4:]}")
             return self._sync_clients[cache_key]
 
         # Create new client based on retry setting
@@ -253,17 +267,11 @@ class SlackClientManager:
 
 
 def get_client_manager() -> SlackClientManager:
-    """Get or create the global SlackClientManager instance.
+    """Get the global SlackClientManager singleton instance.
 
     Returns
     -------
     SlackClientManager
         The global SlackClientManager instance
     """
-    global _client_manager_instance
-
-    if _client_manager_instance is None:
-        _client_manager_instance = SlackClientManager()
-        _LOG.debug("Created global SlackClientManager instance")
-
-    return _client_manager_instance
+    return SlackClientManager()
