@@ -18,7 +18,6 @@ from slack_sdk.web.client import WebClient
 from slack_mcp.client_factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
-    SlackClientFactory,
 )
 
 __all__: list[str] = [
@@ -41,31 +40,15 @@ class SlackClientManager:
     only one client is created per token, improving resource utilization.
     """
 
-    def __init__(
-        self,
-        default_factory: SlackClientFactory = None,
-        retryable_factory: SlackClientFactory = None,
-        default_retry_count: int = 3,
-    ):
+    def __init__(self, retry_count: int = 3):
         """Initialize the SlackClientManager.
 
         Parameters
         ----------
-        default_factory : SlackClientFactory, optional
-            The factory to use for creating non-retryable clients.
-            If None, a new DefaultSlackClientFactory will be created.
-        retryable_factory : SlackClientFactory, optional
-            The factory to use for creating retryable clients.
-            If None, a new RetryableSlackClientFactory will be created with default_retry_count.
-        default_retry_count : int, optional
+        retry_count : int, optional
             The default retry count to use for retryable clients, by default 3.
-            Only used if retryable_factory is None.
         """
-        self._default_factory = default_factory or DefaultSlackClientFactory()
-        self._retryable_factory = retryable_factory or RetryableSlackClientFactory(
-            max_retry_count=default_retry_count
-        )
-        self._default_retry_count = default_retry_count
+        self._default_retry_count = retry_count
         
         # Client caches - keyed by token
         self._async_clients: Dict[str, AsyncWebClient] = {}
@@ -122,11 +105,13 @@ class SlackClientManager:
         if cache_key in self._async_clients:
             return self._async_clients[cache_key]
 
-        # Create new client
+        # Create new client based on retry setting
         if use_retries:
-            client = self._retryable_factory.create_async_client(resolved_token)
+            factory = RetryableSlackClientFactory(max_retry_count=self._default_retry_count)
+            client = factory.create_async_client(resolved_token)
         else:
-            client = self._default_factory.create_async_client(resolved_token)
+            factory = DefaultSlackClientFactory()
+            client = factory.create_async_client(resolved_token)
 
         # Cache the client
         self._async_clients[cache_key] = client
@@ -173,11 +158,13 @@ class SlackClientManager:
         if cache_key in self._sync_clients:
             return self._sync_clients[cache_key]
 
-        # Create new client
+        # Create new client based on retry setting
         if use_retries:
-            client = self._retryable_factory.create_sync_client(resolved_token)
+            factory = RetryableSlackClientFactory(max_retry_count=self._default_retry_count)
+            client = factory.create_sync_client(resolved_token)
         else:
-            client = self._default_factory.create_sync_client(resolved_token)
+            factory = DefaultSlackClientFactory()
+            client = factory.create_sync_client(resolved_token)
 
         # Cache the client
         self._sync_clients[cache_key] = client
@@ -188,8 +175,8 @@ class SlackClientManager:
     def update_retry_count(self, retry_count: int) -> None:
         """Update the retry count for retryable clients.
 
-        This will create a new retryable factory with the specified retry count
-        and clear all cached clients to ensure they use the new settings.
+        This will update the default retry count and clear all cached clients
+        to ensure they use the new settings.
 
         Parameters
         ----------
@@ -205,7 +192,6 @@ class SlackClientManager:
             raise ValueError("Retry count must be non-negative")
 
         self._default_retry_count = retry_count
-        self._retryable_factory = RetryableSlackClientFactory(max_retry_count=retry_count)
         
         # Clear client caches to ensure all future clients use the new retry settings
         self.clear_clients()
