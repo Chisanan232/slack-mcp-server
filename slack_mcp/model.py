@@ -20,7 +20,7 @@ __all__: list[str] = [
 class _BaseInput(ABC):
     """
     Base abstract class for Slack input models.
-    
+
     All Slack tokens are now managed centrally by the SlackClientManager.
     Tokens are resolved from environment variables (SLACK_BOT_TOKEN or SLACK_TOKEN).
     """

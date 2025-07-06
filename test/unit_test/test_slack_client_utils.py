@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Generator, Optional
+from typing import Generator
 from unittest.mock import MagicMock, patch
 
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
-from slack_sdk.web.client import WebClient
 
 from slack_mcp import server as srv
-from slack_mcp.client_factory import RetryableSlackClientFactory, SlackClientFactory
 from slack_mcp.client_manager import SlackClientManager, get_client_manager
 
 
@@ -31,7 +29,7 @@ def reset_slack_clients() -> Generator[None, None, None]:
     # Create a fresh instance for testing
     SlackClientManager._instance = None
     manager = get_client_manager()
-    
+
     yield
 
     # Restore original values
@@ -49,7 +47,7 @@ class TestGetSlackClient:
 
         # Should have created client with that token
         assert client.token == "test-token-123"
-        
+
         # Check it was cached with the correct key format
         manager = get_client_manager()
         cache_key = "test-token-123:True"  # Default is use_retries=True
@@ -90,16 +88,16 @@ class TestGetSlackClient:
         mock_client = MagicMock(spec=AsyncWebClient)
         mock_factory = MagicMock()
         mock_factory.create_async_client.return_value = mock_client
-        
+
         # Patch the RetryableSlackClientFactory class to return our mock factory
         with patch("slack_mcp.client_manager.RetryableSlackClientFactory", return_value=mock_factory):
             # Get the client manager and set retry count
             manager = get_client_manager()
             manager.update_retry_count(5)
-            
+
             # Call get_slack_client which should use the retryable factory
             client = srv.get_slack_client("test-token")
-            
+
             # Verify factory was used
             mock_factory.create_async_client.assert_called_once_with("test-token")
             assert client is mock_client
@@ -146,10 +144,10 @@ class TestGetSlackClient:
         "initial_retry,new_retry,should_be_different",
         [
             (0, 0, False),  # Same retry count, same client
-            (0, 1, True),   # Different retry count, different client
-            (0, 3, True),   # Different retry count, different client
+            (0, 1, True),  # Different retry count, different client
+            (0, 3, True),  # Different retry count, different client
             (1, 3, False),  # Both use retries, same client
-            (3, 0, True),   # One uses retries, one doesn't, different client
+            (3, 0, True),  # One uses retries, one doesn't, different client
         ],
     )
     def test_different_clients_by_retry_count(
@@ -163,17 +161,17 @@ class TestGetSlackClient:
         # Setup
         manager = get_client_manager()
         manager.update_retry_count(initial_retry)
-        
+
         # Get first client
         client1 = srv.get_slack_client("test-token")
-        
+
         # Clear cache to force new client creation
         manager.clear_clients()
-        
+
         # Update retry count and get second client
         manager.update_retry_count(new_retry)
         client2 = srv.get_slack_client("test-token")
-        
+
         # Check if clients are different based on retry settings
         if should_be_different:
             assert client1 is not client2
@@ -188,17 +186,17 @@ class TestGetSlackClient:
         mock_factory = MagicMock()
         mock_client = MagicMock(spec=AsyncWebClient)
         mock_factory.create_async_client.return_value = mock_client
-        
+
         # Patch the RetryableSlackClientFactory class
         with patch("slack_mcp.client_manager.RetryableSlackClientFactory", return_value=mock_factory):
             # Call the client manager directly with use_retries=True
             manager = get_client_manager()
             client = manager.get_async_client("test-token", use_retries=True)
-            
+
             # Should have used the retryable factory
             assert client is mock_client
             mock_factory.create_async_client.assert_called_once_with("test-token")
-            
+
             # Check it was cached with the correct key format
             cache_key = "test-token:True"
             assert cache_key in manager._async_clients
@@ -260,17 +258,18 @@ class TestUpdateSlackClient:
         # Setup
         manager = get_client_manager()
         assert len(manager._async_clients) == 0
-        
+
         # Create a custom client
         custom_client = AsyncWebClient(token="custom-token")
-        
+
         # Update with new client - in the refactored approach, this will use the default token
         # from the environment, not the token passed to update_slack_client
-        with patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                   new_callable=MagicMock) as mock_default_token:
+        with patch(
+            "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=MagicMock
+        ) as mock_default_token:
             mock_default_token.return_value = "custom-token"
             srv.update_slack_client("custom-token", custom_client)
-            
+
             # Check it was added to cache
             assert len(manager._async_clients) == 1
             cache_key = "custom-token:True"  # Default is use_retries=True
@@ -280,54 +279,57 @@ class TestUpdateSlackClient:
     def test_update_existing_client(self, reset_slack_clients: None) -> None:
         """Should replace an existing client in the cache."""
         # Setup - add a client to cache
-        with patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                   new_callable=MagicMock) as mock_default_token:
+        with patch(
+            "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=MagicMock
+        ) as mock_default_token:
             mock_default_token.return_value = "test-token"
-            
+
             # Get the original client
             original_client = srv.get_slack_client("test-token")
             manager = get_client_manager()
             cache_key = "test-token:True"  # Default is use_retries=True
             assert manager._async_clients[cache_key] is original_client
-            
+
             # Create a replacement client
             replacement_client = AsyncWebClient(token="test-token")
-            
+
             # Update the client
             srv.update_slack_client("test-token", replacement_client)
-            
+
             # Check it replaced the original in cache
             assert manager._async_clients[cache_key] is replacement_client
             assert manager._async_clients[cache_key] is not original_client
 
-    def test_update_with_empty_token_raises_error(self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_update_with_empty_token_raises_error(
+        self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Should raise ValueError when token is empty in non-test environments."""
         # Setup
         client = AsyncWebClient(token="any-token")
-        
+
         # Remove PYTEST_CURRENT_TEST environment variable to simulate non-test environment
         monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
-        
+
         # Try to update with empty token
         with pytest.raises(ValueError, match="Token cannot be empty or None"):
             srv.update_slack_client("", client)
-            
+
         # Try with None token
         with pytest.raises(ValueError, match="Token cannot be empty or None"):
-            srv.update_slack_client(None, client)  # type: ignore
+            srv.update_slack_client(None, client)
 
     def test_update_with_empty_token_in_test_environment(self, reset_slack_clients: None) -> None:
         """Should use a dummy token when token is empty in test environments."""
         # Setup
         client = AsyncWebClient(token="any-token")
-        
+
         # In test environment (PYTEST_CURRENT_TEST is set by pytest), empty tokens should be replaced with dummy token
         # Try to update with empty token
         updated_client = srv.update_slack_client("", client)
         assert updated_client.token == "xoxb-test-token-for-pytest"
-        
+
         # Try with None token
-        updated_client = srv.update_slack_client(None, client)  # type: ignore
+        updated_client = srv.update_slack_client(None, client)
         assert updated_client.token == "xoxb-test-token-for-pytest"
 
 
@@ -339,10 +341,10 @@ class TestSetSlackClientRetryCount:
         # Setup
         manager = get_client_manager()
         original_retry_count = manager._default_retry_count
-        
+
         # Set new retry count
         srv.set_slack_client_retry_count(10)
-        
+
         # Check retry count was updated
         assert manager._default_retry_count == 10
         assert manager._default_retry_count != original_retry_count
@@ -353,13 +355,13 @@ class TestSetSlackClientRetryCount:
         client = srv.get_slack_client("test-token")
         manager = get_client_manager()
         assert len(manager._async_clients) == 1
-        
+
         # Set new retry count
         srv.set_slack_client_retry_count(5)
-        
+
         # Cache should be cleared
         assert len(manager._async_clients) == 0
-        
+
         # Getting a client should create a new one
         new_client = srv.get_slack_client("test-token")
         assert new_client is not client

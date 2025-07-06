@@ -18,8 +18,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from .backends.loader import load_backend
 from .backends.protocol import QueueBackend
-from .client_factory import RetryableSlackClientFactory
-from .client_manager import SlackClientManager, get_client_manager
+from .client_manager import get_client_manager
 from .event_handler import SlackEvent, register_handlers
 from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
@@ -100,7 +99,7 @@ def initialize_slack_client(token: str | None = None, retry: int = 0) -> AsyncWe
     # Get the client with or without retries based on the retry parameter
     use_retries = retry > 0
     slack_client = client_manager.get_async_client(token, use_retries)
-    
+
     return slack_client
 
 

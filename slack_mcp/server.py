@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, Final, List, Optional
+from typing import Any, Final, Optional
 
 from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.client_factory import RetryableSlackClientFactory
-from slack_mcp.client_manager import SlackClientManager, get_client_manager
+from slack_mcp.client_manager import get_client_manager
 from slack_mcp.model import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
@@ -24,7 +23,6 @@ from slack_mcp.model import (
     SlackReadEmojisInput,
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
-    _BaseInput,
 )
 
 __all__: list[str] = [
@@ -66,7 +64,7 @@ def set_slack_client_retry_count(retry: int) -> None:
     """
     if retry < 0:
         raise ValueError("Retry count must be non-negative")
-        
+
     # Get the client manager and update its retry count
     client_manager = get_client_manager()
     client_manager.update_retry_count(retry)
@@ -117,10 +115,10 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
     """
     # Get the client manager
     client_manager = get_client_manager()
-    
+
     # Check if we're in a test environment (indicated by PYTEST_CURRENT_TEST env var)
     in_test_env = "PYTEST_CURRENT_TEST" in os.environ
-    
+
     if not token:
         if in_test_env:
             # In test environment, use a dummy token if none provided
@@ -128,7 +126,7 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
             _LOG.debug("Using dummy token in test environment")
         else:
             raise ValueError("Token cannot be empty or None")
-    
+
     if client:
         # Update the existing client's token
         client.token = token
@@ -153,7 +151,7 @@ def clear_slack_clients() -> None:
 
 def _get_default_client() -> AsyncWebClient:
     """Get a Slack client using the default token from environment variables.
-    
+
     This function doesn't require a token parameter and relies on the
     SlackClientManager's default token resolution logic.
 
@@ -168,7 +166,7 @@ def _get_default_client() -> AsyncWebClient:
         If no token is found in the environment variables.
     """
     client_manager = get_client_manager()
-    
+
     # Check if a token is available in the environment
     default_token = client_manager._default_token
     if not default_token:
@@ -176,7 +174,7 @@ def _get_default_client() -> AsyncWebClient:
             "Slack token not found. Please provide a token or set "
             "SLACK_BOT_TOKEN or SLACK_TOKEN environment variables."
         )
-    
+
     return client_manager.get_async_client()
 
 
@@ -203,7 +201,7 @@ async def send_slack_message(
         If the relevant environment variables for Slack token are missing.
     """
     client = _get_default_client()
-    
+
     response = await client.chat_postMessage(channel=input_params.channel, text=input_params.text)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
@@ -233,7 +231,7 @@ async def read_thread_messages(
         If the relevant environment variables for Slack token are missing.
     """
     client = _get_default_client()
-    
+
     response = await client.conversations_replies(
         channel=input_params.channel,
         ts=input_params.thread_ts,
@@ -267,7 +265,7 @@ async def read_slack_channel_messages(
         If the relevant environment variables for Slack token are missing.
     """
     client = _get_default_client()
-    
+
     # Build kwargs for the API call
     kwargs = {
         "channel": input_params.channel,
@@ -311,7 +309,7 @@ async def send_slack_thread_reply(
         If the relevant environment variables for Slack token are missing.
     """
     client = _get_default_client()
-    
+
     responses = []
     for text in input_params.texts:
         response = await client.chat_postMessage(
@@ -348,7 +346,7 @@ async def read_slack_emojis(
         If the relevant environment variables for Slack token are missing.
     """
     client = _get_default_client()
-    
+
     response = await client.emoji_list()
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
@@ -378,7 +376,7 @@ async def add_slack_reactions(
         If the relevant environment variables for Slack token are missing.
     """
     client = _get_default_client()
-    
+
     responses = []
     for emoji in input_params.emojis:
         response = await client.reactions_add(

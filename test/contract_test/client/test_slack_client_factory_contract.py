@@ -125,16 +125,16 @@ class SlackClientFactoryContractTest(ABC):
         mock_async_client_class.return_value = mock_async_instance
 
         test_token = "xoxb-from-env"
-        
+
         # Set the environment token
         monkeypatch.setenv("SLACK_BOT_TOKEN", test_token)
-        
+
         # Patch the SlackClientManager._default_token property
         from slack_mcp.client_manager import SlackClientManager
-        
+
         def mock_env_token(self):
             return test_token
-        
+
         monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
 
         # Create input objects without token

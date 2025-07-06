@@ -6,12 +6,12 @@ particularly to prevent "Event loop is closed" errors in CI environments.
 """
 
 import asyncio
+import logging
 import os
 import sys
 import threading
 import tracemalloc
 import warnings
-import logging
 from typing import Generator
 
 import pytest
@@ -35,7 +35,7 @@ def set_event_loop_policy():
     # For CI environments on macOS, use a custom policy to avoid "Event loop is closed" errors
     if sys.platform == "darwin" and os.environ.get("CI"):
         asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
-    
+
     # For local environments, use the default policy
     yield
 
@@ -49,7 +49,7 @@ def set_event_loop_policy():
             except RuntimeError:
                 # No running loop, create a new one
                 loop = asyncio.new_event_loop()
-                
+
             if loop.is_running():
                 loop.stop()
             if not loop.is_closed():

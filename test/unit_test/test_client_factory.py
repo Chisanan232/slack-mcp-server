@@ -127,10 +127,11 @@ class TestDefaultSlackClientFactory:
         # from the environment when creating a client from an input object
 
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                           new_callable=mock.PropertyMock) as mock_default_token:
+            with mock.patch(
+                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+            ) as mock_default_token:
                 mock_default_token.return_value = "xoxb-default-token"
-                
+
                 class TestInput(_BaseInput):
                     pass
 
@@ -146,10 +147,11 @@ class TestDefaultSlackClientFactory:
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                           new_callable=mock.PropertyMock) as mock_default_token:
+            with mock.patch(
+                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+            ) as mock_default_token:
                 mock_default_token.return_value = env_token
-                
+
                 class TestInput(_BaseInput):
                     pass
 
@@ -165,10 +167,11 @@ class TestDefaultSlackClientFactory:
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                           new_callable=mock.PropertyMock) as mock_default_token:
+            with mock.patch(
+                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+            ) as mock_default_token:
                 mock_default_token.return_value = env_token
-                
+
                 class TestInput(_BaseInput):
                     pass
 
@@ -212,10 +215,11 @@ class TestDefaultSlackClientFactory:
         input_obj = input_class(**expected_attributes)
 
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                           new_callable=mock.PropertyMock) as mock_default_token:
+            with mock.patch(
+                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+            ) as mock_default_token:
                 mock_default_token.return_value = "xoxb-default-token"
-                
+
                 # Create client from input
                 client = factory.create_async_client_from_input(input_obj)
 
@@ -367,10 +371,11 @@ class TestRetryableSlackClientFactory:
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client_class:
-            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
-                           new_callable=mock.PropertyMock) as mock_default_token:
+            with mock.patch(
+                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+            ) as mock_default_token:
                 mock_default_token.return_value = env_token
-                
+
                 # Create a mock instance that we can inspect
                 mock_instance = mock.MagicMock()
                 mock_instance.retry_handlers = []
@@ -378,7 +383,7 @@ class TestRetryableSlackClientFactory:
 
                 # Create input object without token
                 input_obj = SlackPostMessageInput(channel="test-channel", text="Hello")
-                
+
                 # Create client from input
                 client = factory.create_async_client_from_input(input_obj)
 

@@ -178,6 +178,7 @@ class DefaultSlackClientFactory(SlackClientFactory):
             Initialized Slack AsyncWebClient instance
         """
         from slack_mcp.client_manager import get_client_manager
+
         manager = get_client_manager()
         return self.create_async_client(manager._default_token)
 

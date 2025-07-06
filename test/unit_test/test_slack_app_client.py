@@ -9,8 +9,7 @@ import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp import slack_app
-from slack_mcp.client_factory import RetryableSlackClientFactory
-from slack_mcp.client_manager import SlackClientManager, get_client_manager
+from slack_mcp.client_manager import SlackClientManager
 
 
 @pytest.fixture
@@ -44,11 +43,11 @@ class TestInitializeSlackClient:
         """Should initialize client with explicitly provided token."""
         mock_client = MagicMock(spec=AsyncWebClient)
         mock_client.token = "test-token-123"
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             client = slack_app.initialize_slack_client(token="test-token-123")
 
@@ -60,14 +59,14 @@ class TestInitializeSlackClient:
     def test_initialize_with_bot_token_env(self, clean_global_client: None, monkeypatch: pytest.MonkeyPatch) -> None:
         """Should use SLACK_BOT_TOKEN from environment when no token provided."""
         monkeypatch.setenv("SLACK_BOT_TOKEN", "env-bot-token")
-        
+
         mock_client = MagicMock(spec=AsyncWebClient)
         mock_client.token = "env-bot-token"
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             client = slack_app.initialize_slack_client()
 
@@ -81,14 +80,14 @@ class TestInitializeSlackClient:
         """Should use SLACK_TOKEN from environment when no SLACK_BOT_TOKEN or explicit token provided."""
         monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
         monkeypatch.setenv("SLACK_TOKEN", "fallback-token")
-        
+
         mock_client = MagicMock(spec=AsyncWebClient)
         mock_client.token = "fallback-token"
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             client = slack_app.initialize_slack_client()
 
@@ -106,11 +105,11 @@ class TestInitializeSlackClient:
 
         mock_client = MagicMock(spec=AsyncWebClient)
         mock_client.token = "explicit-token"
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             # Provide explicit token
             client = slack_app.initialize_slack_client(token="explicit-token")
@@ -124,7 +123,7 @@ class TestInitializeSlackClient:
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.side_effect = ValueError("Slack token not found")
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             with pytest.raises(ValueError) as excinfo:
                 slack_app.initialize_slack_client()
@@ -143,11 +142,11 @@ class TestInitializeSlackClient:
     def test_initialize_with_zero_retry(self, clean_global_client: None) -> None:
         """Should create standard client when retry=0."""
         mock_client = MagicMock(spec=AsyncWebClient)
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             client = slack_app.initialize_slack_client(token="test-token", retry=0)
 
@@ -160,16 +159,16 @@ class TestInitializeSlackClient:
         """Should create client with retry capability when retry>0."""
         # Create a mock client to be returned
         mock_client = MagicMock(spec=AsyncWebClient)
-        
+
         # Mock the SlackClientManager's get_async_client method
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0  # Different from what we'll set
         mock_manager.get_async_client.return_value = mock_client
-        
+
         # Patch get_client_manager to return our mock
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             client = slack_app.initialize_slack_client(token="test-token", retry=3)
-        
+
         # Verify manager was used correctly
         assert client is mock_client
         mock_manager.update_retry_count.assert_called_once_with(3)
@@ -179,18 +178,18 @@ class TestInitializeSlackClient:
         """Should replace existing global client when called multiple times."""
         mock_first_client = MagicMock(spec=AsyncWebClient)
         mock_first_client.token = "first-token"
-        
+
         mock_second_client = MagicMock(spec=AsyncWebClient)
         mock_second_client.token = "second-token"
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.side_effect = [mock_first_client, mock_second_client]
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             # Initialize first client
             first_client = slack_app.initialize_slack_client(token="first-token")
-            
+
             # Initialize second client
             second_client = slack_app.initialize_slack_client(token="second-token")
 
@@ -206,15 +205,15 @@ class TestGetSlackClient:
     def test_get_initialized_client(self, clean_global_client: None) -> None:
         """Should return the initialized client."""
         mock_client = MagicMock(spec=AsyncWebClient)
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             # Initialize the client first
             slack_app.initialize_slack_client(token="test-token")
-            
+
             # Then get it
             client = slack_app.get_slack_client()
 
@@ -231,18 +230,18 @@ class TestGetSlackClient:
         """Should return the most recently initialized client."""
         mock_first_client = MagicMock(spec=AsyncWebClient)
         mock_second_client = MagicMock(spec=AsyncWebClient)
-        
+
         mock_manager = MagicMock(spec=SlackClientManager)
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.side_effect = [mock_first_client, mock_second_client]
-        
+
         with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
             # Initialize first client
             slack_app.initialize_slack_client(token="first-token")
-            
+
             # Initialize second client
             slack_app.initialize_slack_client(token="second-token")
-            
+
             # Get client should return the second one
             client = slack_app.get_slack_client()
 
