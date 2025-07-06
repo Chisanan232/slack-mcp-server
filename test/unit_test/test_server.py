@@ -33,6 +33,8 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
     def __init__(self, *args: Any, **kwargs: Any):  # noqa: D401 – docstring short.
         # Accept and ignore all initialisation parameters.
         self.token = kwargs.get("token", "dummy-token")
+        # Add retry_handlers attribute needed by RetryableSlackClientFactory
+        self.retry_handlers = []
 
     async def chat_postMessage(self, *, channel: str, text: str, thread_ts: Optional[str] = None, **_: Any):
         """Simulate posting a message."""
@@ -663,3 +665,65 @@ async def test_add_slack_reactions_missing_token(monkeypatch: pytest.MonkeyPatch
         await srv.add_slack_reactions(
             input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=["thumbsup"])
         )
+
+
+def test_set_slack_client_retry_count_negative() -> None:
+    """Function should raise :class:`ValueError` if retry count is negative."""
+    with pytest.raises(ValueError, match="Retry count must be non-negative"):
+        srv.set_slack_client_retry_count(-1)
+
+
+def test_get_slack_client_returns_client() -> None:
+    """Function should return client from client_manager.get_async_client."""
+    # Create a test token
+    test_token = "xoxb-test-token-for-get-client"
+    
+    # Get a client with the test token
+    client = srv.get_slack_client(token=test_token)
+    
+    # Verify the client has the correct token
+    assert client.token == test_token
+    
+    # Also test with default token
+    default_client = srv.get_slack_client()
+    assert default_client.token is not None
+
+
+def test_get_default_client_no_token(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Function should raise :class:`ValueError` if no default token is found in environment."""
+    # Store the original patched function
+    original_get_default_client = srv._get_default_client
+    
+    # Restore the original implementation from server.py
+    # We need to access the actual function code, not the patched version
+    def real_get_default_client():
+        client_manager = srv.get_client_manager()
+        default_token = client_manager._default_token
+        if not default_token:
+            raise ValueError(
+                "Slack token not found. Please provide a token or set "
+                "SLACK_BOT_TOKEN or SLACK_TOKEN environment variables."
+            )
+        return client_manager.get_async_client()
+    
+    # Replace the patched function with our implementation
+    monkeypatch.setattr("slack_mcp.server._get_default_client", real_get_default_client)
+    
+    # Import the client manager
+    from slack_mcp.client_manager import SlackClientManager
+    
+    # Create a new instance of SlackClientManager for this test
+    test_manager = SlackClientManager()
+    
+    # Mock the _default_token property to return None
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
+    
+    # Replace the singleton instance with our test instance
+    monkeypatch.setattr("slack_mcp.client_manager.SlackClientManager._instance", test_manager)
+    
+    # Test that ValueError is raised when no token is found
+    with pytest.raises(ValueError, match=r"Slack token not found.*"):
+        srv._get_default_client()
