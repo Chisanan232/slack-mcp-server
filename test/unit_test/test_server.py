@@ -118,8 +118,16 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     # Patch the AsyncWebClient class
     monkeypatch.setattr("slack_mcp.server.AsyncWebClient", _DummyAsyncWebClient)
 
-    # Clear client cache before each test
-    monkeypatch.setattr("slack_mcp.server._slack_clients", {})
+    # Patch the SlackClientManager's client caches
+    from slack_mcp.client_manager import SlackClientManager
+    
+    # Create a mock instance with empty caches
+    mock_manager = SlackClientManager()
+    mock_manager._async_clients = {}
+    mock_manager._sync_clients = {}
+    
+    # Set it as the singleton instance
+    monkeypatch.setattr("slack_mcp.client_manager.SlackClientManager._instance", mock_manager)
 
     # Also patch the AsyncWebClient in the client_factory module
     from slack_mcp import client_factory

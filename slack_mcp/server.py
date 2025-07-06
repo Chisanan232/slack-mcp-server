@@ -16,6 +16,7 @@ from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.client_factory import RetryableSlackClientFactory
+from slack_mcp.client_manager import SlackClientManager, get_client_manager
 from slack_mcp.model import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
@@ -46,15 +47,6 @@ SERVER_NAME: Final[str] = "SlackMCPServer"
 # Logger for this module
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.server")
 
-# Global setting for Slack client retry count
-_slack_client_retry_count: int = 3
-
-# Global retryable factory for Slack clients
-_retryable_factory = RetryableSlackClientFactory(max_retry_count=_slack_client_retry_count)
-
-# Client cache for singleton pattern - keyed by token
-_slack_clients: Dict[str, AsyncWebClient] = {}
-
 # Default token from environment
 _DEFAULT_TOKEN = os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
 
@@ -72,13 +64,12 @@ def set_slack_client_retry_count(retry: int) -> None:
     retry : int
         Number of retry attempts for Slack API operations
     """
-    global _slack_client_retry_count, _retryable_factory, _slack_clients
-    _slack_client_retry_count = retry
-    _retryable_factory = RetryableSlackClientFactory(max_retry_count=retry)
-
-    # Clear client cache when retry count changes to ensure all future clients
-    # use the new retry settings
-    _slack_clients.clear()
+    if retry < 0:
+        raise ValueError("Retry count must be non-negative")
+        
+    # Get the client manager and update its retry count
+    client_manager = get_client_manager()
+    client_manager.update_retry_count(retry)
     _LOG.info(f"Slack client retry count set to {retry} and client cache cleared")
 
 
@@ -102,31 +93,9 @@ def get_slack_client(token: Optional[str] = None) -> AsyncWebClient:
     ValueError
         If no token is found or provided
     """
-    global _slack_clients
-
-    # Resolve token
-    resolved_token = token or _DEFAULT_TOKEN
-    if not resolved_token:
-        raise ValueError(
-            "Slack token not found. Provide one via the parameter or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
-
-    # Return cached client if exists
-    if resolved_token in _slack_clients:
-        return _slack_clients[resolved_token]
-
-    # Create new client
-    if _slack_client_retry_count > 0:
-        client = _retryable_factory.create_async_client(resolved_token)
-    else:
-        client = AsyncWebClient(token=resolved_token)
-
-    # Cache the client
-    _slack_clients[resolved_token] = client
-    _LOG.debug(f"Created new Slack client for token ending with ...{resolved_token[-4:]}")
-
-    return client
+    # Get the client manager and request an async client
+    client_manager = get_client_manager()
+    return client_manager.get_async_client(token)
 
 
 def clear_slack_clients() -> None:
@@ -134,8 +103,9 @@ def clear_slack_clients() -> None:
 
     This forces new clients to be created on the next request.
     """
-    global _slack_clients
-    _slack_clients.clear()
+    # Get the client manager and clear its caches
+    client_manager = get_client_manager()
+    client_manager.clear_clients()
     _LOG.info("Slack client cache cleared")
 
 
@@ -160,8 +130,9 @@ def update_slack_client(token: str, client: AsyncWebClient) -> None:
     if not token:
         raise ValueError("Token cannot be empty or None")
 
-    global _slack_clients
-    _slack_clients[token] = client
+    # Get the client manager and update the client
+    client_manager = get_client_manager()
+    client_manager.update_client(token, client)
     _LOG.info(f"Updated Slack client for token ending with ...{token[-4:]}")
 
 
