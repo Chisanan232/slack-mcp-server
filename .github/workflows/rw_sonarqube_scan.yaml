@@ -58,6 +58,13 @@ jobs:
           name: ${{ inputs.test_type }}_coverage_xml_report
           path: ${{ inputs.download_path }}
 
+      - name: Just debug
+        run: |
+          echo "*pwd* running result:"
+          pwd
+          echo "*ls -la* running result:"
+          ls- la
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v5.1.0
         env:
