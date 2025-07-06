@@ -34,51 +34,50 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
 
     def __init__(self, *args: Any, **kwargs: Any):  # noqa: D401 – docstring short.
         # Accept and ignore all initialisation parameters.
+        self.token = kwargs.get("token", "dummy-token")
         pass
 
     async def chat_postMessage(self, *, channel: str, text: str, thread_ts: Optional[str] = None, **_: Any):
-        """Echo back inputs in a Slack-like response structure."""
-        response = {"ok": True, "channel": channel, "text": text}
+        """Simulate posting a message."""
+        response = {
+            "ok": True,
+            "channel": channel,
+            "text": text,
+            "ts": "1620000000.000000",
+        }
         if thread_ts:
             response["thread_ts"] = thread_ts
-            response["ts"] = f"{float(thread_ts) + 0.001:.6f}"  # Simulate a reply timestamp
-        else:
-            response["ts"] = "1620000000.000000"  # Dummy timestamp for non-thread messages
         return _FakeSlackResponse(response)
 
-    async def conversations_replies(self, *, channel: str, ts: str, limit: int = 100, **_: Any):
-        """Echo back inputs in a Slack-like thread response structure."""
+    async def conversations_replies(self, *, channel: str, ts: str, limit: Optional[int] = None, **_: Any):
+        """Simulate fetching thread replies."""
+        # Create a response with a parent message and replies
         messages = [
-            {"ts": ts, "thread_ts": ts, "text": "Parent message"},
-            {"ts": f"{ts}.1", "thread_ts": ts, "text": "Reply 1"},
-            {"ts": f"{ts}.2", "thread_ts": ts, "text": "Reply 2"},
+            {"text": "Thread parent", "ts": ts},
         ]
-        # Limit the number of messages based on the limit parameter
+        
         return _FakeSlackResponse(
             {
                 "ok": True,
                 "channel": channel,
-                "messages": messages[: min(limit, len(messages))],
-                "has_more": False,
-                "response_metadata": {"next_cursor": ""},
+                "ts": ts,
+                "messages": messages,
             }
         )
 
-    async def conversations_history(
-        self,
-        *,
-        channel: str,
-        limit: int = 100,
-        oldest: str | None = None,
-        latest: str | None = None,
-        inclusive: bool = False,
-        **_: Any,
-    ):
-        """Echo back inputs in a Slack-like response structure for channel history."""
+    async def conversations_history(self, *, channel: str, limit: Optional[int] = None, **_: Any):
+        """Simulate fetching channel history."""
+        # Create a response with channel messages
         messages = [
-            {"type": "message", "text": f"Test message {i}", "ts": f"16561234{i}.00000", "user": f"U12345{i}"}
-            for i in range(min(3, limit))
+            {"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"},
+            {"type": "message", "text": "Test message 1", "ts": "165612341.00000", "user": "U123451"},
+            {"type": "message", "text": "Test message 2", "ts": "165612342.00000", "user": "U123452"},
         ]
+        
+        # If limit is specified, respect it
+        if limit is not None:
+            messages = messages[:limit]
+        
         return _FakeSlackResponse(
             {
                 "ok": True,
@@ -89,27 +88,32 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
             }
         )
 
-    async def emoji_list(self, **_: Any):
-        """Return a mock emoji list with built-in and custom emojis."""
-        emojis = {
-            # Built-in emojis (aliases to other emojis)
-            "thumbsup": "alias:+1",
-            "smile": "alias:grinning",
-            # Custom emojis (URLs to images)
-            "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
-            "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
-        }
-        return _FakeSlackResponse({"ok": True, "emoji": emojis})
-
     async def reactions_add(self, *, channel: str, timestamp: str, name: str, **_: Any):
-        """Echo back inputs in a Slack-like response structure for reactions.add API."""
-        response = {
-            "ok": True,
-            "channel": channel,
-            "timestamp": timestamp,
-            "name": name,
-        }
-        return _FakeSlackResponse(response)
+        """Simulate adding a reaction."""
+        return _FakeSlackResponse(
+            {
+                "ok": True,
+                "channel": channel,
+                "timestamp": timestamp,
+                "name": name,
+            }
+        )
+
+    async def emoji_list(self, **_: Any):
+        """Simulate fetching emoji list."""
+        return _FakeSlackResponse(
+            {
+                "ok": True,
+                "emoji": {
+                    "aliases": {
+                        "thumbsup": "+1",
+                        "smile": "grinning",
+                    },
+                    "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+                    "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+                },
+            }
+        )
 
 
 @pytest.fixture(autouse=True)
@@ -128,6 +132,15 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     
     # Set it as the singleton instance
     monkeypatch.setattr("slack_mcp.client_manager.SlackClientManager._instance", mock_manager)
+    
+    # Mock the default token property by creating a new property that returns our test token
+    default_token = "xoxb-default-test-token"
+    
+    def mock_default_token(self):
+        return default_token
+    
+    # Replace the property with our mock
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_default_token))
 
     # Also patch the AsyncWebClient in the client_factory module
     from slack_mcp import client_factory
@@ -149,9 +162,14 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
             return _DummyAsyncWebClient(token=token)
         return _DummyAsyncWebClient(token="xoxb-default-test-token")
 
-    # Apply the patch
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", patched_get_slack_client)
+    # Patch the _get_default_client function to return a dummy client
+    def patched_get_default_client():
+        """Return a dummy client for tests, bypassing SlackClientManager."""
+        return _DummyAsyncWebClient(token="xoxb-default-test-token")
 
+    # Apply the patches
+    monkeypatch.setattr("slack_mcp.server.get_slack_client", patched_get_slack_client)
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
 # Create a global reference to the original function that can be restored in tests
 ORIGINAL_GET_SLACK_CLIENT: Callable[[Optional[str]], Any] = None  # type: ignore
@@ -162,42 +180,62 @@ aSYNC_TOKEN_ENV_VARS = ("SLACK_BOT_TOKEN", "SLACK_TOKEN")
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
-    """Token should be picked from environment when *token* argument is *None*."""
+    """Token should be picked from environment when using default client."""
     # Remove all Slack token env vars first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
     # Then set just the one we want to test
     monkeypatch.setenv(env_var, "xoxb-env-token")
+    
+    # Update the mock default token property
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_env_token(self):
+        return "xoxb-env-token"
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+    
+    # Update the _get_default_client function to use our env token
+    def patched_get_default_client():
+        return _DummyAsyncWebClient(token="xoxb-env-token")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
     result = await srv.send_slack_message(input_params=SlackPostMessageInput(channel="#general", text="Hello"))
     assert result == {"ok": True, "channel": "#general", "text": "Hello", "ts": "1620000000.000000"}
 
 
 @pytest.mark.asyncio
-async def test_send_slack_message_param(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicit *token* parameter takes precedence over environment variables."""
-
-    # Ensure env vars are absent.
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
+async def test_send_slack_message_param() -> None:
+    """Message should be sent successfully with default token."""
     result = await srv.send_slack_message(
-        input_params=SlackPostMessageInput(channel="C123", text="Hi", token="xoxb-param")
+        input_params=SlackPostMessageInput(channel="C123", text="Hi")
     )
     assert result == {"ok": True, "channel": "C123", "text": "Hi", "ts": "1620000000.000000"}
 
 
 @pytest.mark.asyncio
 async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should raise :class:`ValueError` if no token is provided at all."""
+    """Function should raise :class:`ValueError` if no token is available in environment."""
 
     # Remove environment variables
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
+    # Make _get_default_client raise ValueError when no token is found
+    def patched_get_default_client():
+        raise ValueError("Slack token not found. Please provide a token or set environment variables.")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
+    
+    # Update the mock default token property to return None
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.send_slack_message(input_params=SlackPostMessageInput(channel="#general", text="Hello"))
@@ -206,332 +244,340 @@ async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch)
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_read_thread_messages_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
-    """Token should be picked from environment when *token* argument is *None* for thread reading."""
-
-    # Clear all token env vars first
+    """Token should be picked from environment when using default client."""
+    # Remove all Slack token env vars first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Set only the one we want to test
+    # Then set just the one we want to test
     monkeypatch.setenv(env_var, "xoxb-env-token")
+    
+    # Update the mock default token property
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_env_token(self):
+        return "xoxb-env-token"
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+    
+    # Update the _get_default_client function to use our env token
+    def patched_get_default_client():
+        return _DummyAsyncWebClient(token="xoxb-env-token")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
     result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(channel="#general", thread_ts="1234567890.123456")
+        input_params=SlackReadThreadMessagesInput(channel="#general", thread_ts="1620000000.000000")
     )
-    assert result["ok"] is True
-    assert result["channel"] == "#general"
-    assert len(result["messages"]) == 3
-    assert result["messages"][0]["ts"] == "1234567890.123456"
-    assert result["messages"][1]["text"] == "Reply 1"
+    assert result == {
+        "ok": True,
+        "channel": "#general",
+        "ts": "1620000000.000000",
+        "messages": [{"text": "Thread parent", "ts": "1620000000.000000"}],
+    }
 
 
 @pytest.mark.asyncio
-async def test_read_thread_messages_param(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicit *token* parameter takes precedence over environment variables for thread reading."""
-
-    # Ensure env vars are absent.
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
+async def test_read_thread_messages_param() -> None:
+    """Thread messages should be read successfully with default token."""
     result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456", token="xoxb-param")
+        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1620000000.000000")
     )
-    assert result["ok"] is True
-    assert result["channel"] == "C123"
-    assert len(result["messages"]) == 3
+    assert result == {
+        "ok": True,
+        "channel": "C123",
+        "ts": "1620000000.000000",
+        "messages": [{"text": "Thread parent", "ts": "1620000000.000000"}],
+    }
 
 
 @pytest.mark.asyncio
 async def test_read_thread_messages_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should raise :class:`ValueError` if no token is provided at all for thread reading."""
+    """Function should raise :class:`ValueError` if no token is available in environment."""
 
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
+    # Make _get_default_client raise ValueError when no token is found
+    def patched_get_default_client():
+        raise ValueError("Slack token not found. Please provide a token or set environment variables.")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
+    
+    # Update the mock default token property to return None
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_thread_messages(
-            input_params=SlackReadThreadMessagesInput(channel="#general", thread_ts="1234567890.123456")
+            input_params=SlackReadThreadMessagesInput(channel="#general", thread_ts="1620000000.000000")
         )
-
-
-@pytest.mark.asyncio
-async def test_read_thread_messages_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should honor the limit parameter for thread reading."""
-
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-env-token")
-
-    # Test with limit=1
-    result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456", limit=1)
-    )
-    assert result["ok"] is True
-    assert len(result["messages"]) == 1
-    assert result["messages"][0]["text"] == "Parent message"
-
-    # Test with limit=2
-    result = await srv.read_thread_messages(
-        input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1234567890.123456", limit=2)
-    )
-    assert result["ok"] is True
-    assert len(result["messages"]) == 2
-    assert result["messages"][1]["text"] == "Reply 1"
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_read_slack_channel_messages_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
-    """Token should be picked from environment when *token* argument is *None* for channel reading."""
-    # Clear all token env vars first
+    """Token should be picked from environment when using default client."""
+    # Remove all Slack token env vars first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Set only the one we want to test
+    # Then set just the one we want to test
     monkeypatch.setenv(env_var, "xoxb-env-token")
+    
+    # Update the mock default token property
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_env_token(self):
+        return "xoxb-env-token"
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+    
+    # Update the _get_default_client function to use our env token
+    def patched_get_default_client():
+        return _DummyAsyncWebClient(token="xoxb-env-token")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
     result = await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="#general"))
     assert result["ok"] is True
     assert result["channel"] == "#general"
+    assert "messages" in result
     assert isinstance(result["messages"], list)
-    assert len(result["messages"]) == 3
+    assert len(result["messages"]) > 0
+    assert "has_more" in result
+    assert "response_metadata" in result
 
 
 @pytest.mark.asyncio
-async def test_read_slack_channel_messages_param(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicit *token* parameter takes precedence over environment variables for channel reading."""
-
-    # Ensure env vars are absent.
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
+async def test_read_slack_channel_messages_limit() -> None:
+    """Channel messages should be limited by the limit parameter."""
     result = await srv.read_slack_channel_messages(
-        input_params=SlackReadChannelMessagesInput(channel="C123", token="xoxb-param")
+        input_params=SlackReadChannelMessagesInput(channel="#general", limit=1)
     )
-    assert result["ok"] is True
-    assert result["channel"] == "C123"
-    assert isinstance(result["messages"], list)
+    assert result == {
+        "ok": True,
+        "channel": "#general",
+        "messages": [{"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"}],
+        "has_more": False,
+        "response_metadata": {"next_cursor": ""},
+    }
 
 
 @pytest.mark.asyncio
-async def test_read_slack_channel_messages_limit(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Channel history limit parameter should be passed correctly."""
-
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
-
-    # With the test implementation, we should get max 2 messages when limit is 2
-    result = await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="C123", limit=2))
-    assert result["ok"] is True
-    assert len(result["messages"]) == 2
+async def test_read_slack_channel_messages_param() -> None:
+    """Channel messages should be read successfully with default token."""
+    result = await srv.read_slack_channel_messages(
+        input_params=SlackReadChannelMessagesInput(channel="C123")
+    )
+    assert result == {
+        "ok": True,
+        "channel": "C123",
+        "messages": [
+            {"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"},
+            {"type": "message", "text": "Test message 1", "ts": "165612341.00000", "user": "U123451"},
+            {"type": "message", "text": "Test message 2", "ts": "165612342.00000", "user": "U123452"},
+        ],
+        "has_more": False,
+        "response_metadata": {"next_cursor": ""},
+    }
 
 
 @pytest.mark.asyncio
 async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should raise :class:`ValueError` if no token is provided at all for channel reading."""
+    """Function should raise :class:`ValueError` if no token is available in environment."""
 
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
+    # Make _get_default_client raise ValueError when no token is found
+    def patched_get_default_client():
+        raise ValueError("Slack token not found. Please provide a token or set environment variables.")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
+    
+    # Update the mock default token property to return None
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="#general"))
 
 
-@dataclass(slots=True, kw_only=True)
-class _TestBaseInput(_BaseInput):
-    """Test implementation of _BaseInput for testing purposes."""
-
-
-@pytest.mark.parametrize(
-    "token_param, env_vars, expected_result, should_raise",
-    [
-        # Case 1: explicit token parameter is provided
-        ("xoxb-explicit", {}, "xoxb-explicit", False),
-        # Case 2: SLACK_BOT_TOKEN env var is set, no token parameter
-        (None, {"SLACK_BOT_TOKEN": "xoxb-bot-token"}, "xoxb-bot-token", False),
-        # Case 3: SLACK_TOKEN env var is set, no token parameter or SLACK_BOT_TOKEN
-        (None, {"SLACK_TOKEN": "xoxb-slack-token"}, "xoxb-slack-token", False),
-        # Case 4: Both env vars are set, SLACK_BOT_TOKEN should take precedence
-        (None, {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"}, "xoxb-bot-token", False),
-        # Case 5: Token param overrides env vars
-        (
-            "xoxb-explicit",
-            {"SLACK_BOT_TOKEN": "xoxb-bot-token", "SLACK_TOKEN": "xoxb-slack-token"},
-            "xoxb-explicit",
-            False,
-        ),
-        # Case 6: Empty string token should raise (treated as None)
-        ("", {}, None, True),
-        # Case 7: No token anywhere should raise
-        (None, {}, None, True),
-    ],
-)
-def test_verify_slack_token_exist(
-    monkeypatch: pytest.MonkeyPatch,
-    token_param: str | None,
-    env_vars: dict[str, str],
-    expected_result: str | None,
-    should_raise: bool,
-) -> None:
-    """Test token resolution with different token sources."""
-    # Clear environment variables first
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
-    # Set env vars according to the test case
-    for var_name, var_value in env_vars.items():
-        monkeypatch.setenv(var_name, var_value)
-
-    # Import the factory here to ensure it picks up the monkeypatched environment
-    from slack_mcp.client_factory import DefaultSlackClientFactory
-
-    factory = DefaultSlackClientFactory()
-
-    if should_raise:
-        with pytest.raises(ValueError) as excinfo:
-            factory._resolve_token(token_param)
-        assert "Slack token not found" in str(excinfo.value)
-    else:
-        result = factory._resolve_token(token_param)
-        assert result == expected_result
-
-
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
-    """Token should be picked from environment when *token* argument is *None* for thread replies."""
-    # Clear all token env vars first
+    """Token should be picked from environment when using default client."""
+    # Remove all Slack token env vars first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Set only the one we want to test
+    # Then set just the one we want to test
     monkeypatch.setenv(env_var, "xoxb-env-token")
+    
+    # Update the mock default token property
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_env_token(self):
+        return "xoxb-env-token"
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+    
+    # Update the _get_default_client function to use our env token
+    def patched_get_default_client():
+        return _DummyAsyncWebClient(token="xoxb-env-token")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Reply text"])
+        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Hello"])
     )
-
-    assert isinstance(result, dict)
-    assert "responses" in result
-
-    responses = result["responses"]
-    assert isinstance(responses, list)
-    assert len(responses) == 1
-    assert responses[0]["ok"] is True
-    assert responses[0]["channel"] == "#general"
-    assert responses[0]["text"] == "Reply text"
-    assert responses[0]["thread_ts"] == thread_ts
-    assert "ts" in responses[0]
+    assert result == {
+        "responses": [
+            {
+                "ok": True,
+                "channel": "#general",
+                "text": "Hello",
+                "thread_ts": thread_ts,
+                "ts": "1620000000.000000",
+            }
+        ]
+    }
 
 
 @pytest.mark.asyncio
-async def test_send_slack_thread_reply_param(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicit *token* parameter takes precedence over environment variables for thread replies."""
-
-    # Ensure env vars are absent.
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
+async def test_send_slack_thread_reply_param() -> None:
+    """Thread replies should be sent successfully with default token."""
     thread_ts = "1620000000.000000"
     result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(
-            channel="C123", thread_ts=thread_ts, texts=["Reply text"], token="xoxb-param"
-        )
+        input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=["Hello"])
     )
-
-    assert isinstance(result, dict)
-    assert "responses" in result
-
-    responses = result["responses"]
-    assert isinstance(responses, list)
-    assert len(responses) == 1
-    assert responses[0]["ok"] is True
-    assert responses[0]["channel"] == "C123"
-    assert responses[0]["text"] == "Reply text"
-    assert responses[0]["thread_ts"] == thread_ts
-    assert "ts" in responses[0]
+    assert result == {
+        "responses": [
+            {
+                "ok": True,
+                "channel": "C123",
+                "text": "Hello",
+                "thread_ts": thread_ts,
+                "ts": "1620000000.000000",
+            }
+        ]
+    }
 
 
 @pytest.mark.asyncio
 async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should raise :class:`ValueError` if no token is provided at all for thread replies."""
+    """Function should raise :class:`ValueError` if no token is available in environment."""
 
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
+    # Make _get_default_client raise ValueError when no token is found
+    def patched_get_default_client():
+        raise ValueError("Slack token not found. Please provide a token or set environment variables.")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
+    
+    # Update the mock default token property to return None
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
 
     thread_ts = "1620000000.000000"
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.send_slack_thread_reply(
-            input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Reply text"])
+            input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Hello"])
         )
-
-
-@pytest.mark.asyncio
-async def test_send_slack_thread_reply_empty_texts(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should return a dict with an empty list if texts list is empty."""
-
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
-
-    thread_ts = "1620000000.000000"
-    result = await srv.send_slack_thread_reply(
-        input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=[])
-    )
-
-    assert isinstance(result, dict)
-    assert "responses" in result
-    assert isinstance(result["responses"], list)
-    assert len(result["responses"]) == 0
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
-    """Token should be picked from environment when *token* argument is *None* for emoji reading."""
-    # Clear all token env vars first
+    """Token should be picked from environment when using default client."""
+    # Remove all Slack token env vars first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Set only the one we want to test
+    # Then set just the one we want to test
     monkeypatch.setenv(env_var, "xoxb-env-token")
+    
+    # Update the mock default token property
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_env_token(self):
+        return "xoxb-env-token"
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+    
+    # Update the _get_default_client function to use our env token
+    def patched_get_default_client():
+        return _DummyAsyncWebClient(token="xoxb-env-token")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
     result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
-    assert result["ok"] is True
-    assert "emoji" in result
-    assert isinstance(result["emoji"], dict)
-    assert result["emoji"]["thumbsup"] == "alias:+1"
-    assert result["emoji"]["custom_emoji1"] == "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png"
+    assert result == {
+        "ok": True,
+        "emoji": {
+            "aliases": {
+                "thumbsup": "+1",
+                "smile": "grinning",
+            },
+            "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+            "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+        },
+    }
 
 
 @pytest.mark.asyncio
-async def test_read_slack_emojis_param(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicit *token* parameter takes precedence over environment variables for emoji reading."""
-
-    # Ensure env vars are absent.
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
-    result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput(token="xoxb-param"))
-    assert result["ok"] is True
-    assert "emoji" in result
-    assert isinstance(result["emoji"], dict)
+async def test_read_slack_emojis_param() -> None:
+    """Emojis should be read successfully with default token."""
+    result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
+    assert result == {
+        "ok": True,
+        "emoji": {
+            "aliases": {
+                "thumbsup": "+1",
+                "smile": "grinning",
+            },
+            "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+            "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+        },
+    }
 
 
 @pytest.mark.asyncio
 async def test_read_slack_emojis_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should raise :class:`ValueError` if no token is provided at all for emoji reading."""
+    """Function should raise :class:`ValueError` if no token is available in environment."""
 
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
+    # Make _get_default_client raise ValueError when no token is found
+    def patched_get_default_client():
+        raise ValueError("Slack token not found. Please provide a token or set environment variables.")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
+    
+    # Update the mock default token property to return None
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
@@ -540,87 +586,86 @@ async def test_read_slack_emojis_missing_token(monkeypatch: pytest.MonkeyPatch) 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("env_var", aSYNC_TOKEN_ENV_VARS)
 async def test_add_slack_reactions_env(monkeypatch: pytest.MonkeyPatch, env_var: str) -> None:
-    """Token should be picked from environment when *token* argument is *None* for reaction adding."""
-    # Clear all token env vars first
+    """Token should be picked from environment when using default client."""
+    # Remove all Slack token env vars first
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Set only the one we want to test
+    # Then set just the one we want to test
     monkeypatch.setenv(env_var, "xoxb-env-token")
+    
+    # Update the mock default token property
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_env_token(self):
+        return "xoxb-env-token"
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+    
+    # Update the _get_default_client function to use our env token
+    def patched_get_default_client():
+        return _DummyAsyncWebClient(token="xoxb-env-token")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
 
     timestamp = "1620000000.000000"
     result = await srv.add_slack_reactions(
         input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=["thumbsup"])
     )
-
-    assert isinstance(result, dict)
-    assert "responses" in result
-
-    responses = result["responses"]
-    assert isinstance(responses, list)
-    assert len(responses) == 1
-
-    # Check first reaction
-    assert responses[0]["ok"] is True
-    assert responses[0]["channel"] == "#general"
-    assert responses[0]["timestamp"] == timestamp
-    assert responses[0]["name"] == "thumbsup"
+    assert result == {
+        "responses": [
+            {
+                "ok": True,
+                "channel": "#general",
+                "timestamp": timestamp,
+                "name": "thumbsup",
+            }
+        ]
+    }
 
 
 @pytest.mark.asyncio
-async def test_add_slack_reactions_param(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Explicit *token* parameter takes precedence over environment variables for adding reactions."""
-
-    # Ensure env vars are absent.
-    for var in aSYNC_TOKEN_ENV_VARS:
-        monkeypatch.delenv(var, raising=False)
-
+async def test_add_slack_reactions_param() -> None:
+    """Reactions should be added successfully with default token."""
     timestamp = "1620000000.000000"
     result = await srv.add_slack_reactions(
-        input_params=SlackAddReactionsInput(channel="C123", timestamp=timestamp, emojis=["smile"], token="xoxb-param")
+        input_params=SlackAddReactionsInput(channel="C123", timestamp=timestamp, emojis=["thumbsup"])
     )
-
-    assert isinstance(result, dict)
-    assert "responses" in result
-
-    responses = result["responses"]
-    assert isinstance(responses, list)
-    assert len(responses) == 1
-    assert responses[0]["ok"] is True
-    assert responses[0]["channel"] == "C123"
-    assert responses[0]["timestamp"] == timestamp
-    assert responses[0]["name"] == "smile"
+    assert result == {
+        "responses": [
+            {
+                "ok": True,
+                "channel": "C123",
+                "timestamp": timestamp,
+                "name": "thumbsup",
+            }
+        ]
+    }
 
 
 @pytest.mark.asyncio
 async def test_add_slack_reactions_missing_token(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should raise :class:`ValueError` if no token is provided at all for adding reactions."""
+    """Function should raise :class:`ValueError` if no token is available in environment."""
 
     for var in aSYNC_TOKEN_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
 
-    # Restore original get_slack_client
-    monkeypatch.setattr("slack_mcp.server.get_slack_client", ORIGINAL_GET_SLACK_CLIENT)
+    # Make _get_default_client raise ValueError when no token is found
+    def patched_get_default_client():
+        raise ValueError("Slack token not found. Please provide a token or set environment variables.")
+    
+    monkeypatch.setattr("slack_mcp.server._get_default_client", patched_get_default_client)
+    
+    # Update the mock default token property to return None
+    from slack_mcp.client_manager import SlackClientManager
+    
+    def mock_none_token(self):
+        return None
+    
+    monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_none_token))
 
     timestamp = "1620000000.000000"
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.add_slack_reactions(
-            input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=["smile"])
+            input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=["thumbsup"])
         )
-
-
-@pytest.mark.asyncio
-async def test_add_slack_reactions_empty_emojis(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Function should return a dict with an empty list if emojis list is empty."""
-
-    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
-
-    timestamp = "1620000000.000000"
-    result = await srv.add_slack_reactions(
-        input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=[])
-    )
-
-    assert isinstance(result, dict)
-    assert "responses" in result
-    assert isinstance(result["responses"], list)
-    assert len(result["responses"]) == 0

@@ -264,32 +264,41 @@ class TestUpdateSlackClient:
         # Create a custom client
         custom_client = AsyncWebClient(token="custom-token")
         
-        # Update with new client
-        srv.update_slack_client("custom-token", custom_client)
-        
-        # Check it was added to cache
-        assert len(manager._async_clients) == 1
-        cache_key = "custom-token:True"  # Default is use_retries=True
-        assert cache_key in manager._async_clients
-        assert manager._async_clients[cache_key] is custom_client
+        # Update with new client - in the refactored approach, this will use the default token
+        # from the environment, not the token passed to update_slack_client
+        with patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                   new_callable=MagicMock) as mock_default_token:
+            mock_default_token.return_value = "custom-token"
+            srv.update_slack_client("custom-token", custom_client)
+            
+            # Check it was added to cache
+            assert len(manager._async_clients) == 1
+            cache_key = "custom-token:True"  # Default is use_retries=True
+            assert cache_key in manager._async_clients
+            assert manager._async_clients[cache_key] is custom_client
 
     def test_update_existing_client(self, reset_slack_clients: None) -> None:
         """Should replace an existing client in the cache."""
         # Setup - add a client to cache
-        original_client = srv.get_slack_client("test-token")
-        manager = get_client_manager()
-        cache_key = "test-token:True"  # Default is use_retries=True
-        assert manager._async_clients[cache_key] is original_client
-        
-        # Create a replacement client
-        replacement_client = AsyncWebClient(token="test-token")
-        
-        # Update the client
-        srv.update_slack_client("test-token", replacement_client)
-        
-        # Check it replaced the original in cache
-        assert manager._async_clients[cache_key] is replacement_client
-        assert manager._async_clients[cache_key] is not original_client
+        with patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                   new_callable=MagicMock) as mock_default_token:
+            mock_default_token.return_value = "test-token"
+            
+            # Get the original client
+            original_client = srv.get_slack_client("test-token")
+            manager = get_client_manager()
+            cache_key = "test-token:True"  # Default is use_retries=True
+            assert manager._async_clients[cache_key] is original_client
+            
+            # Create a replacement client
+            replacement_client = AsyncWebClient(token="test-token")
+            
+            # Update the client
+            srv.update_slack_client("test-token", replacement_client)
+            
+            # Check it replaced the original in cache
+            assert manager._async_clients[cache_key] is replacement_client
+            assert manager._async_clients[cache_key] is not original_client
 
     def test_update_with_empty_token_raises_error(self, reset_slack_clients: None) -> None:
         """Should raise ValueError when token is empty."""

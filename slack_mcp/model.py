@@ -1,3 +1,5 @@
+"""Data models for Slack MCP server functions."""
+
 from __future__ import annotations
 
 from abc import ABC
@@ -18,13 +20,10 @@ __all__: list[str] = [
 class _BaseInput(ABC):
     """
     Base abstract class for Slack input models.
-
-    :param token: the Slack bot token to use (optional, default to ``None``)
-        If not provided, it will attempt to get one from environment variable
-        ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
+    
+    All Slack tokens are now managed centrally by the SlackClientManager.
+    Tokens are resolved from environment variables (SLACK_BOT_TOKEN or SLACK_TOKEN).
     """
-
-    token: str | None = None
 
 
 @dataclass(slots=True, kw_only=True)
@@ -72,7 +71,6 @@ class SlackReadChannelMessagesInput(_BaseInput):
     oldest: str | None = None
     latest: str | None = None
     inclusive: bool = False
-    token: str | None = None
 
 
 @dataclass(slots=True, kw_only=True)
@@ -83,9 +81,6 @@ class SlackThreadReplyInput(_BaseInput):
     :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
     :param thread_ts: the timestamp of the thread parent message to reply to
     :param texts: a list of text messages to send as replies to the thread
-    :param token: the Slack bot token to use (optional, default to ``None``)
-        If not provided, it will attempt to get one from environment variable
-        ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
     """
 
     channel: str
@@ -97,10 +92,6 @@ class SlackThreadReplyInput(_BaseInput):
 class SlackReadEmojisInput(_BaseInput):
     """
     Structured input for :pydata:`read_slack_emojis`.
-
-    :param token: the Slack bot token to use (optional, default to ``None``)
-        If not provided, it will attempt to get one from environment variable
-        ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
     """
 
 
@@ -112,9 +103,6 @@ class SlackAddReactionsInput(_BaseInput):
     :param channel: the channel ID (e.g. C12345678) or name with ``#`` prefix (e.g. ``#general``)
     :param timestamp: the timestamp of the message to react to
     :param emojis: a list of emoji names to add as reactions
-    :param token: the Slack bot token to use (optional, default to ``None``)
-        If not provided, it will attempt to get one from environment variable
-        ``SLACK_BOT_TOKEN`` or ``SLACK_TOKEN``.
     """
 
     channel: str

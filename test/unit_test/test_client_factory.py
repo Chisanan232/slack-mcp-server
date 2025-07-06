@@ -121,54 +121,62 @@ class TestDefaultSlackClientFactory:
             mock_client.assert_called_once_with(token=test_token)
 
     def test_create_async_client_from_input_uses_input_token(self, factory):
-        """Test client creation from input uses the input's token attribute."""
-        test_token = "xoxb-from-input"
+        """Test client creation from input uses the default token from environment."""
+        # Since we've refactored to remove token from input objects,
+        # this test now verifies that the factory uses the default token
+        # from the environment when creating a client from an input object
 
-        class TestInput(_BaseInput):
-            pass
-
-        input_obj = TestInput(token=test_token)
-
-        # Mock AsyncWebClient to verify initialization
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            factory.create_async_client_from_input(input_obj)
+            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                           new_callable=mock.PropertyMock) as mock_default_token:
+                mock_default_token.return_value = "xoxb-default-token"
+                
+                class TestInput(_BaseInput):
+                    pass
 
-            # Verify client was initialized with token from input
-            mock_client.assert_called_once_with(token=test_token)
+                input_obj = TestInput()
+                factory.create_async_client_from_input(input_obj)
+
+                # Verify client was initialized with default token
+                mock_client.assert_called_once_with(token="xoxb-default-token")
 
     def test_create_async_client_from_input_without_token(self, factory, mock_env_tokens):
-        """Test client creation from input falls back to environment when input has no token."""
+        """Test client creation from input uses environment token."""
         env_token = "xoxb-from-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        class TestInput(_BaseInput):
-            pass
-
-        input_obj = TestInput()  # No token attribute
-
-        # Mock AsyncWebClient to verify initialization
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            factory.create_async_client_from_input(input_obj)
+            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                           new_callable=mock.PropertyMock) as mock_default_token:
+                mock_default_token.return_value = env_token
+                
+                class TestInput(_BaseInput):
+                    pass
 
-            # Verify client was initialized with token from environment
-            mock_client.assert_called_once_with(token=env_token)
+                input_obj = TestInput()
+                factory.create_async_client_from_input(input_obj)
+
+                # Verify client was initialized with token from environment
+                mock_client.assert_called_once_with(token=env_token)
 
     def test_create_async_client_from_input_with_none_token(self, factory, mock_env_tokens):
-        """Test client creation from input with token=None falls back to environment."""
+        """Test client creation from input uses environment token when no token is available."""
         env_token = "xoxb-from-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        class TestInput(_BaseInput):
-            pass
-
-        input_obj = TestInput(token=None)  # Token is explicitly None
-
-        # Mock AsyncWebClient to verify initialization
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            factory.create_async_client_from_input(input_obj)
+            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                           new_callable=mock.PropertyMock) as mock_default_token:
+                mock_default_token.return_value = env_token
+                
+                class TestInput(_BaseInput):
+                    pass
 
-            # Verify client was initialized with token from environment
-            mock_client.assert_called_once_with(token=env_token)
+                input_obj = TestInput()
+                factory.create_async_client_from_input(input_obj)
+
+                # Verify client was initialized with token from environment
+                mock_client.assert_called_once_with(token=env_token)
 
     def test_handle_empty_string_token(self, factory, mock_env_tokens):
         """Test handling of empty string tokens."""
@@ -200,16 +208,19 @@ class TestDefaultSlackClientFactory:
     )
     def test_with_different_input_types(self, factory, input_class, expected_attributes):
         """Test factory works with different types of input objects."""
-        test_token = "xoxb-input-test"
+        # Create input instance with expected attributes (no token)
+        input_obj = input_class(**expected_attributes)
 
-        # Create input object with expected attributes plus token
-        input_attrs = {**expected_attributes, "token": test_token}
-        input_obj = input_class(**input_attrs)
-
-        # Verify token extraction works for all input types
         with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
-            factory.create_async_client_from_input(input_obj)
-            mock_client.assert_called_once_with(token=test_token)
+            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                           new_callable=mock.PropertyMock) as mock_default_token:
+                mock_default_token.return_value = "xoxb-default-token"
+                
+                # Create client from input
+                client = factory.create_async_client_from_input(input_obj)
+
+                # Verify client was created with default token
+                mock_client.assert_called_once_with(token="xoxb-default-token")
 
     def test_thread_safety(self, factory):
         """Test that token resolution works in a thread-safe manner."""
@@ -352,18 +363,30 @@ class TestRetryableSlackClientFactory:
 
     def test_async_client_from_input_has_retry_handlers(self, factory, mock_env_tokens):
         """Test that async clients created from input have retry handlers attached."""
-        # Create a mock client with a retry_handlers list attribute
-        mock_client = mock.MagicMock()
-        mock_client.retry_handlers = []
+        env_token = "xoxb-from-env"
+        mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        # Create a mock client constructor that returns our mock client
-        mock_client_constructor = mock.MagicMock(return_value=mock_client)
+        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client_class:
+            with mock.patch("slack_mcp.client_manager.SlackClientManager._default_token", 
+                           new_callable=mock.PropertyMock) as mock_default_token:
+                mock_default_token.return_value = env_token
+                
+                # Create a mock instance that we can inspect
+                mock_instance = mock.MagicMock()
+                mock_instance.retry_handlers = []
+                mock_client_class.return_value = mock_instance
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient", mock_client_constructor):
-            client = factory.create_async_client_from_input(_BaseInput(token="xoxb-test-token"))
+                # Create input object without token
+                input_obj = SlackPostMessageInput(channel="test-channel", text="Hello")
+                
+                # Create client from input
+                client = factory.create_async_client_from_input(input_obj)
 
-            # Client should have retry handlers attached
-            assert len(client.retry_handlers) > 0
+                # Verify retry handlers were attached
+                assert len(client.retry_handlers) > 0
+                assert any(isinstance(h, AsyncRateLimitErrorRetryHandler) for h in client.retry_handlers)
+                assert any(isinstance(h, AsyncServerErrorRetryHandler) for h in client.retry_handlers)
+                assert any(isinstance(h, AsyncConnectionErrorRetryHandler) for h in client.retry_handlers)
 
     def test_inheritance_maintains_token_resolution(self, factory, mock_env_tokens):
         """Test that token resolution still works correctly in retryable factory."""
