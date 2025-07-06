@@ -134,7 +134,7 @@ jobs:
         )
       }}
     needs: build-and-test
-    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_sonarqube_scan.yaml@v7.3
+    uses: ./.github/workflows/rw_sonarqube_scan.yaml
     secrets:
       sonar_token: ${{ secrets.sonar_token }}
     with:
