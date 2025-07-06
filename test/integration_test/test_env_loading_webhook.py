@@ -71,21 +71,32 @@ def test_webhook_create_slack_app_with_initialize_client():
     test_bot_token = "xoxb-slack-app-env-token"
 
     with patch.dict("os.environ", {"SLACK_BOT_TOKEN": test_bot_token}):
-        with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls:
-            # Import here to use the patched environment
-            from slack_mcp.slack_app import create_slack_app, initialize_slack_client
-
-            # Create app which should NOT initialize client
-            app = create_slack_app()
-
-            # Verify client was NOT created yet
-            mock_client_cls.assert_not_called()
-
-            # Now initialize the client
-            initialize_slack_client()
-
-            # Verify client was created with correct token
-            mock_client_cls.assert_called_once_with(token=test_bot_token)
+        # Create mock client and manager
+        mock_client = MagicMock()
+        mock_client.token = test_bot_token
+        
+        mock_manager = MagicMock()
+        mock_manager._default_retry_count = 0
+        mock_manager.get_async_client.return_value = mock_client
+        
+        # We need to patch get_client_manager before importing the modules
+        with patch("slack_mcp.client_manager.SlackClientManager._instance", None):
+            with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+                # Import here to use the patched environment
+                from slack_mcp.slack_app import create_slack_app, initialize_slack_client
+                
+                # Create app which should NOT initialize client
+                app = create_slack_app()
+                
+                # Verify client was NOT created yet
+                mock_manager.get_async_client.assert_not_called()
+                
+                # Now initialize the client
+                client = initialize_slack_client()
+                
+                # Verify client was created with correct token
+                mock_manager.get_async_client.assert_called_once_with(None, False)
+                assert client is mock_client
 
 
 def test_webhook_initialize_client_with_param_token():
@@ -95,12 +106,23 @@ def test_webhook_initialize_client_with_param_token():
     param_token = "xoxb-slack-app-param-token"
 
     with patch.dict("os.environ", {"SLACK_BOT_TOKEN": env_token}):
-        with patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls:
-            # Import here to use the patched environment
-            from slack_mcp.slack_app import initialize_slack_client
-
-            # Initialize client with explicit token parameter
-            initialize_slack_client(token=param_token)
-
-            # Verify client was created with parameter token, not env var
-            mock_client_cls.assert_called_once_with(token=param_token)
+        # Create a mock client and manager
+        mock_client = MagicMock()
+        mock_client.token = param_token
+        
+        mock_manager = MagicMock()
+        mock_manager._default_retry_count = 0
+        mock_manager.get_async_client.return_value = mock_client
+        
+        # We need to patch get_client_manager before importing the modules
+        with patch("slack_mcp.client_manager.SlackClientManager._instance", None):
+            with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+                # Import here to use the patched environment
+                from slack_mcp.slack_app import initialize_slack_client
+                
+                # Initialize client with explicit token parameter
+                client = initialize_slack_client(token=param_token)
+                
+                # Verify client was created with parameter token, not env var
+                mock_manager.get_async_client.assert_called_once_with(param_token, False)
+                assert client is mock_client
