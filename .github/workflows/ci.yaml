@@ -11,7 +11,9 @@ on:
       - ".github/workflows/**ci.yaml"
       - ".github/workflows/rw_build_and_test.yaml"
       - ".github/workflows/rw_uv_run_test.yaml"
+      - ".github/workflows/rw_run_all_test_and_record.yaml"
       - ".github/workflows/rw_uv_run_test_with_multi_py_versions.yaml"
+      - ".github/workflows/rw_sonarqube_scan.yaml"
 #     For source code and test
       - "slack_mcp/**/*.py"
       - "!**/__pkg_info__.py"
@@ -37,7 +39,9 @@ on:
       - ".github/workflows/**ci.yaml"
       - ".github/workflows/rw_build_and_test.yaml"
       - ".github/workflows/rw_uv_run_test.yaml"
-      - "rw_uv_run_test_with_multi_py_versions.yaml"
+      - ".github/workflows/rw_run_all_test_and_record.yaml"
+      - ".github/workflows/rw_uv_run_test_with_multi_py_versions.yaml"
+      - ".github/workflows/rw_sonarqube_scan.yaml"
 #     For source code and test
       - "slack_mcp/**/*.py"
       - "!**/__pkg_info__.py"
