@@ -11,6 +11,7 @@ import sys
 import threading
 import tracemalloc
 import warnings
+import logging
 from typing import Generator
 
 import pytest
@@ -31,25 +32,24 @@ threading.excepthook = lambda args: tracemalloc.get_object_traceback(args.exc_va
 @pytest.fixture(scope="session", autouse=True)
 def set_event_loop_policy():
     """Configure the event loop policy for tests based on platform and environment."""
-    # Use a more robust policy for CI environments
-    if os.environ.get("CI", "").lower() == "true" or os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
-        if sys.platform == "win32":
-            # For Windows in CI, use the selector policy which is more stable
-            policy = asyncio.WindowsSelectorEventLoopPolicy()
-        else:
-            # For Linux/macOS in CI, use the default policy but with explicit cleanup
-            policy = asyncio.DefaultEventLoopPolicy()
-
-        asyncio.set_event_loop_policy(policy)
-
+    # For CI environments on macOS, use a custom policy to avoid "Event loop is closed" errors
+    if sys.platform == "darwin" and os.environ.get("CI"):
+        asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
+    
     # For local environments, use the default policy
     yield
 
     # Clean up at the end of the session
     try:
-        # Get the current event loop if one exists
+        # Get the current event loop if one exists, using the new API to avoid deprecation warnings
         try:
-            loop = asyncio.get_event_loop()
+            # Use get_running_loop() if there's a running loop, otherwise create a new one
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                # No running loop, create a new one
+                loop = asyncio.new_event_loop()
+                
             if loop.is_running():
                 loop.stop()
             if not loop.is_closed():
@@ -58,8 +58,8 @@ def set_event_loop_policy():
             # No event loop exists - that's fine
             pass
     except Exception:
-        # Ignore cleanup errors
-        pass
+        # Log but don't fail the test session
+        logging.exception("Error during event loop cleanup")
 
 
 @pytest.fixture(scope="function")
