@@ -134,7 +134,7 @@ jobs:
         )
       }}
     needs: build-and-test
-    uses: ./.github/workflows/rw_sonarqube_scan.yaml
+    uses: ./.github/workflows/rw_sonarqube_scan.yaml@v7.3
     secrets:
       sonar_token: ${{ secrets.sonar_token }}
     with:
