@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from slack_mcp.server import FastMCP
-from slack_mcp.slack_server import (
+from slack_mcp.webhook.entry import (
     main,
     register_mcp_tools,
     run_integrated_server,
@@ -47,8 +47,8 @@ def test_register_mcp_tools(mock_mcp):
 async def test_run_slack_server():
     """Test running the Slack server."""
     with (
-        patch("slack_mcp.slack_server.create_slack_app") as mock_create_app,
-        patch("slack_mcp.slack_server.initialize_slack_client") as mock_initialize_client,
+        patch("slack_mcp.webhook.entry.create_slack_app") as mock_create_app,
+        patch("slack_mcp.webhook.entry.initialize_slack_client") as mock_initialize_client,
         patch("uvicorn.Server") as mock_server_cls,
         patch("uvicorn.Config") as mock_config_cls,
     ):
@@ -147,14 +147,14 @@ def test_main(
 ):
     """Test the main function with different command line arguments."""
     with (
-        patch("sys.argv", ["slack_server.py"] + cmd_args),
-        patch("slack_mcp.slack_server.asyncio.run") as mock_run,
-        patch("slack_mcp.slack_server.logging.basicConfig") as mock_logging,
-        patch("slack_mcp.slack_server.load_dotenv") as mock_load_dotenv,
-        patch("slack_mcp.slack_server.pathlib.Path") as mock_path,
-        patch("slack_mcp.slack_server.register_mcp_tools") as mock_register_mcp_tools,
-        patch("slack_mcp.slack_server.run_integrated_server", new_callable=MagicMock) as mock_run_integrated_server,
-        patch("slack_mcp.slack_server.run_slack_server", new_callable=MagicMock) as mock_run_slack_server,
+        patch("sys.argv", ["entry.py"] + cmd_args),
+        patch("slack_mcp.webhook.entry.asyncio.run") as mock_run,
+        patch("slack_mcp.webhook.entry.logging.basicConfig") as mock_logging,
+        patch("slack_mcp.webhook.entry.load_dotenv") as mock_load_dotenv,
+        patch("slack_mcp.webhook.entry.pathlib.Path") as mock_path,
+        patch("slack_mcp.webhook.entry.register_mcp_tools") as mock_register_mcp_tools,
+        patch("slack_mcp.webhook.entry.run_integrated_server", new_callable=MagicMock) as mock_run_integrated_server,
+        patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock) as mock_run_slack_server,
     ):
         # Configure the mock path to simulate env file existence
         mock_path_instance = MagicMock()
@@ -235,7 +235,7 @@ def test_main(
 async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount_path):
     """Test running the integrated server with different configurations."""
     with (
-        patch("slack_mcp.slack_server.create_integrated_app") as mock_create_app,
+        patch("slack_mcp.webhook.entry.create_integrated_app") as mock_create_app,
         patch("uvicorn.Server") as mock_server_cls,
         patch("uvicorn.Config") as mock_config_cls,
     ):
