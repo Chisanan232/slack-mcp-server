@@ -43,7 +43,7 @@ Repository = "https://github.com/Chisanan232/slack-mcp-server"
 
 [project.scripts]
 slack-mcp-server = "slack_mcp.entry:main"
-slack-events-server = "slack_mcp.slack_server:main"
+slack-webhook-server = "slack_mcp.webhook.entry:main"
 
 [project.entry-points."slack_mcp.queue_backends"]
 #memory = "slack_mcp.backends.memory:MemoryBackend"
