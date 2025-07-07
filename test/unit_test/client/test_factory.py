@@ -27,7 +27,7 @@ from slack_mcp.client.factory import (
     default_factory,
     retryable_factory,
 )
-from slack_mcp.model import SlackPostMessageInput, SlackThreadReplyInput, _BaseInput
+from slack_mcp.mcp.model.input import SlackPostMessageInput, SlackThreadReplyInput, _BaseInput
 
 
 class TestDefaultSlackClientFactory:

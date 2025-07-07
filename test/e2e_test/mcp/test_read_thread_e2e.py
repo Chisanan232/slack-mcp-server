@@ -88,7 +88,7 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     # Use simple transport args with explicit log level
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry"],
         env=custom_env,
     )
 

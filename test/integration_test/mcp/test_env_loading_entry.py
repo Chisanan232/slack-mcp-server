@@ -1,4 +1,4 @@
-"""Integration tests for .env file loading in the entry.py module."""
+"""Integration tests for .env file loading in the mcp.entry.py module."""
 
 import os
 import tempfile
@@ -24,7 +24,7 @@ def test_dotenv_loading_with_valid_env_file():
             with patch.object(_server_instance, "run") as mock_run:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
-                    from slack_mcp.entry import main
+                    from slack_mcp.mcp.entry import main
 
                     # Run the main function which should load the .env file
                     main()
@@ -60,7 +60,7 @@ def test_cmd_line_token_overrides_env_file():
             with patch.object(_server_instance, "run") as mock_run:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
-                    from slack_mcp.entry import main
+                    from slack_mcp.mcp.entry import main
 
                     # Run the main function which should load the .env file and override with cmd line
                     main()
@@ -86,7 +86,7 @@ def test_dotenv_loading_with_nonexistent_env_file():
             with patch("logging.Logger.warning") as mock_warning:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
-                    from slack_mcp.entry import main
+                    from slack_mcp.mcp.entry import main
 
                     # Run the main function which should attempt to load the .env file
                     main()
@@ -115,7 +115,7 @@ def test_dotenv_loading_disabled():
             with patch.object(_server_instance, "run") as mock_run:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
-                    from slack_mcp.entry import main
+                    from slack_mcp.mcp.entry import main
 
                     # Run the main function which should NOT load the .env file
                     main()
@@ -153,7 +153,7 @@ def test_sse_transport_with_token():
 
                     with patch.dict("os.environ", {}, clear=True):
                         # Import here to ensure clean environment
-                        from slack_mcp.entry import main
+                        from slack_mcp.mcp.entry import main
 
                         # Run the main function which should load the .env file
                         main()

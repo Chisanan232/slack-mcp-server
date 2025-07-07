@@ -8,7 +8,7 @@ import pytest
 from slack_sdk.http_retry.async_handler import AsyncRetryHandler
 
 import slack_mcp.mcp.server as srv
-from slack_mcp.model import (
+from slack_mcp.mcp.model.input import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
