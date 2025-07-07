@@ -15,9 +15,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.backends.loader import BACKEND_ENTRY_POINT_GROUP, load_backend
-from slack_mcp.backends.memory import MemoryBackend
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.queue.memory import MemoryBackend
 
 
 class MockEntryPoint:
@@ -58,7 +58,7 @@ def test_no_backends_available(reset_env):
     with (
         patch("slack_mcp.backends.loader.entry_points", return_value=[]),
         patch("slack_mcp.backends.loader.warnings.warn") as mock_warn,
-        patch("slack_mcp.backends.memory.MemoryBackend.from_env", return_value=MemoryBackend()),
+        patch("slack_mcp.backends.queue.memory.MemoryBackend.from_env", return_value=MemoryBackend()),
     ):
 
         backend = load_backend()
@@ -174,7 +174,7 @@ def test_fallback_to_memory_backend(reset_env):
 
 def test_entry_point_group_name():
     """Ensure the entry point group name is correctly defined."""
-    assert BACKEND_ENTRY_POINT_GROUP == "slack_mcp.queue_backends"
+    assert BACKEND_ENTRY_POINT_GROUP == "slack_mcp.backends.queue"
 
 
 # Integration of TestBackendLoader tests (converted to pytest style)

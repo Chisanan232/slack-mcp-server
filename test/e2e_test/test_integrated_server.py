@@ -16,7 +16,7 @@ import pytest_asyncio
 import uvicorn
 from fastapi import Request
 
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.integrated_server import create_integrated_app
 
 

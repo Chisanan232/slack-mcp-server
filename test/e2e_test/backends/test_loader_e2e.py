@@ -12,7 +12,7 @@ import pytest
 
 # Import the components to test
 from slack_mcp.backends.loader import load_backend
-from slack_mcp.backends.memory import MemoryBackend
+from slack_mcp.backends.queue.memory import MemoryBackend
 
 
 @pytest.fixture

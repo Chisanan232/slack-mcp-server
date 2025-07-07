@@ -9,7 +9,7 @@ from unittest import mock
 
 import pytest
 
-from slack_mcp.backends.consumer import AsyncLoopConsumer
+from slack_mcp.backends.base.consumer import AsyncLoopConsumer
 
 
 class MockBackend:

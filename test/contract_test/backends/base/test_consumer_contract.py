@@ -12,9 +12,9 @@ from unittest import mock
 
 import pytest
 
-from slack_mcp.backends.consumer import AsyncLoopConsumer, EventConsumer
-from slack_mcp.backends.memory import MemoryBackend
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.consumer import AsyncLoopConsumer, EventConsumer
+from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.backends.queue.memory import MemoryBackend
 
 
 class EventConsumerContractTest(abc.ABC):

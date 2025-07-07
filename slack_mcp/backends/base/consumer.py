@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional, Protocol
 
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)

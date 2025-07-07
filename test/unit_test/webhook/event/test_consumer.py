@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
 from slack_mcp.webhook.event.handler.decorator import DecoratorHandler

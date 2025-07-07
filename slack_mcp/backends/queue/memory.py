@@ -12,7 +12,7 @@ import logging
 import warnings
 from typing import Any, AsyncIterator, Dict, Optional, Tuple
 
-from .protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 
 # Set up logger for the memory backend
 logger = logging.getLogger(__name__)
