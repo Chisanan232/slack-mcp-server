@@ -4,7 +4,7 @@ This module tests the Pydantic models and deserialization functionality
 for Slack events API payloads.
 """
 
-from slack_mcp.slack_models import (
+from slack_mcp.webhook.models import (
     EventCallbackModel,
     SlackEventModel,
     UrlVerificationModel,
