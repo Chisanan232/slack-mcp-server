@@ -14,7 +14,7 @@ import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.client_factory import (
+from slack_mcp.client.factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
     SlackClientFactory,
@@ -41,7 +41,7 @@ class SlackClientFactoryContractTest(ABC):
 
     # === CORE CONTRACT REQUIREMENTS ===
 
-    @patch("slack_mcp.client_factory.AsyncWebClient")
+    @patch("slack_mcp.client.factory.AsyncWebClient")
     def test_factory_creates_async_web_client(self, mock_async_client_class, factory):
         """
         CONTRACT: A factory must create an AsyncWebClient instance when
@@ -59,7 +59,7 @@ class SlackClientFactoryContractTest(ABC):
         args, kwargs = mock_async_client_class.call_args
         assert kwargs.get("token") == "xoxb-valid-test-token"
 
-    @patch("slack_mcp.client_factory.WebClient")
+    @patch("slack_mcp.client.factory.WebClient")
     def test_factory_creates_web_client(self, mock_web_client_class, factory):
         """
         CONTRACT: A factory must create a WebClient instance when
@@ -77,8 +77,8 @@ class SlackClientFactoryContractTest(ABC):
         args, kwargs = mock_web_client_class.call_args
         assert kwargs.get("token") == "xoxb-valid-test-token"
 
-    @patch("slack_mcp.client_factory.AsyncWebClient")
-    @patch("slack_mcp.client_factory.WebClient")
+    @patch("slack_mcp.client.factory.AsyncWebClient")
+    @patch("slack_mcp.client.factory.WebClient")
     def test_factory_creates_client_with_provided_token(
         self, mock_web_client_class, mock_async_client_class, factory, monkeypatch
     ):
@@ -113,7 +113,7 @@ class SlackClientFactoryContractTest(ABC):
         sync_args, sync_kwargs = mock_web_client_class.call_args
         assert sync_kwargs.get("token") == test_token
 
-    @patch("slack_mcp.client_factory.AsyncWebClient")
+    @patch("slack_mcp.client.factory.AsyncWebClient")
     def test_client_creation_from_input(self, mock_async_client_class, factory, monkeypatch):
         """
         CONTRACT: A factory must be able to create a client from an input object
@@ -130,7 +130,7 @@ class SlackClientFactoryContractTest(ABC):
         monkeypatch.setenv("SLACK_BOT_TOKEN", test_token)
 
         # Patch the SlackClientManager._default_token property
-        from slack_mcp.client_manager import SlackClientManager
+        from slack_mcp.client.manager import SlackClientManager
 
         def mock_env_token(self):
             return test_token
@@ -172,7 +172,7 @@ class SlackClientFactoryContractTest(ABC):
     # === BEHAVIORAL CONTRACT REQUIREMENTS ===
 
     @pytest.mark.asyncio
-    @patch("slack_mcp.client_factory.AsyncWebClient")
+    @patch("slack_mcp.client.factory.AsyncWebClient")
     async def test_async_slack_message_behavior(self, mock_async_client_class, factory):
         """
         CONTRACT: A factory must produce AsyncWebClient instances that can
@@ -209,7 +209,7 @@ class SlackClientFactoryContractTest(ABC):
         assert kwargs.get("text") == test_message
         assert response == expected_response
 
-    @patch("slack_mcp.client_factory.WebClient")
+    @patch("slack_mcp.client.factory.WebClient")
     def test_sync_slack_message_behavior(self, mock_web_client_class, factory):
         """
         CONTRACT: A factory must produce WebClient instances that can

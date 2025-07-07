@@ -9,7 +9,7 @@ import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp import server as srv
-from slack_mcp.client_manager import SlackClientManager, get_client_manager
+from slack_mcp.client.manager import SlackClientManager, get_client_manager
 
 
 @pytest.fixture
@@ -90,7 +90,7 @@ class TestGetSlackClient:
         mock_factory.create_async_client.return_value = mock_client
 
         # Patch the RetryableSlackClientFactory class to return our mock factory
-        with patch("slack_mcp.client_manager.RetryableSlackClientFactory", return_value=mock_factory):
+        with patch("slack_mcp.client.manager.RetryableSlackClientFactory", return_value=mock_factory):
             # Get the client manager and set retry count
             manager = get_client_manager()
             manager.update_retry_count(5)
@@ -188,7 +188,7 @@ class TestGetSlackClient:
         mock_factory.create_async_client.return_value = mock_client
 
         # Patch the RetryableSlackClientFactory class
-        with patch("slack_mcp.client_manager.RetryableSlackClientFactory", return_value=mock_factory):
+        with patch("slack_mcp.client.manager.RetryableSlackClientFactory", return_value=mock_factory):
             # Call the client manager directly with use_retries=True
             manager = get_client_manager()
             client = manager.get_async_client("test-token", use_retries=True)
@@ -265,7 +265,7 @@ class TestUpdateSlackClient:
         # Update with new client - in the refactored approach, this will use the default token
         # from the environment, not the token passed to update_slack_client
         with patch(
-            "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=MagicMock
+            "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=MagicMock
         ) as mock_default_token:
             mock_default_token.return_value = "custom-token"
             srv.update_slack_client("custom-token", custom_client)
@@ -280,7 +280,7 @@ class TestUpdateSlackClient:
         """Should replace an existing client in the cache."""
         # Setup - add a client to cache
         with patch(
-            "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=MagicMock
+            "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=MagicMock
         ) as mock_default_token:
             mock_default_token.return_value = "test-token"
 

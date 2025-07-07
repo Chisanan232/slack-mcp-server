@@ -15,7 +15,7 @@ from typing import ClassVar, Dict, Final, Optional
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.client_factory import (
+from slack_mcp.client.factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
     SlackClientFactory,
@@ -27,7 +27,7 @@ __all__: list[str] = [
 ]
 
 # Logger for this module
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.client_manager")
+_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.client.manager")
 
 
 class SlackClientManager:

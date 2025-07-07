@@ -123,7 +123,7 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("slack_mcp.server.AsyncWebClient", _DummyAsyncWebClient)
 
     # Patch the SlackClientManager's client caches
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     # Create a mock instance with empty caches
     mock_manager = SlackClientManager()
@@ -131,7 +131,7 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     mock_manager._sync_clients = {}
 
     # Set it as the singleton instance
-    monkeypatch.setattr("slack_mcp.client_manager.SlackClientManager._instance", mock_manager)
+    monkeypatch.setattr("slack_mcp.client.manager.SlackClientManager._instance", mock_manager)
 
     # Mock the default token property by creating a new property that returns our test token
     default_token = "xoxb-default-test-token"
@@ -143,10 +143,10 @@ def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_default_token))
 
     # Also patch the AsyncWebClient in the client_factory module
-    from slack_mcp import client_factory
+    from slack_mcp.client import factory
 
-    monkeypatch.setattr(client_factory, "AsyncWebClient", _DummyAsyncWebClient)
-    monkeypatch.setattr(client_factory, "WebClient", _DummyAsyncWebClient)  # Use same mock for sync client
+    monkeypatch.setattr(factory, "AsyncWebClient", _DummyAsyncWebClient)
+    monkeypatch.setattr(factory, "WebClient", _DummyAsyncWebClient)  # Use same mock for sync client
 
 
 # Define constants for environment variables
@@ -165,7 +165,7 @@ async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: 
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_env_token(self):
         return "xoxb-env-token"
@@ -192,7 +192,7 @@ async def test_send_slack_message_missing_token(monkeypatch: pytest.MonkeyPatch)
         monkeypatch.delenv(var, raising=False)
 
     # Update the mock default token property to return None
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_none_token(self):
         return None
@@ -215,7 +215,7 @@ async def test_read_thread_messages_env(monkeypatch: pytest.MonkeyPatch, env_var
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_env_token(self):
         return "xoxb-env-token"
@@ -255,7 +255,7 @@ async def test_read_thread_messages_missing_token(monkeypatch: pytest.MonkeyPatc
         monkeypatch.delenv(var, raising=False)
 
     # Update the mock default token property to return None
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_none_token(self):
         return None
@@ -280,7 +280,7 @@ async def test_read_slack_channel_messages_env(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_env_token(self):
         return "xoxb-env-token"
@@ -337,7 +337,7 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
         monkeypatch.delenv(var, raising=False)
 
     # Update the mock default token property to return None
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_none_token(self):
         return None
@@ -419,7 +419,7 @@ async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_env_token(self):
         return "xoxb-env-token"
@@ -471,7 +471,7 @@ async def test_send_slack_thread_reply_missing_token(monkeypatch: pytest.MonkeyP
         monkeypatch.delenv(var, raising=False)
 
     # Update the mock default token property to return None
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_none_token(self):
         return None
@@ -497,7 +497,7 @@ async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: s
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_env_token(self):
         return "xoxb-env-token"
@@ -543,7 +543,7 @@ async def test_read_slack_emojis_missing_token(monkeypatch: pytest.MonkeyPatch) 
         monkeypatch.delenv(var, raising=False)
 
     # Update the mock default token property to return None
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_none_token(self):
         return None
@@ -566,7 +566,7 @@ async def test_add_slack_reactions_env(monkeypatch: pytest.MonkeyPatch, env_var:
     monkeypatch.setenv(env_var, "xoxb-env-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_env_token(self):
         return "xoxb-env-token"
@@ -616,7 +616,7 @@ async def test_add_slack_reactions_missing_token(monkeypatch: pytest.MonkeyPatch
         monkeypatch.delenv(var, raising=False)
 
     # Update the mock default token property to return None
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_none_token(self):
         return None
@@ -637,7 +637,7 @@ def test_set_slack_client_retry_count_negative() -> None:
 
 
 def test_get_slack_client_returns_client() -> None:
-    """Function should return client from client_manager.get_async_client."""
+    """Function should return client from client.manager.get_async_client."""
     # Create a test token
     test_token = "xoxb-test-token-for-get-client"
 
@@ -679,7 +679,7 @@ def test_get_default_client(
         monkeypatch.setenv(env_var, token_value)
 
     # Update the mock default token property to match our test case
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_token_getter(self):
         if env_var == "SLACK_BOT_TOKEN" and token_value:
@@ -722,7 +722,7 @@ def test_get_default_client_retry_behavior(monkeypatch: pytest.MonkeyPatch, retr
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_token_getter(self):
         return "xoxb-test-token"
@@ -757,7 +757,7 @@ def test_get_default_client_caching(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
 
     # Update the mock default token property
-    from slack_mcp.client_manager import SlackClientManager
+    from slack_mcp.client.manager import SlackClientManager
 
     def mock_token_getter(self):
         return "xoxb-test-token"

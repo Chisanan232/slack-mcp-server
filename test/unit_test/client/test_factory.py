@@ -21,7 +21,7 @@ from slack_sdk.http_retry.builtin_handlers import (
     ServerErrorRetryHandler,
 )
 
-from slack_mcp.client_factory import (
+from slack_mcp.client.factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
     default_factory,
@@ -103,7 +103,7 @@ class TestDefaultSlackClientFactory:
         test_token = "xoxb-test-token"
 
         # Mock AsyncWebClient to verify initialization
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             factory.create_async_client(test_token)
 
             # Verify client was initialized with the correct token
@@ -114,7 +114,7 @@ class TestDefaultSlackClientFactory:
         test_token = "xoxb-test-token"
 
         # Mock WebClient to verify initialization
-        with mock.patch("slack_mcp.client_factory.WebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.WebClient") as mock_client:
             factory.create_sync_client(test_token)
 
             # Verify client was initialized with the correct token
@@ -126,9 +126,9 @@ class TestDefaultSlackClientFactory:
         # this test now verifies that the factory uses the default token
         # from the environment when creating a client from an input object
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             with mock.patch(
-                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+                "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
             ) as mock_default_token:
                 mock_default_token.return_value = "xoxb-default-token"
 
@@ -146,9 +146,9 @@ class TestDefaultSlackClientFactory:
         env_token = "xoxb-from-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             with mock.patch(
-                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+                "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
             ) as mock_default_token:
                 mock_default_token.return_value = env_token
 
@@ -166,9 +166,9 @@ class TestDefaultSlackClientFactory:
         env_token = "xoxb-from-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             with mock.patch(
-                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+                "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
             ) as mock_default_token:
                 mock_default_token.return_value = env_token
 
@@ -187,7 +187,7 @@ class TestDefaultSlackClientFactory:
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
         # Empty string should be treated like None and fall back to env
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             factory.create_async_client(token="")
             mock_client.assert_called_once_with(token=env_token)
 
@@ -198,7 +198,7 @@ class TestDefaultSlackClientFactory:
         # Test using the default instance
         test_token = "xoxb-default-instance-test"
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             default_factory.create_async_client(test_token)
             mock_client.assert_called_once_with(token=test_token)
 
@@ -214,9 +214,9 @@ class TestDefaultSlackClientFactory:
         # Create input instance with expected attributes (no token)
         input_obj = input_class(**expected_attributes)
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
             with mock.patch(
-                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+                "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
             ) as mock_default_token:
                 mock_default_token.return_value = "xoxb-default-token"
 
@@ -241,7 +241,7 @@ class TestDefaultSlackClientFactory:
             return original_getenv(key, default)
 
         with mock.patch("os.getenv", side_effect=mock_getenv):
-            with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client:
+            with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
                 factory.create_async_client()
                 mock_client.assert_called_once_with(token=test_token)
 
@@ -332,7 +332,7 @@ class TestRetryableSlackClientFactory:
         # Create a mock client constructor that returns our mock client
         mock_client_constructor = mock.MagicMock(return_value=mock_client)
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient", mock_client_constructor):
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient", mock_client_constructor):
             client = factory.create_async_client()
 
             # Client should have 3 retry handlers attached (default configuration)
@@ -353,7 +353,7 @@ class TestRetryableSlackClientFactory:
         # Create a mock client constructor that returns our mock client
         mock_client_constructor = mock.MagicMock(return_value=mock_client)
 
-        with mock.patch("slack_mcp.client_factory.WebClient", mock_client_constructor):
+        with mock.patch("slack_mcp.client.factory.WebClient", mock_client_constructor):
             client = factory.create_sync_client()
 
             # Client should have 3 retry handlers attached (default configuration)
@@ -370,9 +370,9 @@ class TestRetryableSlackClientFactory:
         env_token = "xoxb-from-env"
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_client_class:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client_class:
             with mock.patch(
-                "slack_mcp.client_manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
+                "slack_mcp.client.manager.SlackClientManager._default_token", new_callable=mock.PropertyMock
             ) as mock_default_token:
                 mock_default_token.return_value = env_token
 
@@ -398,12 +398,12 @@ class TestRetryableSlackClientFactory:
         test_token = "xoxb-explicit-test"
 
         # Test explicit token
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient") as mock_async:
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_async:
             factory.create_async_client(test_token)
             mock_async.assert_called_once_with(token=test_token)
 
         # Test env fallback
-        with mock.patch("slack_mcp.client_factory.WebClient") as mock_web:
+        with mock.patch("slack_mcp.client.factory.WebClient") as mock_web:
             factory.create_sync_client()
             mock_web.assert_called_once_with(token="xoxb-test-retry-token")
 
@@ -418,7 +418,7 @@ class TestRetryableSlackClientFactory:
         # Create a mock client constructor that returns our mock client
         mock_client_constructor = mock.MagicMock(return_value=mock_client)
 
-        with mock.patch("slack_mcp.client_factory.AsyncWebClient", mock_client_constructor):
+        with mock.patch("slack_mcp.client.factory.AsyncWebClient", mock_client_constructor):
             client = retryable_factory.create_async_client("xoxb-test-token")
 
             # Global instance should also add retry handlers
