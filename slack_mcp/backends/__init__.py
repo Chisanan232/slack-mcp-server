@@ -1,3 +1,3 @@
 """
-Package for MCP server queue backend implementations.
+Package for MCP server backend components.
 """
