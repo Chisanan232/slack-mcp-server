@@ -11,14 +11,15 @@ import asyncio
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from ..backends.consumer import AsyncLoopConsumer
-from ..backends.protocol import QueueBackend
-from ..handler.base import EventHandler
-from ..handler.decorator import DecoratorHandler
+from slack_mcp.backends.consumer import AsyncLoopConsumer
+from slack_mcp.backends.protocol import QueueBackend
+
+from .handler import EventHandler
+from .handler.decorator import DecoratorHandler
 
 __all__ = ["SlackEventConsumer"]
 
-_LOG = logging.getLogger("slack_mcp.consumer.slack_event")
+_LOG = logging.getLogger("slack_mcp.webhook.event.consumer")
 
 
 class SlackEventConsumer(AsyncLoopConsumer):

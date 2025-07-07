@@ -1,4 +1,4 @@
-"""Integration tests for .env file loading in the slack_server.py module."""
+"""Integration tests for .env file loading in the entry.py module."""
 
 import os
 import tempfile
@@ -17,15 +17,15 @@ def test_webhook_dotenv_loading_with_valid_env_file():
         temp_env_path = temp_env.name
 
     try:
-        # Run slack_server.main with our temp .env file
+        # Run webhook.entry.main with our temp .env file
         with patch("sys.argv", ["slack-events-server", "--env-file", temp_env_path]):
             with patch("asyncio.run") as mock_run:
-                with patch("slack_mcp.slack_server.run_slack_server", new_callable=MagicMock) as mock_server_run:
+                with patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock) as mock_server_run:
                     mock_run.side_effect = lambda coro: None  # Don't actually run the coroutine
 
                     with patch.dict("os.environ", {}, clear=True):
                         # Import here to ensure clean environment
-                        from slack_mcp.slack_server import main
+                        from slack_mcp.webhook.entry import main
 
                         # Run the main function which should load the .env file
                         main()
@@ -47,15 +47,15 @@ def test_webhook_cmd_line_token_passed_to_server():
     """Test that command line token is passed to run_slack_server function."""
     cmd_line_token = "xoxb-webhook-cmd-line-token-67890"
 
-    # Run slack_server.main with command line token
+    # Run webhook.entry.main with command line token
     with patch("sys.argv", ["slack-events-server", "--slack-token", cmd_line_token]):
         with patch("asyncio.run") as mock_run:
-            with patch("slack_mcp.slack_server.run_slack_server", new_callable=MagicMock) as mock_server_run:
+            with patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock) as mock_server_run:
                 mock_run.side_effect = lambda coro: None  # Don't actually run the coroutine
 
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
-                    from slack_mcp.slack_server import main
+                    from slack_mcp.webhook.entry import main
 
                     # Run the main function which should pass the token
                     main()
@@ -81,9 +81,9 @@ def test_webhook_create_slack_app_with_initialize_client():
 
         # We need to patch get_client_manager before importing the modules
         with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
-            with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+            with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
                 # Import here to use the patched environment
-                from slack_mcp.slack_app import (
+                from slack_mcp.webhook.server import (
                     create_slack_app,
                     initialize_slack_client,
                 )
@@ -119,9 +119,9 @@ def test_webhook_initialize_client_with_param_token():
 
         # We need to patch get_client_manager before importing the modules
         with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
-            with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+            with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
                 # Import here to use the patched environment
-                from slack_mcp.slack_app import initialize_slack_client
+                from slack_mcp.webhook.server import initialize_slack_client
 
                 # Initialize client with explicit token parameter
                 client = initialize_slack_client(token=param_token)

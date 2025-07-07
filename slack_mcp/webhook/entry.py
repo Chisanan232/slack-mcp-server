@@ -13,9 +13,10 @@ from typing import Any, Final
 
 from dotenv import load_dotenv
 
-from .integrated_server import create_integrated_app
-from .server import FastMCP, mcp
-from .slack_app import create_slack_app, initialize_slack_client
+from slack_mcp.integrated_server import create_integrated_app
+from slack_mcp.server import FastMCP, mcp
+
+from .server import create_slack_app, initialize_slack_client
 
 __all__: list[str] = [
     "run_slack_server",
@@ -23,7 +24,7 @@ __all__: list[str] = [
     "run_integrated_server",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_server")
+_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.webhook.entry")
 
 
 def register_mcp_tools(mcp_instance: FastMCP) -> None:

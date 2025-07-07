@@ -9,31 +9,28 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, Final, Optional
+from typing import Final, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
+from slack_mcp.backends.loader import load_backend
+from slack_mcp.backends.protocol import QueueBackend
 from slack_mcp.client.manager import get_client_manager
-
-from .backends.loader import load_backend
-from .backends.protocol import QueueBackend
-from .event_handler import SlackEvent, register_handlers
-from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
+from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
 __all__: list[str] = [
     "create_slack_app",
     "verify_slack_request",
-    "handle_slack_event",
     "slack_client",
     "get_slack_client",
     "initialize_slack_client",
     "get_queue_backend",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.slack_app")
+_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.webhook.server")
 
 # Global Slack client for common usage outside of this module
 slack_client: Optional[AsyncWebClient] = None
@@ -155,44 +152,6 @@ async def verify_slack_request(request: Request, signing_secret: str | None = No
 
     # Verify the request
     return verifier.is_valid(signature=signature, timestamp=timestamp, body=body_str)
-
-
-async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> Dict[str, Any] | None:
-    """Handle Slack events.
-
-    Parameters
-    ----------
-    event_data : SlackEvent
-        The event data from Slack
-    client : AsyncWebClient
-        The Slack client to use for API calls
-
-    Returns
-    -------
-    dict[str, Any] | None
-        The response from the event handler, or None if no handler was found
-    """
-    if "event" not in event_data:
-        _LOG.warning("No event in event data")
-        return None
-
-    event = event_data["event"]
-    event_type = event.get("type")
-
-    if not event_type:
-        _LOG.warning("No event type in event")
-        return None
-
-    # Get handlers for registered event types
-    handlers = register_handlers()
-
-    if event_type in handlers:
-        _LOG.info(f"Handling event type: {event_type}")
-        handler = handlers[event_type]
-        return await handler(client, event)
-
-    _LOG.warning(f"No handler for event type: {event_type}")
-    return None
 
 
 def create_slack_app() -> FastAPI:

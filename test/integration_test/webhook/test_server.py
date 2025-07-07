@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.protocol import QueueBackend
-from slack_mcp.slack_app import create_slack_app
+from slack_mcp.webhook.server import create_slack_app
 
 
 class MockQueueBackend(QueueBackend):
@@ -43,8 +43,8 @@ def mock_client():
 def test_e2e_app_mention():
     """Test the end-to-end flow for an app_mention event."""
     with (
-        patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls,
-        patch("slack_mcp.slack_app.verify_slack_request", AsyncMock(return_value=True)),
+        patch("slack_mcp.webhook.server.AsyncWebClient") as mock_client_cls,
+        patch("slack_mcp.webhook.server.verify_slack_request", AsyncMock(return_value=True)),
         patch.dict("os.environ", {"SLACK_BOT_TOKEN": "test_token", "SLACK_EVENTS_TOPIC": "slack_events"}),
     ):
         # Create a mock client
@@ -56,7 +56,7 @@ def test_e2e_app_mention():
         mock_backend = MockQueueBackend()
 
         # Create the FastAPI app and test client
-        with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+        with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
             app = create_slack_app()
             client = TestClient(app)
 
@@ -100,8 +100,8 @@ def test_e2e_app_mention():
 def test_e2e_reaction_added():
     """Test the end-to-end flow for a reaction_added event."""
     with (
-        patch("slack_mcp.slack_app.AsyncWebClient") as mock_client_cls,
-        patch("slack_mcp.slack_app.verify_slack_request", AsyncMock(return_value=True)),
+        patch("slack_mcp.webhook.server.AsyncWebClient") as mock_client_cls,
+        patch("slack_mcp.webhook.server.verify_slack_request", AsyncMock(return_value=True)),
         patch.dict(
             "os.environ",
             {"SLACK_BOT_TOKEN": "test_token", "SLACK_BOT_ID": "B12345678", "SLACK_EVENTS_TOPIC": "slack_events"},
@@ -119,7 +119,7 @@ def test_e2e_reaction_added():
         mock_backend = MockQueueBackend()
 
         # Create the FastAPI app and test client
-        with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+        with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
             app = create_slack_app()
             client = TestClient(app)
 

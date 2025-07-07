@@ -19,8 +19,8 @@ from unittest import mock
 import pytest
 
 from slack_mcp.events import SlackEvent
-from slack_mcp.handler.base import EventHandler
-from slack_mcp.handler.decorator import DecoratorHandler
+from slack_mcp.webhook.event.handler.base import EventHandler
+from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 
 # Generate test data from SlackEvent enum

@@ -9,12 +9,11 @@ from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.protocol import QueueBackend
-from slack_mcp.slack_app import (
+from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel
+from slack_mcp.webhook.server import (
     create_slack_app,
-    handle_slack_event,
     verify_slack_request,
 )
-from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel
 
 
 class MockQueueBackend(QueueBackend):
@@ -75,7 +74,7 @@ def mock_client():
 @pytest.fixture
 def mock_verify_slack_request():
     """Mock the verify_slack_request function."""
-    with patch("slack_mcp.slack_app.verify_slack_request") as mock:
+    with patch("slack_mcp.webhook.server.verify_slack_request") as mock:
         mock.return_value = True
         yield mock
 
@@ -83,22 +82,14 @@ def mock_verify_slack_request():
 @pytest.fixture
 def mock_deserialize():
     """Mock the deserialize function."""
-    with patch("slack_mcp.slack_app.deserialize") as mock:
-        yield mock
-
-
-@pytest.fixture
-def mock_handle_slack_event():
-    """Mock the handle_slack_event function."""
-    with patch("slack_mcp.slack_app.handle_slack_event") as mock:
-        mock.return_value = None
+    with patch("slack_mcp.webhook.server.deserialize") as mock:
         yield mock
 
 
 @pytest.mark.asyncio
 async def test_verify_slack_request_valid(mock_request):
     """Test verifying a valid Slack request."""
-    with patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv:
+    with patch("slack_mcp.webhook.server.SignatureVerifier") as mock_sv:
         mock_sv.return_value.is_valid.return_value = True
 
         result = await verify_slack_request(mock_request, signing_secret="test_secret")
@@ -115,7 +106,7 @@ async def test_verify_slack_request_valid(mock_request):
 @pytest.mark.asyncio
 async def test_verify_slack_request_invalid(mock_request):
     """Test verifying an invalid Slack request."""
-    with patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv:
+    with patch("slack_mcp.webhook.server.SignatureVerifier") as mock_sv:
         mock_sv.return_value.is_valid.return_value = False
 
         result = await verify_slack_request(mock_request, signing_secret="test_secret")
@@ -128,7 +119,7 @@ async def test_verify_slack_request_invalid(mock_request):
 async def test_verify_slack_request_env_var(mock_request):
     """Test verifying a Slack request using the environment variable."""
     with (
-        patch("slack_mcp.slack_app.SignatureVerifier") as mock_sv,
+        patch("slack_mcp.webhook.server.SignatureVerifier") as mock_sv,
         patch.dict("os.environ", {"SLACK_SIGNING_SECRET": "env_secret"}),
     ):
         mock_sv.return_value.is_valid.return_value = True
@@ -137,60 +128,6 @@ async def test_verify_slack_request_env_var(mock_request):
 
         assert result is True
         mock_sv.assert_called_once_with("env_secret")
-
-
-@pytest.mark.asyncio
-async def test_handle_slack_event_no_event(mock_client):
-    """Test handling a Slack event with no event data."""
-    event_data = {"type": "event_callback"}
-
-    result = await handle_slack_event(event_data, mock_client)
-
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_handle_slack_event_no_type(mock_client):
-    """Test handling a Slack event with no event type."""
-    event_data = {"event": {}}
-
-    result = await handle_slack_event(event_data, mock_client)
-
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_handle_slack_event_unhandled_type(mock_client):
-    """Test handling a Slack event with an unhandled event type."""
-    event_data = {"event": {"type": "unknown_event_type"}}
-
-    result = await handle_slack_event(event_data, mock_client)
-
-    assert result is None
-
-
-@pytest.mark.asyncio
-async def test_handle_slack_event_app_mention(mock_client):
-    """Test handling an app_mention event."""
-    event_data = {
-        "event": {
-            "type": "app_mention",
-            "user": "U12345",
-            "text": "<@BOTID> Hello there!",
-            "channel": "C12345",
-            "ts": "1234567890.123456",
-            "thread_ts": "1234567890.123456",
-        }
-    }
-
-    result = await handle_slack_event(event_data, mock_client)
-
-    assert result is not None
-    mock_client.chat_postMessage.assert_called_once_with(
-        channel="C12345",
-        text="You said: Hello there!",
-        thread_ts="1234567890.123456",
-    )
 
 
 def test_create_slack_app_with_routes():
@@ -203,7 +140,7 @@ def test_create_slack_app_with_routes():
     assert "POST" in routes["/slack/events"]
 
 
-@patch("slack_mcp.slack_app.initialize_slack_client")
+@patch("slack_mcp.webhook.server.initialize_slack_client")
 def test_create_slack_app_does_not_initialize_client(mock_initialize_client):
     """Test creating a Slack app doesn't initialize the client."""
     app = create_slack_app()
@@ -215,7 +152,7 @@ def test_create_slack_app_does_not_initialize_client(mock_initialize_client):
 @pytest.mark.asyncio
 async def test_slack_events_endpoint_challenge():
     """Test the Slack events endpoint with a URL verification challenge."""
-    with patch("slack_mcp.slack_app.verify_slack_request", return_value=True):
+    with patch("slack_mcp.webhook.server.verify_slack_request", return_value=True):
         app = create_slack_app()
         client = TestClient(app)
 
@@ -227,14 +164,11 @@ async def test_slack_events_endpoint_challenge():
 
 
 @pytest.mark.asyncio
-async def test_slack_events_endpoint_event(
-    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock
-):
+async def test_slack_events_endpoint_event(mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock):
     """Test the /slack/events endpoint with a standard event."""
     # Setup mocks
     mock_verify_slack_request.return_value = True
     mock_deserialize.return_value = {"event": {"type": "app_mention", "text": "Hello"}}
-    mock_handle_slack_event.return_value = None
 
     # Create app and test client
     app = create_slack_app()
@@ -269,13 +203,10 @@ async def test_slack_events_endpoint_event(
     # Verify the deserialize function was called
     mock_deserialize.assert_called_once()
 
-    # Verify event was published to the queue backend
-    mock_handle_slack_event.assert_not_awaited()
-
 
 @pytest.mark.asyncio
 async def test_slack_events_endpoint_with_pydantic_model(
-    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock
+    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock
 ):
     """Test the /slack/events endpoint with a Pydantic model."""
     # Mock the verify_slack_request to return True
@@ -299,7 +230,6 @@ async def test_slack_events_endpoint_with_pydantic_model(
         authorizations=[{"enterprise_id": None, "team_id": "T12345", "user_id": "U12345"}],
     )
     mock_deserialize.return_value = event_model
-    mock_handle_slack_event.return_value = None
 
     # Create app and test client
     app = create_slack_app()
@@ -334,13 +264,10 @@ async def test_slack_events_endpoint_with_pydantic_model(
     # Verify the deserialize function was called
     mock_deserialize.assert_called_once()
 
-    # Verify event was published to the queue backend
-    mock_handle_slack_event.assert_not_awaited()
-
 
 @pytest.mark.asyncio
 async def test_slack_events_endpoint_with_queue_backend(
-    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock
+    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock
 ) -> None:
     """Test the Slack events endpoint with queue backend integration."""
     # Mock the verify_slack_request to return True
@@ -387,7 +314,7 @@ async def test_slack_events_endpoint_with_queue_backend(
     mock_backend = AsyncMock()
 
     # Create app and test client
-    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
         app = create_slack_app()
         client = TestClient(app)
 
@@ -408,13 +335,10 @@ async def test_slack_events_endpoint_with_queue_backend(
         # Verify event was published to the queue backend
         mock_backend.publish.assert_awaited_once()
 
-        # Verify handle_slack_event was not called since we're now publishing to queue
-        mock_handle_slack_event.assert_not_awaited()
-
 
 @pytest.mark.asyncio
 async def test_slack_events_endpoint_with_queue_backend_publish_error(
-    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock
+    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock
 ) -> None:
     """Test the Slack events endpoint with queue backend publish error."""
     # Mock the verify_slack_request to return True
@@ -462,7 +386,7 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
     mock_backend.publish.side_effect = Exception("Test publish error")
 
     # Create app and test client
-    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
         app = create_slack_app()
         client = TestClient(app)
 
@@ -483,13 +407,10 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
         # Verify event was published to the queue backend
         mock_backend.publish.assert_awaited_once()
 
-        # Verify handle_slack_event was not called since we're now publishing to queue
-        mock_handle_slack_event.assert_not_awaited()
-
 
 @pytest.mark.asyncio
 async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
-    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock, mock_handle_slack_event: AsyncMock
+    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock
 ) -> None:
     """Test that errors during queue publishing are properly logged."""
     # Mock the verify_slack_request to return True
@@ -524,9 +445,11 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
 
     # Create app and test client
     with (
-        patch("slack_mcp.slack_app._queue_backend", mock_backend),
-        patch("slack_mcp.slack_app._LOG") as mock_logger,
-        patch("slack_mcp.slack_app.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"),  # Match the topic used in tests
+        patch("slack_mcp.webhook.server._queue_backend", mock_backend),
+        patch("slack_mcp.webhook.server._LOG") as mock_logger,
+        patch(
+            "slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"
+        ),  # Match the topic used in tests
     ):
         app = create_slack_app()
         client = TestClient(app)
@@ -547,9 +470,6 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
 
         # Verify event publication was attempted with the test topic name
         mock_backend.publish.assert_awaited_once_with("test_slack_events", event_data)
-
-        # Verify handle_slack_event was not called
-        mock_handle_slack_event.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
@@ -671,7 +591,6 @@ async def test_slack_events_endpoint_parametrized(
     should_handle: bool,
     mock_verify_slack_request: MagicMock,
     mock_deserialize: MagicMock,
-    mock_handle_slack_event: AsyncMock,
 ) -> None:
     """Test the /slack/events endpoint with various event types."""
     # Mock the verify_slack_request to return True
@@ -700,7 +619,7 @@ async def test_slack_events_endpoint_parametrized(
     mock_backend = AsyncMock()
 
     # Create app and test client
-    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
         app = create_slack_app()
         client = TestClient(app)
 
@@ -717,12 +636,6 @@ async def test_slack_events_endpoint_parametrized(
 
         # Verify the deserialize function was called
         mock_deserialize.assert_called_once()
-
-        # Verify handle_slack_event was called if should_handle is True
-        if should_handle:
-            mock_handle_slack_event.assert_awaited_once()
-        else:
-            mock_handle_slack_event.assert_not_awaited()
 
         # For event_callback types that aren't URL verification, verify queue publish was called
         if event_data.get("type") == "event_callback":
