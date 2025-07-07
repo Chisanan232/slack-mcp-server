@@ -16,8 +16,8 @@ from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.backends.loader import load_backend
 from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.backends.loader import load_backend
 from slack_mcp.client.manager import get_client_manager
 
 from .models import SlackEventModel, UrlVerificationModel, deserialize

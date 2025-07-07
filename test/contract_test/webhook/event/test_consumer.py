@@ -17,8 +17,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler import DecoratorHandler
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler

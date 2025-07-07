@@ -15,9 +15,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.backends.loader import BACKEND_ENTRY_POINT_GROUP, load_backend
 from slack_mcp.backends.queue.memory import MemoryBackend
-from slack_mcp.backends.base.protocol import QueueBackend
 
 
 class MockEntryPoint:
