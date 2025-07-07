@@ -42,7 +42,7 @@ Homepage = "https://github.com/Chisanan232/slack-mcp-server"
 Repository = "https://github.com/Chisanan232/slack-mcp-server"
 
 [project.scripts]
-slack-mcp-server = "slack_mcp.entry:main"
+slack-mcp-server = "slack_mcp.mcp.entry:main"
 slack-webhook-server = "slack_mcp.webhook.entry:main"
 
 [project.entry-points."slack_mcp.queue_backends"]
