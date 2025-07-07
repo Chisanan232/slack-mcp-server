@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 import pytest
 
 from slack_mcp.events import SlackEvent
-from slack_mcp.handler.decorator import DecoratorHandler
+from slack_mcp.webhook.event.handler import DecoratorHandler
 
 
 class TestDecoratorHandler:

@@ -7,8 +7,8 @@ import pytest
 
 from slack_mcp.backends.protocol import QueueBackend
 from slack_mcp.consumer import SlackEventConsumer
-from slack_mcp.handler.base import BaseSlackEventHandler
-from slack_mcp.handler.decorator import DecoratorHandler
+from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
+from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 # Create a module-level DecoratorHandler instance for tests
 handler = DecoratorHandler()

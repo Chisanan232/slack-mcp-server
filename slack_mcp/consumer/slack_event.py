@@ -13,8 +13,8 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 
 from ..backends.consumer import AsyncLoopConsumer
 from ..backends.protocol import QueueBackend
-from ..handler.base import EventHandler
-from ..handler.decorator import DecoratorHandler
+from slack_mcp.webhook.event.handler import EventHandler
+from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 __all__ = ["SlackEventConsumer"]
 

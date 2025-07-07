@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from slack_mcp.handler.base import BaseSlackEventHandler
+from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
 
 
 class TestBaseSlackEventHandler:
