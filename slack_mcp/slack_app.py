@@ -18,7 +18,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from .backends.loader import load_backend
 from .backends.protocol import QueueBackend
-from .client_manager import get_client_manager
+from slack_mcp.client.manager import get_client_manager
 from .event_handler import SlackEvent, register_handlers
 from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
 

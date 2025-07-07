@@ -15,7 +15,7 @@ from test.e2e_test.slack_retry_utils import retry_slack_api_call
 import pytest
 from dotenv import load_dotenv
 
-from slack_mcp.client_factory import RetryableSlackClientFactory
+from slack_mcp.client.factory import RetryableSlackClientFactory
 
 pytestmark = pytest.mark.asyncio
 

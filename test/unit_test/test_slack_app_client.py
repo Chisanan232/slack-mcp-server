@@ -9,7 +9,7 @@ import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp import slack_app
-from slack_mcp.client_manager import SlackClientManager
+from slack_mcp.client.manager import SlackClientManager
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def clean_global_client() -> Generator[None, None, None]:
     slack_app.slack_client = None
 
     # Also reset the SlackClientManager singleton
-    with patch("slack_mcp.client_manager.SlackClientManager._instance", None):
+    with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
         yield
 
     # Restore original

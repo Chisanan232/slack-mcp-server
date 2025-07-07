@@ -89,7 +89,7 @@ class TestSlackClientManager:
         test_token = "xoxb-test-explicit"
 
         # Mock RetryableSlackClientFactory and its create_async_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -115,7 +115,7 @@ class TestSlackClientManager:
         test_token = "xoxb-test-explicit"
 
         # Mock RetryableSlackClientFactory and its create_sync_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -142,7 +142,7 @@ class TestSlackClientManager:
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
 
         # Mock RetryableSlackClientFactory and its create_async_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -165,7 +165,7 @@ class TestSlackClientManager:
         mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
 
         # Mock RetryableSlackClientFactory and its create_sync_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -187,7 +187,7 @@ class TestSlackClientManager:
         test_token = "xoxb-test-no-retries"
 
         # Mock DefaultSlackClientFactory and its create_async_client method
-        with mock.patch("slack_mcp.client_manager.DefaultSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.DefaultSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -210,7 +210,7 @@ class TestSlackClientManager:
         test_token = "xoxb-test-no-retries"
 
         # Mock DefaultSlackClientFactory and its create_sync_client method
-        with mock.patch("slack_mcp.client_manager.DefaultSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.DefaultSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -233,7 +233,7 @@ class TestSlackClientManager:
         test_token = "xoxb-test-cache"
 
         # Mock RetryableSlackClientFactory and its create_async_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -259,7 +259,7 @@ class TestSlackClientManager:
         test_token = "xoxb-test-sync-cache"
 
         # Mock RetryableSlackClientFactory and its create_sync_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -294,7 +294,7 @@ class TestSlackClientManager:
         token2 = "xoxb-test-token2"
 
         # Mock RetryableSlackClientFactory and its create_async_client method
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
@@ -321,8 +321,8 @@ class TestSlackClientManager:
         test_token = "xoxb-test-clear"
 
         # Mock clients
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_retryable_factory:
-            with mock.patch("slack_mcp.client_manager.DefaultSlackClientFactory") as mock_default_factory:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_retryable_factory:
+            with mock.patch("slack_mcp.client.manager.DefaultSlackClientFactory") as mock_default_factory:
                 mock_retryable = mock.MagicMock()
                 mock_retryable_factory.return_value = mock_retryable
                 mock_async = mock.MagicMock()
@@ -365,7 +365,7 @@ class TestSlackClientManager:
         # Test that new clients use the updated retry count
         test_token = "xoxb-test-retry"
 
-        with mock.patch("slack_mcp.client_manager.RetryableSlackClientFactory") as mock_factory_class:
+        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
             mock_factory = mock.MagicMock()
             mock_factory_class.return_value = mock_factory
 
