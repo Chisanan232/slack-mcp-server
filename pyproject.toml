@@ -47,8 +47,6 @@ slack-webhook-server = "slack_mcp.webhook.entry:main"
 
 [project.entry-points."slack_mcp.backends.queue"]
 memory = "slack_mcp.backends.queue.memory:MemoryBackend"
-#redis = "slack_mcp_mq_redis.backend:RedisBackend"
-#kafka = "slack_mcp_mq_kafka.backend:KafkaBackend"
 
 [dependency-groups]
 dev = [
