@@ -6,7 +6,7 @@ from unittest.mock import patch
 import pytest
 
 from slack_mcp.backends.protocol import QueueBackend
-from slack_mcp.consumer import SlackEventConsumer
+from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
 from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
@@ -228,7 +228,7 @@ class TestSlackEventConsumer:
             raise ValueError("Test error")
 
         # Mock the logger to verify error logging
-        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+        with patch("slack_mcp.webhook.event.consumer._LOG") as mock_log:
             # Process the event directly
             try:
                 await consumer._process_event(test_event)
@@ -351,7 +351,7 @@ class TestSlackEventConsumer:
             pass
 
         # Mock the logger and _process_event
-        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+        with patch("slack_mcp.webhook.event.consumer._LOG") as mock_log:
             with patch.object(consumer, "_process_event", side_effect=mock_process_event):
                 # Run the consumer
                 task = asyncio.create_task(consumer.run(handler=dummy_handler))
@@ -391,7 +391,7 @@ class TestSlackEventConsumer:
             pass
 
         # Mock the logger
-        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+        with patch("slack_mcp.webhook.event.consumer._LOG") as mock_log:
             # Run the consumer
             task = asyncio.create_task(consumer.run(handler=dummy_handler))
 
@@ -434,7 +434,7 @@ class TestSlackEventConsumer:
             pass
 
         # Mock the logger
-        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+        with patch("slack_mcp.webhook.event.consumer._LOG") as mock_log:
             # Run the consumer
             task = asyncio.create_task(consumer.run(handler=dummy_handler))
 
