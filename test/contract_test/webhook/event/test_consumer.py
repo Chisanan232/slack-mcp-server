@@ -158,7 +158,7 @@ class TestSlackEventConsumerContract:
         mock_handler.handle_event.side_effect = ValueError("Test error")
 
         # Mock the logger
-        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+        with patch("slack_mcp.webhook.event.consumer._LOG") as mock_log:
             # Start the consumer in a task
             task = asyncio.create_task(consumer.run(handler=mock_handler.handle_event))
 
@@ -250,7 +250,7 @@ class TestSlackEventConsumerContract:
         mock_backend.consume.return_value.__aiter__.return_value = self._async_iter([])
 
         # Mock the logger
-        with patch("slack_mcp.consumer.slack_event._LOG") as mock_log:
+        with patch("slack_mcp.webhook.event.consumer._LOG") as mock_log:
             # Create a dummy handler for the run method
             async def dummy_handler(event: Dict[str, Any]) -> None:
                 pass
