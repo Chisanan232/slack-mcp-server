@@ -18,7 +18,7 @@ from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 __all__ = ["SlackEventConsumer"]
 
-_LOG = logging.getLogger("slack_mcp.consumer.slack_event")
+_LOG = logging.getLogger("slack_mcp.webhook.event.consumer")
 
 
 class SlackEventConsumer(AsyncLoopConsumer):
