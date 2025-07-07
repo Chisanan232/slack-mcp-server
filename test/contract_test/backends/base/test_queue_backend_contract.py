@@ -11,7 +11,7 @@ from typing import Any, Dict, List
 
 import pytest
 
-from slack_mcp.backends.memory import MemoryBackend
+from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.backends.base.protocol import QueueBackend
 
 
