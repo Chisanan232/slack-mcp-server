@@ -14,7 +14,7 @@ import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.client_factory import (
+from slack_mcp.client.factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
     SlackClientFactory,
@@ -130,7 +130,7 @@ class SlackClientFactoryContractTest(ABC):
         monkeypatch.setenv("SLACK_BOT_TOKEN", test_token)
 
         # Patch the SlackClientManager._default_token property
-        from slack_mcp.client_manager import SlackClientManager
+        from slack_mcp.client.manager import SlackClientManager
 
         def mock_env_token(self):
             return test_token

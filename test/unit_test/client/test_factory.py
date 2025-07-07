@@ -21,7 +21,7 @@ from slack_sdk.http_retry.builtin_handlers import (
     ServerErrorRetryHandler,
 )
 
-from slack_mcp.client_factory import (
+from slack_mcp.client.factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
     default_factory,

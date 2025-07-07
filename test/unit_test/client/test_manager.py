@@ -15,7 +15,7 @@ from slack_sdk.http_retry.builtin_handlers import RateLimitErrorRetryHandler
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.client_manager import SlackClientManager, get_client_manager
+from slack_mcp.client.manager import SlackClientManager, get_client_manager
 
 
 class TestSlackClientManager:

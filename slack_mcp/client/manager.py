@@ -15,7 +15,7 @@ from typing import ClassVar, Dict, Final, Optional
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.client_factory import (
+from slack_mcp.client.factory import (
     DefaultSlackClientFactory,
     RetryableSlackClientFactory,
     SlackClientFactory,

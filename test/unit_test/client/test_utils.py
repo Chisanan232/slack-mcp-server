@@ -9,7 +9,7 @@ import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp import server as srv
-from slack_mcp.client_manager import SlackClientManager, get_client_manager
+from slack_mcp.client.manager import SlackClientManager, get_client_manager
 
 
 @pytest.fixture
