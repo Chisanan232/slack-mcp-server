@@ -20,7 +20,6 @@ from slack_mcp.client.manager import get_client_manager
 
 from slack_mcp.backends.loader import load_backend
 from slack_mcp.backends.protocol import QueueBackend
-from slack_mcp.event_handler import SlackEvent, register_handlers
 from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
 __all__: list[str] = [
