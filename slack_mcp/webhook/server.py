@@ -18,10 +18,10 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.client.manager import get_client_manager
 
-from .backends.loader import load_backend
-from .backends.protocol import QueueBackend
-from .event_handler import SlackEvent, register_handlers
-from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
+from slack_mcp.backends.loader import load_backend
+from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.event_handler import SlackEvent, register_handlers
+from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
 __all__: list[str] = [
     "create_slack_app",

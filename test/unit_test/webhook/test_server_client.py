@@ -1,4 +1,4 @@
-"""Unit tests for Slack client functions in slack_app.py."""
+"""Unit tests for Slack client functions in server.py."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp import slack_app
+from slack_mcp.webhook import server
 from slack_mcp.client.manager import SlackClientManager
 
 
