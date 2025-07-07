@@ -107,9 +107,8 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
         app = create_integrated_app(
             token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
-        from slack_mcp.webhook.server import slack_client
-
         from slack_mcp.mcp.server import update_slack_client
+        from slack_mcp.webhook.server import slack_client
 
         update_slack_client(token=args.slack_token, client=slack_client)
 
