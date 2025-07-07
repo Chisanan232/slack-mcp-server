@@ -26,7 +26,7 @@ from slack_sdk.http_retry.handler import RetryHandler
 from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
-from slack_mcp.model import _BaseInput
+from slack_mcp.mcp.model.input import _BaseInput
 
 
 class SlackClientFactory(ABC):

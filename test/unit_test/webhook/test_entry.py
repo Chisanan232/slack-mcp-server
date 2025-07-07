@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from slack_mcp.server import FastMCP
+from slack_mcp.mcp.server import FastMCP
 from slack_mcp.webhook.entry import (
     main,
     register_mcp_tools,

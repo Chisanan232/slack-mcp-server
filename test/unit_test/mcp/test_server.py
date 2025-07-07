@@ -7,8 +7,8 @@ from typing import Any, Dict, List, Optional
 import pytest
 from slack_sdk.http_retry.async_handler import AsyncRetryHandler
 
-import slack_mcp.server as srv
-from slack_mcp.model import (
+import slack_mcp.mcp.server as srv
+from slack_mcp.mcp.model.input import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
     SlackReadChannelMessagesInput,
@@ -120,7 +120,7 @@ class _DummyAsyncWebClient:  # noqa: D101 – simple stub
 def _patch_slack_sdk(monkeypatch: pytest.MonkeyPatch) -> None:
     """Patch :pyclass:`AsyncWebClient` with the dummy implementation for tests."""
     # Patch the AsyncWebClient class
-    monkeypatch.setattr("slack_mcp.server.AsyncWebClient", _DummyAsyncWebClient)
+    monkeypatch.setattr("slack_mcp.mcp.server.AsyncWebClient", _DummyAsyncWebClient)
 
     # Patch the SlackClientManager's client caches
     from slack_mcp.client.manager import SlackClientManager
@@ -367,7 +367,7 @@ async def test_read_slack_channel_messages_optional_params(
 ) -> None:
     """Test that optional parameters are correctly passed to the Slack API."""
     # Create a spy for the AsyncWebClient.conversations_history method
-    from slack_mcp.server import AsyncWebClient
+    from slack_mcp.mcp.server import AsyncWebClient
 
     original_method = AsyncWebClient.conversations_history
 

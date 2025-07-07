@@ -55,7 +55,7 @@ class _DummyServer:
 )
 async def test_server_http_transports(transport, mount_path, warning_expected, caplog):
     """Test that the server uses the correct transport methods."""
-    from slack_mcp import entry
+    from slack_mcp.mcp import entry
 
     mock_server = _DummyServer()
 
@@ -66,7 +66,7 @@ async def test_server_http_transports(transport, mount_path, warning_expected, c
     if mount_path:
         argv.extend(["--mount-path", mount_path])
 
-    with patch("slack_mcp.entry._server_instance", mock_server), patch("uvicorn.run") as mock_uvicorn_run:
+    with patch("slack_mcp.mcp.entry._server_instance", mock_server), patch("uvicorn.run") as mock_uvicorn_run:
 
         # Run the main entry point
         entry.main(argv)
@@ -100,14 +100,14 @@ async def test_server_http_transports(transport, mount_path, warning_expected, c
 
 async def test_server_stdio_transport():
     """Test that the server runs correctly for stdio transport."""
-    from slack_mcp import entry
+    from slack_mcp.mcp import entry
 
     mock_server = _DummyServer()
 
     # Create dummy args with stdio transport
     argv = ["--transport", "stdio", "--log-level", "INFO"]
 
-    with patch("slack_mcp.entry._server_instance", mock_server):
+    with patch("slack_mcp.mcp.entry._server_instance", mock_server):
         # Run the main entry point
         entry.main(argv)
 

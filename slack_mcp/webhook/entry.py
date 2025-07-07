@@ -14,7 +14,7 @@ from typing import Any, Final
 from dotenv import load_dotenv
 
 from slack_mcp.integrated_server import create_integrated_app
-from slack_mcp.server import FastMCP, mcp
+from slack_mcp.mcp.server import FastMCP, mcp
 
 from .server import create_slack_app, initialize_slack_client
 

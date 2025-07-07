@@ -26,7 +26,7 @@ logger = logging.getLogger("e2e_test")
 
 def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
-    env_path = Path(__file__).parent / ".env"
+    env_path = Path("./.env")
     logger.info(f"Loading secrets from {env_path}")
     if env_path.exists():
         load_dotenv(env_path)
@@ -113,7 +113,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     # Use simple transport args with explicit log level
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry"],
         env=custom_env,
     )
 
@@ -300,7 +300,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
         # Use simple transport args with explicit log level
         server_params = StdioServerParameters(
             command=sys.executable,
-            args=["-m", "slack_mcp.entry"],
+            args=["-m", "slack_mcp.mcp.entry"],
             env=custom_env,
         )
 
@@ -474,7 +474,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     # Use simple transport args with explicit log level
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry"],
         env=custom_env,
     )
 
@@ -646,7 +646,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     # Use simple transport args
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry"],
         env=custom_env,
     )
 

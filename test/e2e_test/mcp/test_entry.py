@@ -1,4 +1,4 @@
-"""Unit tests for the CLI entry point ``slack_mcp.entry``."""
+"""Unit tests for the CLI entry point ``slack_mcp.mcp.entry``."""
 
 from __future__ import annotations
 
@@ -59,13 +59,13 @@ class _DummyServer(FastMCP):  # pragma: no cover – trivial stub
 
 @pytest.fixture
 def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, None, None]:
-    """Provide patched ``slack_mcp.entry`` module with non-blocking server."""
+    """Provide patched ``slack_mcp.mcp.entry`` module with non-blocking server."""
     # Suppress stderr to avoid polluting test output
     monkeypatch.setattr(sys, "stderr", SimpleNamespace(write=lambda *args: None))
 
     # Replace server instance with dummy
     dummy = _DummyServer()
-    monkeypatch.setattr("slack_mcp.entry._server_instance", dummy)
+    monkeypatch.setattr("slack_mcp.mcp.entry._server_instance", dummy)
 
     # Replace uvicorn.run with a non-blocking stub
     monkeypatch.setattr("uvicorn.run", lambda *args, **kwargs: None)
@@ -76,12 +76,12 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     # Replace integrated app creation with a mock
     mock_integrated_app = SimpleNamespace()
     monkeypatch.setattr(
-        "slack_mcp.entry.create_integrated_app",
+        "slack_mcp.mcp.entry.create_integrated_app",
         lambda token=None, mcp_transport=None, mcp_mount_path=None, retry=0: mock_integrated_app,
     )
 
     # Re-import the module to update bindings
-    entry = importlib.import_module("slack_mcp.entry")
+    entry = importlib.import_module("slack_mcp.mcp.entry")
 
     yield SimpleNamespace(entry=entry, dummy=dummy, mock_integrated_app=mock_integrated_app)
 
@@ -157,7 +157,7 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -
 
     # Track dotenv calls
     load_dotenv_calls: list[dict[str, Any]] = []
-    monkeypatch.setattr("slack_mcp.entry.load_dotenv", lambda **kwargs: load_dotenv_calls.append(kwargs))
+    monkeypatch.setattr("slack_mcp.mcp.entry.load_dotenv", lambda **kwargs: load_dotenv_calls.append(kwargs))
 
     # Case 1: .env file exists
     monkeypatch.setattr(pathlib.Path, "exists", lambda self: True)
