@@ -9,17 +9,16 @@ from __future__ import annotations
 import json
 import logging
 import os
-from typing import Any, Dict, Final, Optional
+from typing import Final, Optional
 
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.client.manager import get_client_manager
-
 from slack_mcp.backends.loader import load_backend
 from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.client.manager import get_client_manager
 from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
 __all__: list[str] = [

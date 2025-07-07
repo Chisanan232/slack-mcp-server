@@ -27,6 +27,7 @@ from typing import (
 )
 
 from slack_mcp.events import SlackEvent
+
 from .base import EventHandler
 
 __all__ = ["DecoratorHandler"]

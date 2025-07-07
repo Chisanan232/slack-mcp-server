@@ -13,6 +13,7 @@ from typing import Any, Awaitable, Callable, Dict, Optional
 
 from slack_mcp.backends.consumer import AsyncLoopConsumer
 from slack_mcp.backends.protocol import QueueBackend
+
 from .handler import EventHandler
 from .handler.decorator import DecoratorHandler
 

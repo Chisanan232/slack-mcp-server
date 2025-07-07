@@ -6,7 +6,6 @@ various backends and route them to handlers.
 """
 
 from .consumer import SlackEventConsumer
-from .handler import BaseSlackEventHandler, EventHandler
-from .handler import DecoratorHandler
+from .handler import BaseSlackEventHandler, DecoratorHandler, EventHandler
 
 __all__ = ["SlackEventConsumer", "BaseSlackEventHandler", "EventHandler", "DecoratorHandler"]

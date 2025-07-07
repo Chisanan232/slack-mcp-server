@@ -9,11 +9,11 @@ from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel
 from slack_mcp.webhook.server import (
     create_slack_app,
     verify_slack_request,
 )
-from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel
 
 
 class MockQueueBackend(QueueBackend):
@@ -164,9 +164,7 @@ async def test_slack_events_endpoint_challenge():
 
 
 @pytest.mark.asyncio
-async def test_slack_events_endpoint_event(
-    mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock
-):
+async def test_slack_events_endpoint_event(mock_verify_slack_request: MagicMock, mock_deserialize: MagicMock):
     """Test the /slack/events endpoint with a standard event."""
     # Setup mocks
     mock_verify_slack_request.return_value = True
@@ -449,7 +447,9 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
     with (
         patch("slack_mcp.webhook.server._queue_backend", mock_backend),
         patch("slack_mcp.webhook.server._LOG") as mock_logger,
-        patch("slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"),  # Match the topic used in tests
+        patch(
+            "slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"
+        ),  # Match the topic used in tests
     ):
         app = create_slack_app()
         client = TestClient(app)

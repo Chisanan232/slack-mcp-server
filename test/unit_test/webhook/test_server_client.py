@@ -8,8 +8,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.webhook import server as slack_webhook_server
 from slack_mcp.client.manager import SlackClientManager
+from slack_mcp.webhook import server as slack_webhook_server
 
 
 @pytest.fixture
