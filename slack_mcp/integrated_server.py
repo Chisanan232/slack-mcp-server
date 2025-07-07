@@ -11,9 +11,8 @@ from typing import Final, Optional
 
 from fastapi import FastAPI
 
-from slack_mcp.webhook.server import create_slack_app, initialize_slack_client
-
-from slack_mcp.mcp.server import mcp as _server_instance
+from .webhook.server import create_slack_app, initialize_slack_client
+from .mcp.server import mcp as _server_instance
 
 __all__: list[str] = [
     "create_integrated_app",
