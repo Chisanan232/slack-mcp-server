@@ -13,7 +13,7 @@ from typing import Any, AsyncIterator, Dict, List, Optional, cast
 
 import pytest
 
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 
 
 class MockQueueBackend(QueueBackend):

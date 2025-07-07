@@ -9,7 +9,7 @@ import warnings
 from importlib.metadata import entry_points
 
 from slack_mcp.backends.memory import MemoryBackend
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 
 # Entry point group name for queue backends
 BACKEND_ENTRY_POINT_GROUP = "slack_mcp.queue_backends"

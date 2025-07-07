@@ -7,7 +7,7 @@ Protocol methods with ellipsis (...) placeholders are excluded from coverage
 reporting via .coveragerc configuration.
 """
 
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 
 
 class TestQueueBackendInterface:

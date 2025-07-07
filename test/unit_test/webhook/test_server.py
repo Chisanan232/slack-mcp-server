@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.backends.protocol import QueueBackend
+from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.webhook.models import SlackEventModel, UrlVerificationModel
 from slack_mcp.webhook.server import (
     create_slack_app,
