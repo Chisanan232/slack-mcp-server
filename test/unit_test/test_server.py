@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
-import asyncio
-import os
 import pytest
 from slack_sdk.http_retry.async_handler import AsyncRetryHandler
 
@@ -358,9 +356,9 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
         ("latest", "1620010000.000000", {"latest": "1620010000.000000"}),
         ("inclusive", True, {"inclusive": True}),
         (
-            "all_params", 
+            "all_params",
             {"oldest": "1620000000.000000", "latest": "1620010000.000000", "inclusive": True},
-            {"oldest": "1620000000.000000", "latest": "1620010000.000000", "inclusive": True}
+            {"oldest": "1620000000.000000", "latest": "1620010000.000000", "inclusive": True},
         ),
     ],
 )
@@ -370,21 +368,21 @@ async def test_read_slack_channel_messages_optional_params(
     """Test that optional parameters are correctly passed to the Slack API."""
     # Create a spy for the AsyncWebClient.conversations_history method
     from slack_mcp.server import AsyncWebClient
-    
+
     original_method = AsyncWebClient.conversations_history
-    
+
     # Create a dictionary to store the kwargs that were passed
     captured_kwargs = {}
-    
+
     async def mock_conversations_history(self, **kwargs):
         # Store the kwargs for later inspection
         captured_kwargs.update(kwargs)
         # Call the original method to maintain behavior
         return await original_method(self, **kwargs)
-    
+
     # Apply the spy
     monkeypatch.setattr(AsyncWebClient, "conversations_history", mock_conversations_history)
-    
+
     # Prepare input parameters
     if param_name == "all_params":
         # For the "all_params" case, we need to set all three parameters
@@ -392,17 +390,17 @@ async def test_read_slack_channel_messages_optional_params(
             channel="#general",
             oldest=param_value["oldest"],
             latest=param_value["latest"],
-            inclusive=param_value["inclusive"]
+            inclusive=param_value["inclusive"],
         )
     else:
         # For individual parameter tests
         kwargs = {"channel": "#general"}
         kwargs[param_name] = param_value
-        input_params = SlackReadChannelMessagesInput(**kwargs)
-    
+        input_params = SlackReadChannelMessagesInput(**kwargs)  # type: ignore[arg-type]
+
     # Call the function
     await srv.read_slack_channel_messages(input_params=input_params)
-    
+
     # Verify that the expected kwargs were passed to the API call
     for key, value in expected_kwarg.items():
         assert key in captured_kwargs, f"Expected {key} to be in kwargs"
@@ -658,13 +656,15 @@ def test_get_slack_client_returns_client() -> None:
     "env_var,token_value,expected_outcome",
     [
         ("SLACK_BOT_TOKEN", "xoxb-test-token", "success"),  # SLACK_BOT_TOKEN is set
-        ("SLACK_TOKEN", "xoxp-test-token", "success"),      # SLACK_TOKEN is set
-        (None, None, "error"),                              # No token set
+        ("SLACK_TOKEN", "xoxp-test-token", "success"),  # SLACK_TOKEN is set
+        (None, None, "error"),  # No token set
     ],
 )
-def test_get_default_client(monkeypatch: pytest.MonkeyPatch, env_var: Optional[str], token_value: Optional[str], expected_outcome: str) -> None:
+def test_get_default_client(
+    monkeypatch: pytest.MonkeyPatch, env_var: Optional[str], token_value: Optional[str], expected_outcome: str
+) -> None:
     """Test _get_default_client with various token configurations.
-    
+
     This test verifies that _get_default_client correctly:
     1. Uses SLACK_BOT_TOKEN when available
     2. Falls back to SLACK_TOKEN when SLACK_BOT_TOKEN is not set
@@ -673,26 +673,26 @@ def test_get_default_client(monkeypatch: pytest.MonkeyPatch, env_var: Optional[s
     # Clear all environment variables first
     for var in ("SLACK_BOT_TOKEN", "SLACK_TOKEN"):
         monkeypatch.delenv(var, raising=False)
-    
+
     # Set the environment variable if specified
     if env_var and token_value:
         monkeypatch.setenv(env_var, token_value)
-    
+
     # Update the mock default token property to match our test case
     from slack_mcp.client_manager import SlackClientManager
-    
+
     def mock_token_getter(self):
         if env_var == "SLACK_BOT_TOKEN" and token_value:
             return token_value
         elif env_var == "SLACK_TOKEN" and token_value:
             return token_value
         return None
-    
+
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_token_getter))
-    
+
     # Clear any cached clients
     srv.clear_slack_clients()
-    
+
     # Test the function
     if expected_outcome == "success":
         client = srv._get_default_client()
@@ -714,34 +714,34 @@ def test_get_default_client(monkeypatch: pytest.MonkeyPatch, env_var: Optional[s
 )
 def test_get_default_client_retry_behavior(monkeypatch: pytest.MonkeyPatch, retry_count: int) -> None:
     """Test _get_default_client with different retry configurations.
-    
+
     This test verifies that _get_default_client correctly:
     1. Uses the configured retry count
     """
     # Set a token in environment
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
-    
+
     # Update the mock default token property
     from slack_mcp.client_manager import SlackClientManager
-    
+
     def mock_token_getter(self):
         return "xoxb-test-token"
-    
+
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_token_getter))
-    
+
     # Set the retry count
     srv.set_slack_client_retry_count(retry_count)
-    
+
     # Clear any cached clients
     srv.clear_slack_clients()
-    
+
     # Test the function directly
     client = srv._get_default_client()
-    
+
     # Verify client was created
     assert isinstance(client, _DummyAsyncWebClient)
     assert client.token == "xoxb-test-token"
-    
+
     # Verify the retry count was set correctly in the client manager
     client_manager = srv.get_client_manager()
     assert client_manager._default_retry_count == retry_count
@@ -749,53 +749,53 @@ def test_get_default_client_retry_behavior(monkeypatch: pytest.MonkeyPatch, retr
 
 def test_get_default_client_caching(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that _get_default_client uses the client manager's caching mechanism.
-    
+
     This test verifies that calling _get_default_client multiple times with the
     same token returns the same client instance from the cache.
     """
     # Set a token in environment
     monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
-    
+
     # Update the mock default token property
     from slack_mcp.client_manager import SlackClientManager
-    
+
     def mock_token_getter(self):
         return "xoxb-test-token"
-    
+
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_token_getter))
-    
+
     # Get the client manager to inspect its cache
     client_manager = srv.get_client_manager()
-    
+
     # Clear any cached clients to start fresh
     srv.clear_slack_clients()
     assert len(client_manager._async_clients) == 0
-    
+
     # Call _get_default_client and get the first client
     client1 = srv._get_default_client()
-    
+
     # Cache key format is "{token}:{use_retries}"
     cache_key = "xoxb-test-token:True"
-    
+
     # Check that the client is in the cache
     assert cache_key in client_manager._async_clients
     assert client_manager._async_clients[cache_key] is client1
-    
+
     # Call _get_default_client again
     client2 = srv._get_default_client()
-    
+
     # Verify both calls return the same client instance
     assert client1 is client2
-    
+
     # Now clear the cache
     srv.clear_slack_clients()
     assert len(client_manager._async_clients) == 0
-    
+
     # Get a new client
     client3 = srv._get_default_client()
-    
+
     # Cache should have one client again
     assert cache_key in client_manager._async_clients
-    
+
     # But it should be a different instance than before
     assert client3 is not client1
