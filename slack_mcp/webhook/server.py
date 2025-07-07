@@ -26,7 +26,6 @@ from slack_mcp.slack_models import SlackEventModel, UrlVerificationModel, deseri
 __all__: list[str] = [
     "create_slack_app",
     "verify_slack_request",
-    "handle_slack_event",
     "slack_client",
     "get_slack_client",
     "initialize_slack_client",
@@ -155,44 +154,6 @@ async def verify_slack_request(request: Request, signing_secret: str | None = No
 
     # Verify the request
     return verifier.is_valid(signature=signature, timestamp=timestamp, body=body_str)
-
-
-async def handle_slack_event(event_data: SlackEvent, client: AsyncWebClient) -> Dict[str, Any] | None:
-    """Handle Slack events.
-
-    Parameters
-    ----------
-    event_data : SlackEvent
-        The event data from Slack
-    client : AsyncWebClient
-        The Slack client to use for API calls
-
-    Returns
-    -------
-    dict[str, Any] | None
-        The response from the event handler, or None if no handler was found
-    """
-    if "event" not in event_data:
-        _LOG.warning("No event in event data")
-        return None
-
-    event = event_data["event"]
-    event_type = event.get("type")
-
-    if not event_type:
-        _LOG.warning("No event type in event")
-        return None
-
-    # Get handlers for registered event types
-    handlers = register_handlers()
-
-    if event_type in handlers:
-        _LOG.info(f"Handling event type: {event_type}")
-        handler = handlers[event_type]
-        return await handler(client, event)
-
-    _LOG.warning(f"No handler for event type: {event_type}")
-    return None
 
 
 def create_slack_app() -> FastAPI:
