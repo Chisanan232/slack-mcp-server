@@ -20,7 +20,6 @@ from typing import (
     Callable,
     Dict,
     List,
-    Union,
     cast,
     overload,
 )
@@ -35,7 +34,7 @@ _LOG = logging.getLogger("slack_mcp.handler.decorator")
 
 # Type for event handlers - can be sync or async functions
 # F = TypeVar("F", bound=Callable[[Dict[str, Any]], Any])
-HandlerFunc = Callable[[Dict[str, Any]], Union[Awaitable[Any], Any]]
+HandlerFunc = Callable[[Dict[str, Any]], Awaitable[Any] | Any]
 
 
 class DecoratorHandler(EventHandler):
@@ -84,7 +83,7 @@ class DecoratorHandler(EventHandler):
     @overload
     def __call__[F](self, ev: F) -> F: ...
 
-    def __call__[F](self, ev: Union[SlackEvent, str, F]) -> Union[Callable[[HandlerFunc], HandlerFunc], F]:
+    def __call__[F](self, ev: SlackEvent | str | F) -> Callable[[HandlerFunc], HandlerFunc] | F:
         """Register a function as a handler for a specific event type.
 
         This method can be used in two ways:
@@ -94,12 +93,12 @@ class DecoratorHandler(EventHandler):
 
         Parameters
         ----------
-        ev : Union[SlackEvent, str, Callable]
+        ev : SlackEvent | str | F
             Either a SlackEvent enum, a string event type, or the function to decorate
 
         Returns
         -------
-        Union[Callable, Any]
+        Callable[[HandlerFunc], HandlerFunc] | F
             Either a decorator function or the decorated function
         """
         # Case 1: @handler (no args) - register for wildcard "*"
