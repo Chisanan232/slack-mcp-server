@@ -27,7 +27,7 @@ def find_free_port() -> int:
         return s.getsockname()[1]
 
 
-class TestServer(uvicorn.Server):
+class UvicornTestServer(uvicorn.Server):
     """Test server that allows programmatic control for testing."""
 
     def __init__(self, config: uvicorn.Config) -> None:
@@ -166,7 +166,7 @@ async def sse_server(
 
     # Configure and start the server
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
-    server = TestServer(config)
+    server = UvicornTestServer(config)
 
     # Start the server in a separate task
     task = asyncio.create_task(server.start_and_wait())
@@ -198,7 +198,7 @@ async def http_server(
 
     # Configure and start the server
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
-    server = TestServer(config)
+    server = UvicornTestServer(config)
 
     # Start the server in a separate task
     task = asyncio.create_task(server.start_and_wait())
@@ -356,7 +356,7 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
 
     # Configure and start the server
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
-    server = TestServer(config)
+    server = UvicornTestServer(config)
 
     # Start the server in a separate task
     task = asyncio.create_task(server.start_and_wait())

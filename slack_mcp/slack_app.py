@@ -18,7 +18,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from .backends.loader import load_backend
 from .backends.protocol import QueueBackend
-from .client_factory import RetryableSlackClientFactory
+from .client_manager import get_client_manager
 from .event_handler import SlackEvent, register_handlers
 from .slack_models import SlackEventModel, UrlVerificationModel, deserialize
 
@@ -87,25 +87,18 @@ def initialize_slack_client(token: str | None = None, retry: int = 0) -> AsyncWe
     """
     global slack_client
 
-    # Resolve token
-    resolved_token = token or os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
-    if not resolved_token:
-        raise ValueError(
-            "Slack token not found. Provide one via the 'token' parameter or set "
-            "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-        )
-
-    # Create Slack client
+    # Validate retry count
     if retry < 0:
         raise ValueError("Retry count must be non-negative")
 
-    if retry == 0:
-        slack_client = AsyncWebClient(token=resolved_token)
-    else:
-        # Create Slack client with retry capability using the RetryableSlackClientFactory
-        # This uses Slack SDK's built-in retry handlers for rate limits, server errors, etc.
-        client_factory = RetryableSlackClientFactory(max_retry_count=retry)
-        slack_client = client_factory.create_async_client(resolved_token)
+    # Get the client manager and configure it with the retry count if needed
+    client_manager = get_client_manager()
+    if retry != client_manager._default_retry_count:
+        client_manager.update_retry_count(retry)
+
+    # Get the client with or without retries based on the retry parameter
+    use_retries = retry > 0
+    slack_client = client_manager.get_async_client(token, use_retries)
 
     return slack_client
 

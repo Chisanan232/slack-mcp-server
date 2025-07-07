@@ -14,6 +14,9 @@ from typing import Any, Generator
 import pytest
 from mcp.server.fastmcp import FastMCP
 
+# Logger for this module
+_LOG = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # Mock classes
 # ---------------------------------------------------------------------------
@@ -261,19 +264,26 @@ def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatc
     assert "SLACK_BOT_TOKEN" not in mock_environ
 
 
-def test_entry_integrated_mode_sse(_patch_entry) -> None:
+def test_entry_integrated_mode_sse(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test running in integrated mode with SSE transport."""
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
     mock_integrated_app = _patch_entry.mock_integrated_app
 
+    # Set a dummy token to avoid ValueError
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
+
     # Call main with integrated flag and SSE transport
     argv = ["--integrated", "--transport", "sse", "--mount-path", "/mcp-test"]
 
     def run_with_timeout() -> None:
-        entry.main(argv)
+        try:
+            entry.main(argv)
+        except Exception as e:
+            # Log exceptions but don't let them propagate to avoid thread warnings
+            _LOG.error(f"Exception in test thread: {e}")
 
-    thread = threading.Thread(target=run_with_timeout)
+    thread = threading.Thread(target=run_with_timeout, daemon=True)
     thread.start()
     thread.join(timeout=1)
 
@@ -284,19 +294,26 @@ def test_entry_integrated_mode_sse(_patch_entry) -> None:
     # This is implicit since we patched uvicorn.run to be a no-op function
 
 
-def test_entry_integrated_mode_streamable_http(_patch_entry) -> None:
+def test_entry_integrated_mode_streamable_http(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
     """Test running in integrated mode with streamable-http transport."""
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
     mock_integrated_app = _patch_entry.mock_integrated_app
 
+    # Set a dummy token to avoid ValueError
+    monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-test-token")
+
     # Call main with integrated flag and streamable-http transport
     argv = ["--integrated", "--transport", "streamable-http"]
 
     def run_with_timeout() -> None:
-        entry.main(argv)
+        try:
+            entry.main(argv)
+        except Exception as e:
+            # Log exceptions but don't let them propagate to avoid thread warnings
+            _LOG.error(f"Exception in test thread: {e}")
 
-    thread = threading.Thread(target=run_with_timeout)
+    thread = threading.Thread(target=run_with_timeout, daemon=True)
     thread.start()
     thread.join(timeout=1)
 

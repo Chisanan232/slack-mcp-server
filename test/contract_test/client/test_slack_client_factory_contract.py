@@ -117,20 +117,30 @@ class SlackClientFactoryContractTest(ABC):
     def test_client_creation_from_input(self, mock_async_client_class, factory, monkeypatch):
         """
         CONTRACT: A factory must be able to create a client from an input object
-        that has a token attribute, and use that token for the client.
+        and use the default token from environment for the client.
         """
         # Setup mock
         mock_async_instance = MagicMock()
         mock_async_instance.retry_handlers = []
         mock_async_client_class.return_value = mock_async_instance
 
-        test_token = "xoxb-from-input"
+        test_token = "xoxb-from-env"
 
-        # Create input objects with token
-        message_input = SlackPostMessageInput(channel="test-channel", text="test message", token=test_token)
+        # Set the environment token
+        monkeypatch.setenv("SLACK_BOT_TOKEN", test_token)
 
+        # Patch the SlackClientManager._default_token property
+        from slack_mcp.client_manager import SlackClientManager
+
+        def mock_env_token(self):
+            return test_token
+
+        monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+
+        # Create input objects without token
+        message_input = SlackPostMessageInput(channel="test-channel", text="test message")
         thread_input = SlackThreadReplyInput(
-            channel="test-channel", thread_ts="1234.5678", texts=["Reply 1", "Reply 2"], token=test_token
+            channel="test-channel", thread_ts="1234.5678", texts=["Reply 1", "Reply 2"]
         )
 
         # Reset the mock between calls
@@ -139,7 +149,7 @@ class SlackClientFactoryContractTest(ABC):
             mock_async_client_class.reset_mock()
             client = factory.create_async_client_from_input(input_obj)
 
-            # Verify correct token from input was used
+            # Verify correct token from environment was used
             mock_async_client_class.assert_called_once()
             args, kwargs = mock_async_client_class.call_args
             assert kwargs.get("token") == test_token
