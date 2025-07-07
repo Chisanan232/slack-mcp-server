@@ -4,7 +4,7 @@ import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from slack_mcp.server import mcp as _server_instance
+from slack_mcp.mcp.server import mcp as _server_instance
 
 
 def test_dotenv_loading_with_valid_env_file():

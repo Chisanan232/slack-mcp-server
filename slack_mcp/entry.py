@@ -12,8 +12,8 @@ import uvicorn
 from dotenv import load_dotenv
 
 from .integrated_server import create_integrated_app
-from .server import mcp as _server_instance
-from .server import set_slack_client_retry_count
+from slack_mcp.mcp.server import mcp as _server_instance
+from slack_mcp.mcp.server import set_slack_client_retry_count
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
 
@@ -109,7 +109,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
         )
         from slack_mcp.webhook.server import slack_client
 
-        from .server import update_slack_client
+        from slack_mcp.mcp.server import update_slack_client
 
         update_slack_client(token=args.slack_token, client=slack_client)
 

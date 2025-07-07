@@ -26,7 +26,7 @@ logger = logging.getLogger("e2e_test")
 
 def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
-    env_path = Path(__file__).parent / ".env"
+    env_path = Path("./.env")
     logger.info(f"Loading secrets from {env_path}")
     if env_path.exists():
         load_dotenv(env_path)
