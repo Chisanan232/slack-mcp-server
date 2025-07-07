@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 
 from .integrated_server import create_integrated_app
 from .server import FastMCP, mcp
-from .slack_app import create_slack_app, initialize_slack_client
+from slack_mcp.webhook.server import create_slack_app, initialize_slack_client
 
 __all__: list[str] = [
     "run_slack_server",

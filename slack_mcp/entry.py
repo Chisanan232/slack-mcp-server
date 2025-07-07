@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
             token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
         from .server import update_slack_client
-        from .slack_app import slack_client
+        from slack_mcp.webhook.server import slack_client
 
         update_slack_client(token=args.slack_token, client=slack_client)
 

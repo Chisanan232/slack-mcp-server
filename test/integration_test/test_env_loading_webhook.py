@@ -81,9 +81,9 @@ def test_webhook_create_slack_app_with_initialize_client():
 
         # We need to patch get_client_manager before importing the modules
         with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
-            with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+            with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
                 # Import here to use the patched environment
-                from slack_mcp.slack_app import (
+                from slack_mcp.webhook.server import (
                     create_slack_app,
                     initialize_slack_client,
                 )
@@ -119,9 +119,9 @@ def test_webhook_initialize_client_with_param_token():
 
         # We need to patch get_client_manager before importing the modules
         with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
-            with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+            with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
                 # Import here to use the patched environment
-                from slack_mcp.slack_app import initialize_slack_client
+                from slack_mcp.webhook.server import initialize_slack_client
 
                 # Initialize client with explicit token parameter
                 client = initialize_slack_client(token=param_token)

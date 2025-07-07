@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.webhook import server
+from slack_mcp.webhook import server as slack_webhook_server
 from slack_mcp.client.manager import SlackClientManager
 
 
@@ -16,17 +16,17 @@ from slack_mcp.client.manager import SlackClientManager
 def clean_global_client() -> Generator[None, None, None]:
     """Reset the global slack_client variable after each test."""
     # Save original
-    original_client = slack_app.slack_client
+    original_client = slack_webhook_server.slack_client
 
     # Reset for test
-    slack_app.slack_client = None
+    slack_webhook_server.slack_client = None
 
     # Also reset the SlackClientManager singleton
     with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
         yield
 
     # Restore original
-    slack_app.slack_client = original_client
+    slack_webhook_server.slack_client = original_client
 
 
 @pytest.fixture
@@ -48,12 +48,12 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
-            client = slack_app.initialize_slack_client(token="test-token-123")
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
+            client = slack_webhook_server.initialize_slack_client(token="test-token-123")
 
         assert client is mock_client
         assert client.token == "test-token-123"
-        assert slack_app.slack_client is client  # Global variable should be set
+        assert slack_webhook_server.slack_client is client  # Global variable should be set
         mock_manager.get_async_client.assert_called_once_with("test-token-123", False)
 
     def test_initialize_with_bot_token_env(self, clean_global_client: None, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -67,11 +67,11 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
-            client = slack_app.initialize_slack_client()
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
+            client = slack_webhook_server.initialize_slack_client()
 
         assert client.token == "env-bot-token"
-        assert slack_app.slack_client is client
+        assert slack_webhook_server.slack_client is client
         mock_manager.get_async_client.assert_called_once_with(None, False)
 
     def test_initialize_with_fallback_token_env(
@@ -88,11 +88,11 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
-            client = slack_app.initialize_slack_client()
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
+            client = slack_webhook_server.initialize_slack_client()
 
         assert client.token == "fallback-token"
-        assert slack_app.slack_client is client
+        assert slack_webhook_server.slack_client is client
         mock_manager.get_async_client.assert_called_once_with(None, False)
 
     def test_initialize_token_resolution_priority(
@@ -110,9 +110,9 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
             # Provide explicit token
-            client = slack_app.initialize_slack_client(token="explicit-token")
+            client = slack_webhook_server.initialize_slack_client(token="explicit-token")
 
         # Explicit token should take precedence
         assert client.token == "explicit-token"
@@ -124,20 +124,20 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.side_effect = ValueError("Slack token not found")
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
             with pytest.raises(ValueError) as excinfo:
-                slack_app.initialize_slack_client()
+                slack_webhook_server.initialize_slack_client()
 
         assert "Slack token not found" in str(excinfo.value)
-        assert slack_app.slack_client is None  # Global variable should remain None
+        assert slack_webhook_server.slack_client is None  # Global variable should remain None
 
     def test_initialize_with_negative_retry_raises_error(self, clean_global_client: None) -> None:
         """Should raise ValueError when retry count is negative."""
         with pytest.raises(ValueError) as excinfo:
-            slack_app.initialize_slack_client(token="test-token", retry=-1)
+            slack_webhook_server.initialize_slack_client(token="test-token", retry=-1)
 
         assert "Retry count must be non-negative" in str(excinfo.value)
-        assert slack_app.slack_client is None  # Global variable should remain None
+        assert slack_webhook_server.slack_client is None  # Global variable should remain None
 
     def test_initialize_with_zero_retry(self, clean_global_client: None) -> None:
         """Should create standard client when retry=0."""
@@ -147,8 +147,8 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
-            client = slack_app.initialize_slack_client(token="test-token", retry=0)
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
+            client = slack_webhook_server.initialize_slack_client(token="test-token", retry=0)
 
         assert isinstance(client, AsyncWebClient)
         mock_manager.get_async_client.assert_called_once_with("test-token", False)
@@ -166,8 +166,8 @@ class TestInitializeSlackClient:
         mock_manager.get_async_client.return_value = mock_client
 
         # Patch get_client_manager to return our mock
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
-            client = slack_app.initialize_slack_client(token="test-token", retry=3)
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
+            client = slack_webhook_server.initialize_slack_client(token="test-token", retry=3)
 
         # Verify manager was used correctly
         assert client is mock_client
@@ -186,17 +186,17 @@ class TestInitializeSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.side_effect = [mock_first_client, mock_second_client]
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
             # Initialize first client
-            first_client = slack_app.initialize_slack_client(token="first-token")
+            first_client = slack_webhook_server.initialize_slack_client(token="first-token")
 
             # Initialize second client
-            second_client = slack_app.initialize_slack_client(token="second-token")
+            second_client = slack_webhook_server.initialize_slack_client(token="second-token")
 
         # Second client should replace the first one
-        assert slack_app.slack_client is second_client
-        assert slack_app.slack_client is not first_client
-        assert slack_app.slack_client.token == "second-token"
+        assert slack_webhook_server.slack_client is second_client
+        assert slack_webhook_server.slack_client is not first_client
+        assert slack_webhook_server.slack_client.token == "second-token"
 
 
 class TestGetSlackClient:
@@ -210,19 +210,19 @@ class TestGetSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.return_value = mock_client
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
             # Initialize the client first
-            slack_app.initialize_slack_client(token="test-token")
+            slack_webhook_server.initialize_slack_client(token="test-token")
 
             # Then get it
-            client = slack_app.get_slack_client()
+            client = slack_webhook_server.get_slack_client()
 
         assert client is mock_client
 
     def test_get_uninitialized_client_raises_error(self, clean_global_client: None) -> None:
         """Should raise ValueError when client is not initialized."""
         with pytest.raises(ValueError) as excinfo:
-            slack_app.get_slack_client()
+            slack_webhook_server.get_slack_client()
 
         assert "Slack client not initialized" in str(excinfo.value)
 
@@ -235,14 +235,14 @@ class TestGetSlackClient:
         mock_manager._default_retry_count = 0
         mock_manager.get_async_client.side_effect = [mock_first_client, mock_second_client]
 
-        with patch("slack_mcp.slack_app.get_client_manager", return_value=mock_manager):
+        with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
             # Initialize first client
-            slack_app.initialize_slack_client(token="first-token")
+            slack_webhook_server.initialize_slack_client(token="first-token")
 
             # Initialize second client
-            slack_app.initialize_slack_client(token="second-token")
+            slack_webhook_server.initialize_slack_client(token="second-token")
 
             # Get client should return the second one
-            client = slack_app.get_slack_client()
+            client = slack_webhook_server.get_slack_client()
 
         assert client is mock_second_client

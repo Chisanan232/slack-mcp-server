@@ -98,7 +98,7 @@ def mock_slack_verification(monkeypatch: pytest.MonkeyPatch) -> None:
         return True
 
     # Patch the internal verify_slack_request function directly
-    monkeypatch.setattr("slack_mcp.slack_app.verify_slack_request", mock_verify)
+    monkeypatch.setattr("slack_mcp.webhook.server.verify_slack_request", mock_verify)
 
 
 async def safely_cancel_task(task: asyncio.Task) -> None:
@@ -146,8 +146,8 @@ async def mock_queue_backend() -> AsyncGenerator[MockQueueBackend, None]:
     # Create the mock backend
     mock_backend = MockQueueBackend()
 
-    # Patch the _queue_backend global variable in slack_app.py
-    with patch("slack_mcp.slack_app._queue_backend", mock_backend):
+    # Patch the _queue_backend global variable in server.py
+    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
         yield mock_backend
 
 
@@ -346,7 +346,7 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
     port = find_free_port()
 
     # Create a simple Slack app without MCP integration to test webhook functionality
-    from slack_mcp.slack_app import create_slack_app, initialize_slack_client
+    from slack_mcp.webhook.server import create_slack_app, initialize_slack_client
 
     # Create the webhook app
     app = create_slack_app()

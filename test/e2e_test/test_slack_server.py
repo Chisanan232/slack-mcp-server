@@ -2,12 +2,12 @@ from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 
-from slack_mcp.slack_app import create_slack_app
+from slack_mcp.webhook.server import create_slack_app
 
 
 def test_e2e_url_verification():
     """Test the end-to-end flow for URL verification."""
-    with patch("slack_mcp.slack_app.verify_slack_request", AsyncMock(return_value=True)):
+    with patch("slack_mcp.webhook.server.verify_slack_request", AsyncMock(return_value=True)):
         # Create the FastAPI app and test client
         app = create_slack_app()
         client = TestClient(app)
