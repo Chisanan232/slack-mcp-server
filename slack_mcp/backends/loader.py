@@ -12,7 +12,7 @@ from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.backends.base.protocol import QueueBackend
 
 # Entry point group name for queue backends
-BACKEND_ENTRY_POINT_GROUP = "slack_mcp.queue_backends"
+BACKEND_ENTRY_POINT_GROUP = "slack_mcp.backends.queue"
 
 
 def load_backend() -> QueueBackend:

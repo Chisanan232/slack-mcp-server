@@ -174,7 +174,7 @@ def test_fallback_to_memory_backend(reset_env):
 
 def test_entry_point_group_name():
     """Ensure the entry point group name is correctly defined."""
-    assert BACKEND_ENTRY_POINT_GROUP == "slack_mcp.queue_backends"
+    assert BACKEND_ENTRY_POINT_GROUP == "slack_mcp.backends.queue"
 
 
 # Integration of TestBackendLoader tests (converted to pytest style)
