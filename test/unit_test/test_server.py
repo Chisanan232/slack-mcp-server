@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Final, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
+import asyncio
+import os
 import pytest
 from slack_sdk.http_retry.async_handler import AsyncRetryHandler
 
@@ -25,7 +27,7 @@ class _FakeSlackResponse:  # noqa: D101 – minimal stub
     """Stand-in for :class:`slack_sdk.web.slack_response.SlackResponse`."""
 
     def __init__(self, data: dict[str, Any]):  # noqa: D401 – docstring short.
-        self.data: Final[dict[str, Any]] = data
+        self.data: Dict[str, Any] = data
 
 
 class _DummyAsyncWebClient:  # noqa: D101 – simple stub
@@ -346,6 +348,65 @@ async def test_read_slack_channel_messages_missing_token(monkeypatch: pytest.Mon
 
     with pytest.raises(ValueError, match=r"Slack token not found.*"):
         await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="#general"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "param_name,param_value,expected_kwarg",
+    [
+        ("oldest", "1620000000.000000", {"oldest": "1620000000.000000"}),
+        ("latest", "1620010000.000000", {"latest": "1620010000.000000"}),
+        ("inclusive", True, {"inclusive": True}),
+        (
+            "all_params", 
+            {"oldest": "1620000000.000000", "latest": "1620010000.000000", "inclusive": True},
+            {"oldest": "1620000000.000000", "latest": "1620010000.000000", "inclusive": True}
+        ),
+    ],
+)
+async def test_read_slack_channel_messages_optional_params(
+    monkeypatch: pytest.MonkeyPatch, param_name: str, param_value: Any, expected_kwarg: dict
+) -> None:
+    """Test that optional parameters are correctly passed to the Slack API."""
+    # Create a spy for the AsyncWebClient.conversations_history method
+    from slack_mcp.server import AsyncWebClient
+    
+    original_method = AsyncWebClient.conversations_history
+    
+    # Create a dictionary to store the kwargs that were passed
+    captured_kwargs = {}
+    
+    async def mock_conversations_history(self, **kwargs):
+        # Store the kwargs for later inspection
+        captured_kwargs.update(kwargs)
+        # Call the original method to maintain behavior
+        return await original_method(self, **kwargs)
+    
+    # Apply the spy
+    monkeypatch.setattr(AsyncWebClient, "conversations_history", mock_conversations_history)
+    
+    # Prepare input parameters
+    if param_name == "all_params":
+        # For the "all_params" case, we need to set all three parameters
+        input_params = SlackReadChannelMessagesInput(
+            channel="#general",
+            oldest=param_value["oldest"],
+            latest=param_value["latest"],
+            inclusive=param_value["inclusive"]
+        )
+    else:
+        # For individual parameter tests
+        kwargs = {"channel": "#general"}
+        kwargs[param_name] = param_value
+        input_params = SlackReadChannelMessagesInput(**kwargs)
+    
+    # Call the function
+    await srv.read_slack_channel_messages(input_params=input_params)
+    
+    # Verify that the expected kwargs were passed to the API call
+    for key, value in expected_kwarg.items():
+        assert key in captured_kwargs, f"Expected {key} to be in kwargs"
+        assert captured_kwargs[key] == value, f"Expected {key}={value}, got {captured_kwargs[key]}"
 
 
 @pytest.mark.asyncio
