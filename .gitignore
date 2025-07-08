@@ -3,6 +3,8 @@
 .DS_Store
 ## Python cache
 __pycache__
+## UV
+.venv/
 ## PyEnv
 .python-version
 ## PyTest
