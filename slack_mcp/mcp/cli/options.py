@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import argparse
 
+from .models import MCPServerCliOptions
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:  # noqa: D401 – helper
+
+def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: D401 – helper
     parser = argparse.ArgumentParser(description="Run the Slack MCP server")
     parser.add_argument(
         "--host",
@@ -60,4 +62,4 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:  # noqa: D
         default=3,
         help="Number of retry attempts for network operations (default: 3)",
     )
-    return parser.parse_args(argv)
+    return MCPServerCliOptions.deserialize(parser.parse_args(argv))
