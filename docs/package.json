@@ -29,7 +29,7 @@
     "@docusaurus/module-type-aliases": "3.8.0",
     "@docusaurus/plugin-content-docs": "^3.8.1",
     "@docusaurus/tsconfig": "3.8.0",
-    "@docusaurus/types": "3.8.0",
+    "@docusaurus/types": "3.8.1",
     "remark-mdx-code-meta": "^2.0.0",
     "typescript": "~5.6.2"
   },
