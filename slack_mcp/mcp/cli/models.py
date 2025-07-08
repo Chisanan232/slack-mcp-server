@@ -1,25 +1,32 @@
 from __future__ import annotations
 
 import argparse
-from dataclasses import dataclass, fields
+from typing import Literal
+
+from pydantic import BaseModel, Field, ConfigDict
 
 
-@dataclass(slots=True, frozen=True)
-class MCPServerCliOptions:
+class MCPServerCliOptions(BaseModel):
+    """集中保存 CLI 參數的不可變設定物件。"""
 
     host: str = "127.0.0.1"
-    port: int = 8000
-    transport: str = "stdio"
+    port: int = Field(8000, ge=1, le=65535)
+    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
     mount_path: str | None = None
     log_level: str = "INFO"
     env_file: str = ".env"
     no_env_file: bool = False
     slack_token: str | None = None
     integrated: bool = False
-    retry: int = 3
+    retry: int = Field(3, ge=0)
+
+    model_config = ConfigDict(frozen=True)
 
     @classmethod
     def deserialize(cls, ns: argparse.Namespace) -> "MCPServerCliOptions":
-        field_names: set[str] = {f.name for f in fields(cls) if f.init}
-        kwargs = {name: getattr(ns, name) for name in field_names if hasattr(ns, name)}
-        return cls(**kwargs)
+        data = {
+            name: getattr(ns, name)
+            for name in cls.model_fields.keys()          # v2 API；v1 改用 __fields__
+            if hasattr(ns, name)
+        }
+        return cls(**data)
