@@ -5,7 +5,7 @@ relative_files = True
 include=./slack_mcp/
 omit =
 #    */__init__.py
-    ./slack_mcp/__main__.py
+    ./slack_mcp/*/__main__.py
 
 [paths]
 source =
