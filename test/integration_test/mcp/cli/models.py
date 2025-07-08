@@ -18,8 +18,7 @@ def test_parse_args_to_dataclass(tmp_path) -> None:
         "--retry", "7",
     ]
 
-    ns = _parse_args(argv)
-    cfg = MCPServerCliOptions.deserialize(ns)
+    cfg = _parse_args(argv)
 
     assert cfg.host == "0.0.0.0"
     assert cfg.port == 9001

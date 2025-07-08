@@ -160,9 +160,9 @@ async def run_integrated_server(
     await server.serve()
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Run the Slack events server as a standalone application."""
-    args = _parse_args()
+    args = _parse_args(argv)
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
 

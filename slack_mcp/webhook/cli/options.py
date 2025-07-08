@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import argparse
 
+from .models import WebhookServerCliOptions
 
-def _parse_args() -> argparse.Namespace:
+
+def _parse_args(argv: list[str] | None = None) -> WebhookServerCliOptions:
     parser = argparse.ArgumentParser(description="Run the Slack events server")
     parser.add_argument(
         "--host",
@@ -58,5 +60,5 @@ def _parse_args() -> argparse.Namespace:
         default=3,
         help="Number of retry attempts for network operations (default: 3)",
     )
-    args = parser.parse_args()
+    args = WebhookServerCliOptions.deserialize(parser.parse_args(argv))
     return args
