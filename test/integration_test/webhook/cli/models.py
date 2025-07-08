@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 from slack_mcp.webhook.cli.options import _parse_args
 
 
