@@ -7,7 +7,6 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 class MCPServerCliOptions(BaseModel):
-    """集中保存 CLI 參數的不可變設定物件。"""
 
     host: str = "127.0.0.1"
     port: int = Field(8000, ge=1, le=65535)
