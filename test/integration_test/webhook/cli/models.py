@@ -1,22 +1,29 @@
 from __future__ import annotations
 
-import sys
 
 from slack_mcp.webhook.cli.options import _parse_args
 
 
 def test_cli_to_config(tmp_path) -> None:
     argv = [
-        "--host", "127.0.0.1",
-        "--port", "4100",
-        "--log-level", "WARNING",
-        "--slack-token", "xoxb-abc",
-        "--env-file", str(tmp_path / ".env.local"),
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "4100",
+        "--log-level",
+        "WARNING",
+        "--slack-token",
+        "xoxb-abc",
+        "--env-file",
+        str(tmp_path / ".env.local"),
         "--no-env-file",
         "--integrated",
-        "--mcp-transport", "sse",
-        "--mcp-mount-path", "/mcp",
-        "--retry", "9",
+        "--mcp-transport",
+        "sse",
+        "--mcp-mount-path",
+        "/mcp",
+        "--retry",
+        "9",
     ]
 
     cfg = _parse_args(argv)

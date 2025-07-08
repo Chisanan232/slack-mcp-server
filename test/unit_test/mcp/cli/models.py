@@ -21,7 +21,7 @@ def test_deserialize_minimal() -> None:
         slack_token=None,
         integrated=False,
         retry=5,
-        extra="IGNORED",           # 不在模型中的欄位將被捨棄
+        extra="IGNORED",  # 不在模型中的欄位將被捨棄
     )
     cfg = MCPServerCliOptions.deserialize(ns)
 
@@ -51,7 +51,7 @@ def test_deserialize_fail() -> None:
         slack_token=None,
         integrated=False,
         retry=5,
-        extra="IGNORED",           # 不在模型中的欄位將被捨棄
+        extra="IGNORED",  # 不在模型中的欄位將被捨棄
     )
     with pytest.raises(ValidationError):
         MCPServerCliOptions.deserialize(ns)

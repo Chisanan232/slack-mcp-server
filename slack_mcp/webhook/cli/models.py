@@ -28,9 +28,5 @@ class WebhookServerCliOptions(BaseModel):
 
     @classmethod
     def deserialize(cls, ns: argparse.Namespace) -> "WebhookServerCliOptions":
-        data = {
-            name: getattr(ns, name)
-            for name in cls.model_fields.keys()
-            if hasattr(ns, name)
-        }
+        data = {name: getattr(ns, name) for name in cls.model_fields.keys() if hasattr(ns, name)}
         return cls(**data)

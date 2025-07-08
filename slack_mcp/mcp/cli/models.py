@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 from typing import Literal
 
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MCPServerCliOptions(BaseModel):
@@ -25,7 +25,7 @@ class MCPServerCliOptions(BaseModel):
     def deserialize(cls, ns: argparse.Namespace) -> "MCPServerCliOptions":
         data = {
             name: getattr(ns, name)
-            for name in cls.model_fields.keys()          # v2 API；v1 改用 __fields__
+            for name in cls.model_fields.keys()  # v2 API；v1 改用 __fields__
             if hasattr(ns, name)
         }
         return cls(**data)

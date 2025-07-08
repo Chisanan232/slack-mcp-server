@@ -15,8 +15,8 @@ from dotenv import load_dotenv
 
 from slack_mcp.integrated_server import create_integrated_app
 from slack_mcp.mcp.server import FastMCP, mcp
-from .cli.options import _parse_args
 
+from .cli.options import _parse_args
 from .server import create_slack_app, initialize_slack_client
 
 __all__: list[str] = [

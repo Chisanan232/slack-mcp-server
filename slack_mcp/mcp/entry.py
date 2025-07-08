@@ -11,6 +11,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 from slack_mcp.integrated_server import create_integrated_app
+
 from .cli import _parse_args
 from .server import mcp as _server_instance
 from .server import set_slack_client_retry_count
