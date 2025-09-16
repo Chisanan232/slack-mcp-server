@@ -35,7 +35,7 @@ export default function VersionsArchived(): JSX.Element {
   };
 
   // Base URL for GitHub releases - update this to the appropriate repository URL
-  const releaseBaseUrl = 'https://github.com/Chisanan232/clickup-mcp-server/releases/tag/v';
+  const releaseBaseUrl = 'https://github.com/Chisanan232/slack-mcp-server/releases/tag/v';
 
   // Process version data for each plugin
   const pluginsVersionInfo = Object.keys(allDocsData).map((pluginId) => {
@@ -148,7 +148,7 @@ export default function VersionsArchived(): JSX.Element {
                   </Link>
                   <Link
                     className={`${styles.versionLink} ${styles.releaseNotesLink}`}
-                    to="https://github.com/Chisanan232/clickup-mcp-server/commits/master"
+                    to="https://github.com/Chisanan232/slack-mcp-server/commits/master"
                     target="_blank"
                     rel="noopener noreferrer">
                     <Translate
