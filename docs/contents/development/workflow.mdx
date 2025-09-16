@@ -11,7 +11,7 @@ import TabItem from '@theme/TabItem';
 
 # Development Workflow
 
-This guide outlines the recommended workflow for contributing to the ClickUp MCP Server project.
+This guide outlines the recommended workflow for contributing to the Slack MCP Server project.
 
 ## Setting Up Your Environment
 
@@ -31,7 +31,7 @@ Before you start development, make sure you have completed all the steps in the 
 
 First, fork the project to your own GitHub account:
 
-1. Go to the [ClickUp MCP Server repository](https://github.com/Chisanan232/slack-mcp-server)
+1. Go to the [Slack MCP Server repository](https://github.com/Chisanan232/slack-mcp-server)
 2. Click the "Fork" button in the top right
 3. Wait for GitHub to create your fork
 4. Clone your forked repository to your local machine:
@@ -101,7 +101,7 @@ Before submitting your changes, make sure all tests pass:
     pytest
     
     # Run with coverage report
-    pytest --cov=clickup_mcp_server
+    pytest --cov=slack_mcp_server
     
     # Run specific tests
     pytest test/path/to/test_file.py
@@ -114,7 +114,7 @@ Before submitting your changes, make sure all tests pass:
     poetry run pytest
     
     # Run with coverage report
-    poetry run pytest --cov=clickup_mcp_server
+    poetry run pytest --cov=slack_mcp_server
     
     # Run specific tests
     poetry run pytest test/path/to/test_file.py
@@ -127,7 +127,7 @@ Before submitting your changes, make sure all tests pass:
     uv run pytest
     
     # Run with coverage report
-    uv run pytest --cov=clickup_mcp_server
+    uv run pytest --cov=slack_mcp_server
     
     # Run specific tests
     uv run pytest test/path/to/test_file.py
