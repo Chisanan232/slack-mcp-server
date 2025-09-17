@@ -1,0 +1,119 @@
+---
+id: mcp-apis
+title: MCP Server APIs
+sidebar_position: 2
+---
+
+# MCP Server APIs
+
+The MCP (Model Context Protocol) Server APIs provide programmatic interfaces for client libraries and applications to interact with Slack resources through a standardized protocol. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Transport Options
+
+MCP Server supports three transport mechanisms:
+
+1. **stdio** - Standard input/output communication (default)
+2. **Server-Sent Events (SSE)** - Event-based communication over HTTP
+3. **Streamable HTTP** - HTTP-based streaming communication
+
+## Available Tools
+
+The following MCP tools are available for Slack integration:
+
+- ✅ [**Post Message**](./slack_post_message.mdx) - Send text messages to Slack channels
+- ✅ [**Read Channel Messages**](./slack_read_channel_messages.mdx) - Retrieve message history from channels
+- ✅ [**Read Thread Messages**](./slack_read_thread_messages.mdx) - Retrieve messages from specific threads
+- ✅ [**Thread Reply**](./slack_thread_reply.mdx) - Send replies to existing threads
+- ✅ [**Read Emojis**](./slack_read_emojis.mdx) - Get all available workspace emojis
+- ✅ [**Add Reactions**](./slack_add_reactions.mdx) - Add emoji reactions to messages
+
+## Tool Categories
+
+### **Message Operations**
+- `slack_post_message` - Send messages to channels
+- `slack_thread_reply` - Reply to existing threads
+
+### **Data Retrieval**
+- `slack_read_channel_messages` - Get channel message history
+- `slack_read_thread_messages` - Get thread conversation history
+- `slack_read_emojis` - Get workspace emoji information
+
+### **Interactive Features**
+- `slack_add_reactions` - Add emoji reactions to messages
+
+## Authentication
+
+All MCP tools require a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+### Required OAuth Scopes
+
+The bot must have appropriate OAuth scopes depending on the tools used:
+
+| Tool | Required Scopes |
+|------|----------------|
+| Post Message | `chat:write`, `channels:read` |
+| Read Channel Messages | `channels:history`, `channels:read` |
+| Read Thread Messages | `channels:history`, `channels:read` |
+| Thread Reply | `chat:write`, `channels:read` |
+| Read Emojis | `emoji:read` |
+| Add Reactions | `reactions:write`, `channels:read` |
+
+## Usage Examples
+
+### Basic Message Sending
+```json
+{
+  "channel": "#general",
+  "text": "Hello from the MCP server!"
+}
+```
+
+### Reading Channel History
+```json
+{
+  "channel": "#general",
+  "limit": 50
+}
+```
+
+### Adding Reactions
+```json
+{
+  "channel": "#general",
+  "timestamp": "1234567890.123456",
+  "emojis": ["thumbsup", "heart"]
+}
+```
+
+## Error Handling
+
+MCP Server API responses follow Slack's standard format. Successful responses have `"ok": true`, while errors have `"ok": false` with error details:
+
+```json
+{
+  "ok": false,
+  "error": "channel_not_found",
+  "detail": "Value passed for channel was invalid."
+}
+```
+
+### Common Error Types
+
+- **Authentication Errors**: `invalid_auth`, `not_authed`
+- **Permission Errors**: `not_in_channel`, `channel_not_found`
+- **Rate Limiting**: `rate_limited`
+- **Validation Errors**: `invalid_ts`, `msg_too_long`
+
+## Rate Limiting
+
+Slack enforces rate limits on API endpoints. The server automatically handles retries according to Slack's rate limiting headers. Consider implementing client-side rate limiting for high-frequency operations.
+
+## Best Practices
+
+- **Error Handling**: Always check the `ok` field in responses
+- **Channel Format**: Use channel IDs (e.g., `C1234567890`) for better reliability
+- **Token Security**: Store tokens securely and never expose them in client-side code
+- **Rate Management**: Implement appropriate delays between API calls
+- **Scope Minimization**: Only request necessary OAuth scopes
