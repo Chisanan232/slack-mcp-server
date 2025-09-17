@@ -25,18 +25,18 @@ We follow [PEP 8](https://www.python.org/dev/peps/pep-0008/) for Python code sty
 We use type annotations throughout the codebase to improve code readability and enable static type checking:
 
 ```python
-def get_task(task_id: str) -> ClickUpTask:
+def get_message(message_id: str) -> SlackMessage:
     """
-    Retrieve a task by its ID.
+    Retrieve a message by its ID.
     
     Args:
-        task_id: The ID of the task to retrieve
+        message_id: The ID of the message to retrieve
         
     Returns:
-        ClickUpTask: The retrieved task object
+        SlackMessage: The retrieved message object
         
     Raises:
-        TaskNotFoundError: If the task doesn't exist
+        MessageNotFoundError: If the message doesn't exist
     """
     # Implementation
 ```
@@ -221,7 +221,7 @@ from typing import Dict, List, Optional
 import httpx
 from pydantic import BaseModel, Field
 
-from slack_mcp_server.models import ClickUpTask
+from slack_mcp_server.models import SlackMessage
 from slack_mcp_server.utils import logger
 ```
 

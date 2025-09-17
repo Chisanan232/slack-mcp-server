@@ -349,23 +349,6 @@ All artifacts should reflect the same bumped version:
 
 The project includes several specialized CI workflows that complement the main CI/CD pipeline:
 
-### API Specification Checking
-
-[![Check ClickUp API Specification Changes](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/check-clickup-api-spec.yaml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/check-clickup-api-spec.yaml)
-
-**Purpose**: Verifies the ClickUp API specification against the implementation
-
-**Features**:
-- Automated API specification validation
-- Detects breaking changes in API contracts
-- Ensures implementation matches documented API
-- Prevents API drift and inconsistencies
-
-**Triggers**:
-- Changes to API specification files
-- Changes to API implementation code
-- Scheduled weekly runs for proactive monitoring
-
 ### Docker CI
 
 [![docker-ci](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docker-ci.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docker-ci.yml)
@@ -480,7 +463,7 @@ All CI/CD workflows are defined in the `.github/workflows/` directory:
 - `rw_build_git-tag_and_create_github-release.yaml` - Git tagging and GitHub releases
 
 ### Specialized Workflows  
-- `check-clickup-api-spec.yaml` - API specification validation
+- `check-slack-api-spec.yaml` - API specification validation
 - `docker-ci.yml` - Standalone Docker testing
 - `dockerhub-readme-ci.yml` - DockerHub README synchronization
 - `docs-automerge.yml` - Documentation PR automation
