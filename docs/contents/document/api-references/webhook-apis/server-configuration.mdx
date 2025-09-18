@@ -1,0 +1,725 @@
+---
+id: server-configuration
+title: Server Configuration
+sidebar_position: 4
+---
+
+# Server Configuration
+
+The Slack MCP webhook server provides comprehensive configuration options through command-line arguments, environment variables, and configuration files. This guide covers all available configuration options for both development and production deployments.
+
+## CLI Options Overview
+
+The webhook server supports a rich set of command-line options for flexible deployment:
+
+```bash
+python -m slack_mcp.webhook [OPTIONS]
+```
+
+### Core Server Options
+
+#### Host and Port Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--host` | `string` | `"0.0.0.0"` | Host interface to bind the server to |
+| `--port` | `integer` | `3000` | Port number to listen on |
+
+**Examples:**
+```bash
+# Listen on localhost only (development)
+python -m slack_mcp.webhook --host 127.0.0.1 --port 3000
+
+# Listen on all interfaces (production)
+python -m slack_mcp.webhook --host 0.0.0.0 --port 8080
+
+# Use environment PORT variable (common in cloud deployments)
+PORT=8000 python -m slack_mcp.webhook --port $PORT
+```
+
+#### Logging Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--log-level` | `string` | `"INFO"` | Python logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
+
+**Examples:**
+```bash
+# Enable debug logging for development
+python -m slack_mcp.webhook --log-level DEBUG
+
+# Quiet logging for production
+python -m slack_mcp.webhook --log-level WARNING
+
+# Verbose logging for troubleshooting
+python -m slack_mcp.webhook --log-level DEBUG
+```
+
+**Available Log Levels:**
+- `DEBUG` - Detailed information for debugging
+- `INFO` - General information about server operation
+- `WARNING` - Warning messages for potential issues
+- `ERROR` - Error messages for failures
+- `CRITICAL` - Critical errors that may cause server shutdown
+
+### Authentication Options
+
+#### Slack Token Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--slack-token` | `string` | `None` | Slack bot token (overrides environment variables) |
+
+**Examples:**
+```bash
+# Provide token via CLI (not recommended for production)
+python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
+
+# Use environment variable (recommended)
+export SLACK_BOT_TOKEN="xoxb-your-token-here"
+python -m slack_mcp.webhook
+```
+
+### Environment File Options
+
+#### Environment File Loading
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--env-file` | `string` | `".env"` | Path to environment file to load |
+| `--no-env-file` | `flag` | `False` | Disable automatic environment file loading |
+
+**Examples:**
+```bash
+# Use custom environment file
+python -m slack_mcp.webhook --env-file /etc/webhook/.env.production
+
+# Use environment file from different directory
+python -m slack_mcp.webhook --env-file ../config/.env.staging
+
+# Disable environment file loading
+python -m slack_mcp.webhook --no-env-file
+```
+
+### Server Mode Options
+
+#### Integrated vs Standalone Mode
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--integrated` | `flag` | `False` | Run integrated server (MCP + Webhook) |
+| `--mcp-transport` | `choice` | `"sse"` | MCP transport type: `sse` or `streamable-http` |
+| `--mcp-mount-path` | `string` | `"/mcp"` | Mount path for MCP server (SSE transport only) |
+
+**Examples:**
+```bash
+# Standalone webhook server (default)
+python -m slack_mcp.webhook
+
+# Integrated server with SSE transport
+python -m slack_mcp.webhook --integrated --mcp-transport sse
+
+# Integrated server with HTTP streaming
+python -m slack_mcp.webhook --integrated --mcp-transport streamable-http
+
+# Custom MCP mount path
+python -m slack_mcp.webhook --integrated --mcp-mount-path /api/mcp
+```
+
+### Network and Reliability Options
+
+#### Retry Configuration
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--retry` | `integer` | `3` | Number of retry attempts for network operations |
+
+**Examples:**
+```bash
+# Disable retries (not recommended for production)
+python -m slack_mcp.webhook --retry 0
+
+# Conservative retry policy
+python -m slack_mcp.webhook --retry 1
+
+# Aggressive retry policy for unreliable networks
+python -m slack_mcp.webhook --retry 10
+```
+
+## Complete CLI Examples
+
+### Development Configuration
+
+```bash
+# Basic development setup
+python -m slack_mcp.webhook \
+  --host 127.0.0.1 \
+  --port 3000 \
+  --log-level DEBUG \
+  --env-file .env.development
+
+# Development with integrated MCP server
+python -m slack_mcp.webhook \
+  --host 127.0.0.1 \
+  --port 3000 \
+  --log-level DEBUG \
+  --integrated \
+  --mcp-transport sse \
+  --retry 1
+```
+
+### Production Configuration
+
+```bash
+# Production standalone webhook server
+python -m slack_mcp.webhook \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --log-level INFO \
+  --env-file /etc/webhook/.env.production \
+  --retry 3
+
+# Production integrated server
+python -m slack_mcp.webhook \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --log-level WARNING \
+  --env-file /etc/webhook/.env.production \
+  --integrated \
+  --mcp-transport sse \
+  --mcp-mount-path /mcp \
+  --retry 5
+```
+
+### Cloud Deployment Configuration
+
+```bash
+# Heroku-style deployment
+python -m slack_mcp.webhook \
+  --host 0.0.0.0 \
+  --port ${PORT:-3000} \
+  --log-level INFO \
+  --no-env-file \
+  --retry 3
+
+# Container deployment
+python -m slack_mcp.webhook \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --log-level INFO \
+  --env-file /app/config/.env \
+  --integrated \
+  --retry 5
+```
+
+## Environment Variables
+
+### Required Environment Variables
+
+```bash
+# Slack authentication (required)
+export SLACK_SIGNING_SECRET="your_32_character_signing_secret"
+export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
+```
+
+### Optional Environment Variables
+
+```bash
+# Queue configuration
+export SLACK_EVENTS_TOPIC="production_slack_events"
+
+# Queue backend configuration (depends on backend type)
+export QUEUE_BACKEND_TYPE="redis"
+export REDIS_URL="redis://localhost:6379/0"
+
+# Server configuration
+export HOST="0.0.0.0"
+export PORT="8080"
+export LOG_LEVEL="INFO"
+```
+
+### Environment File Format
+
+Create a `.env` file for environment-specific configuration:
+
+```bash
+# .env.production
+SLACK_SIGNING_SECRET=your_production_signing_secret
+SLACK_BOT_TOKEN=xoxb-production-bot-token
+SLACK_EVENTS_TOPIC=production_slack_events
+
+# Queue backend
+QUEUE_BACKEND_TYPE=redis
+REDIS_URL=redis://prod-redis:6379/0
+
+# Server settings
+HOST=0.0.0.0
+PORT=8080
+LOG_LEVEL=INFO
+```
+
+## Configuration Validation
+
+### Startup Validation
+
+The server performs validation on startup:
+
+```python
+# Environment validation
+if not signing_secret:
+    _LOG.error("SLACK_SIGNING_SECRET not set in environment")
+    raise ValueError("Missing required environment variable")
+
+# Port validation
+if not (1 <= port <= 65535):
+    raise ValueError(f"Invalid port number: {port}")
+
+# Retry validation
+if retry < 0:
+    raise ValueError("Retry count must be non-negative")
+```
+
+### Configuration Testing
+
+Test your configuration before deployment:
+
+```bash
+# Test configuration without starting server
+python -c "
+from slack_mcp.webhook.cli.options import _parse_args
+from slack_mcp.webhook.server import initialize_slack_client
+import os
+
+# Test CLI parsing
+args = _parse_args(['--host', '0.0.0.0', '--port', '3000'])
+print(f'Configuration: host={args.host}, port={args.port}')
+
+# Test environment variables
+required_vars = ['SLACK_SIGNING_SECRET', 'SLACK_BOT_TOKEN']
+for var in required_vars:
+    if not os.environ.get(var):
+        print(f'WARNING: {var} not set')
+    else:
+        print(f'✓ {var} configured')
+
+# Test Slack client initialization
+try:
+    client = initialize_slack_client()
+    print('✓ Slack client initialized successfully')
+except Exception as e:
+    print(f'✗ Slack client initialization failed: {e}')
+"
+```
+
+## Performance Configuration
+
+### Server Performance Options
+
+#### ASGI Server Configuration
+
+For production deployments, consider using Gunicorn with Uvicorn workers:
+
+```bash
+# Install Gunicorn
+pip install gunicorn[uvloop]
+
+# Run with Gunicorn
+gunicorn slack_mcp.webhook.server:create_slack_app \
+  --bind 0.0.0.0:8080 \
+  --worker-class uvicorn.workers.UvicornWorker \
+  --workers 4 \
+  --worker-connections 1000 \
+  --max-requests 1000 \
+  --max-requests-jitter 50 \
+  --timeout 30 \
+  --keepalive 2
+```
+
+#### Memory and Resource Configuration
+
+```bash
+# Set memory limits (Docker/Kubernetes)
+export MEMORY_LIMIT="512Mi"
+export CPU_LIMIT="500m"
+
+# Configure garbage collection
+export PYTHONOPTIMIZE=1
+export PYTHONUNBUFFERED=1
+```
+
+### Queue Backend Configuration
+
+#### Redis Configuration
+
+```bash
+# Redis connection settings
+export REDIS_URL="redis://localhost:6379/0"
+export REDIS_MAX_CONNECTIONS=20
+export REDIS_RETRY_ON_TIMEOUT=true
+export REDIS_SOCKET_KEEPALIVE=true
+export REDIS_SOCKET_KEEPALIVE_OPTIONS={}
+```
+
+#### In-Memory Queue Configuration
+
+```bash
+# For development/testing only
+export QUEUE_BACKEND_TYPE="memory"
+export MEMORY_QUEUE_MAX_SIZE=1000
+```
+
+## Deployment Configurations
+
+### Docker Configuration
+
+#### Dockerfile
+
+```dockerfile
+FROM python:3.11-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY . .
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Run the application
+CMD ["python", "-m", "slack_mcp.webhook", "--host", "0.0.0.0", "--port", "8080"]
+```
+
+#### Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+  webhook:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+```
+
+### Kubernetes Configuration
+
+#### Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-webhook
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: slack-webhook
+  template:
+    metadata:
+      labels:
+        app: slack-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: slack-mcp-webhook:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SLACK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: signing-secret
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: bot-token
+        - name: REDIS_URL
+          value: "redis://redis-service:6379/0"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+```
+
+#### Service
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: slack-webhook-service
+spec:
+  selector:
+    app: slack-webhook
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: LoadBalancer
+```
+
+### Cloud Platform Configurations
+
+#### Heroku
+
+```bash
+# Procfile
+web: python -m slack_mcp.webhook --host 0.0.0.0 --port $PORT --no-env-file
+
+# Configure environment variables
+heroku config:set SLACK_SIGNING_SECRET="your_secret"
+heroku config:set SLACK_BOT_TOKEN="your_token"
+heroku config:set LOG_LEVEL="INFO"
+```
+
+#### AWS Lambda (with Mangum)
+
+```python
+# lambda_handler.py
+from mangum import Mangum
+from slack_mcp.webhook.server import create_slack_app
+
+app = create_slack_app()
+handler = Mangum(app)
+```
+
+#### Google Cloud Run
+
+```yaml
+# cloudbuild.yaml
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/slack-webhook', '.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/$PROJECT_ID/slack-webhook']
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: gcloud
+  args:
+  - 'run'
+  - 'deploy'
+  - 'slack-webhook'
+  - '--image'
+  - 'gcr.io/$PROJECT_ID/slack-webhook'
+  - '--region'
+  - 'us-central1'
+  - '--allow-unauthenticated'
+```
+
+## Monitoring and Health Checks
+
+### Health Check Endpoint
+
+Add a custom health check endpoint:
+
+```python
+from slack_mcp.webhook.server import create_slack_app
+
+app = create_slack_app()
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for load balancers."""
+    return {
+        "status": "healthy",
+        "timestamp": time.time(),
+        "version": "1.0.0"
+    }
+
+@app.get("/readiness")
+async def readiness_check():
+    """Readiness check for Kubernetes."""
+    # Check dependencies (queue backend, Slack API, etc.)
+    try:
+        backend = get_queue_backend()
+        # Test queue connection
+        return {"status": "ready"}
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Not ready: {e}")
+```
+
+### Metrics and Logging
+
+```python
+import logging
+import time
+from prometheus_client import Counter, Histogram, generate_latest
+
+# Metrics
+request_count = Counter('webhook_requests_total', 'Total webhook requests')
+request_duration = Histogram('webhook_request_duration_seconds', 'Request duration')
+
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = time.time()
+    
+    response = await call_next(request)
+    
+    request_count.inc()
+    request_duration.observe(time.time() - start_time)
+    
+    return response
+
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint."""
+    return Response(generate_latest(), media_type="text/plain")
+```
+
+## Troubleshooting Configuration Issues
+
+### Common Configuration Problems
+
+#### 1. Port Already in Use
+
+**Error**: `OSError: [Errno 48] Address already in use`
+
+**Solutions**:
+```bash
+# Find process using the port
+lsof -i :3000
+
+# Use a different port
+python -m slack_mcp.webhook --port 3001
+
+# Kill the conflicting process
+kill -9 <PID>
+```
+
+#### 2. Permission Denied (Port < 1024)
+
+**Error**: `PermissionError: [Errno 13] Permission denied`
+
+**Solutions**:
+```bash
+# Use port > 1024
+python -m slack_mcp.webhook --port 8080
+
+# Or run with sudo (not recommended)
+sudo python -m slack_mcp.webhook --port 80
+```
+
+#### 3. Environment Variables Not Loading
+
+**Error**: `SLACK_SIGNING_SECRET not set in environment`
+
+**Solutions**:
+```bash
+# Check if .env file exists
+ls -la .env
+
+# Verify environment file format
+cat .env
+
+# Test environment loading
+python -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.environ.get('SLACK_SIGNING_SECRET'))"
+```
+
+### Configuration Validation Script
+
+Create a validation script to test your configuration:
+
+```python
+#!/usr/bin/env python3
+"""Configuration validation script for Slack MCP webhook server."""
+
+import os
+import sys
+from slack_mcp.webhook.cli.options import _parse_args
+
+def validate_configuration():
+    """Validate server configuration."""
+    errors = []
+    warnings = []
+    
+    # Check required environment variables
+    required_vars = ['SLACK_SIGNING_SECRET', 'SLACK_BOT_TOKEN']
+    for var in required_vars:
+        if not os.environ.get(var):
+            errors.append(f"Required environment variable {var} is not set")
+    
+    # Check optional environment variables
+    optional_vars = ['SLACK_EVENTS_TOPIC', 'REDIS_URL']
+    for var in optional_vars:
+        if not os.environ.get(var):
+            warnings.append(f"Optional environment variable {var} is not set")
+    
+    # Validate CLI arguments
+    try:
+        args = _parse_args()
+        
+        # Validate port range
+        if not (1 <= args.port <= 65535):
+            errors.append(f"Invalid port number: {args.port}")
+        
+        # Validate retry count
+        if args.retry < 0:
+            errors.append(f"Invalid retry count: {args.retry}")
+            
+    except Exception as e:
+        errors.append(f"CLI argument parsing failed: {e}")
+    
+    # Print results
+    if errors:
+        print("❌ Configuration Errors:")
+        for error in errors:
+            print(f"  • {error}")
+    
+    if warnings:
+        print("⚠️  Configuration Warnings:")
+        for warning in warnings:
+            print(f"  • {warning}")
+    
+    if not errors and not warnings:
+        print("✅ Configuration is valid!")
+    
+    return len(errors) == 0
+
+if __name__ == "__main__":
+    if not validate_configuration():
+        sys.exit(1)
+```
