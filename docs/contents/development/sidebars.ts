@@ -9,7 +9,18 @@ const sidebars: SidebarsConfig = {
     'requirements',
     'workflow',
     'coding-style',
-    'architecture',
+    {
+      type: 'category',
+      label: 'Architecture',
+      collapsed: false,
+      items: [
+        'architecture/architecture',
+        'architecture/project-structure',
+        'architecture/mcp-server-architecture',
+        'architecture/webhook-server-architecture',
+        'architecture/integrated-server-architecture',
+      ],
+    },
     {
       type: 'category',
       label: 'CI/CD Workflows',
