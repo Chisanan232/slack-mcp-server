@@ -1,0 +1,467 @@
+---
+id: mcp-server-configuration
+title: Configuration
+sidebar_position: 2
+---
+
+# MCP Server Configuration
+
+The MCP (Model Context Protocol) server provides flexible configuration options through environment variables, CLI arguments, and configuration files. This guide covers all available configuration methods for both development and production deployments.
+
+## Environment Variables
+
+### Required Environment Variables
+
+The MCP server requires the following environment variables to function properly:
+
+```bash
+# Slack authentication (required)
+SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
+```
+
+### Optional Environment Variables
+
+```bash
+# Alternative token variable (fallback)
+SLACK_TOKEN="xoxb-your-bot-token-here"
+
+# Server configuration
+MCP_TRANSPORT="stdio"              # stdio | sse | streamable-http
+MCP_HOST="127.0.0.1"              # Host to bind server (for HTTP transports)
+MCP_PORT="3001"                   # Port to listen on (for HTTP transports)
+MCP_MOUNT_PATH="/mcp"             # Mount path for SSE transport
+
+# Logging configuration
+LOG_LEVEL="INFO"                  # DEBUG | INFO | WARNING | ERROR | CRITICAL
+
+# Connection settings
+MCP_TIMEOUT="30"                  # Request timeout in seconds
+MCP_MAX_RETRIES="3"              # Maximum retry attempts
+```
+
+## Environment File Configuration
+
+### Basic .env File
+
+Create a `.env` file in your project root for local development:
+
+```bash
+# .env
+SLACK_BOT_TOKEN=xoxb-your-development-bot-token
+MCP_TRANSPORT=stdio
+LOG_LEVEL=DEBUG
+```
+
+### Development Environment (.env.development)
+
+```bash
+# .env.development
+SLACK_BOT_TOKEN=xoxb-development-bot-token
+MCP_TRANSPORT=stdio
+MCP_HOST=127.0.0.1
+MCP_PORT=3001
+LOG_LEVEL=DEBUG
+MCP_TIMEOUT=30
+MCP_MAX_RETRIES=1
+```
+
+### Production Environment (.env.production)
+
+```bash
+# .env.production  
+SLACK_BOT_TOKEN=xoxb-production-bot-token
+MCP_TRANSPORT=sse
+MCP_HOST=0.0.0.0
+MCP_PORT=3001
+MCP_MOUNT_PATH=/mcp
+LOG_LEVEL=INFO
+MCP_TIMEOUT=60
+MCP_MAX_RETRIES=5
+```
+
+### Staging Environment (.env.staging)
+
+```bash
+# .env.staging
+SLACK_BOT_TOKEN=xoxb-staging-bot-token
+MCP_TRANSPORT=streamable-http
+MCP_HOST=0.0.0.0
+MCP_PORT=3001
+LOG_LEVEL=WARNING
+MCP_TIMEOUT=45
+MCP_MAX_RETRIES=3
+```
+
+## Transport Configuration
+
+### stdio Transport (Default)
+
+Standard input/output communication for local development and client integrations:
+
+```bash
+# .env
+MCP_TRANSPORT=stdio
+LOG_LEVEL=DEBUG
+```
+
+**Use cases:**
+- Local development with MCP clients
+- Desktop applications
+- Command-line integrations
+
+### Server-Sent Events (SSE) Transport
+
+HTTP-based event streaming for web applications:
+
+```bash
+# .env
+MCP_TRANSPORT=sse
+MCP_HOST=0.0.0.0
+MCP_PORT=3001
+MCP_MOUNT_PATH=/mcp
+```
+
+**Use cases:**
+- Web applications
+- Browser-based integrations
+- Real-time applications
+
+### Streamable HTTP Transport
+
+HTTP-based streaming communication:
+
+```bash
+# .env
+MCP_TRANSPORT=streamable-http
+MCP_HOST=0.0.0.0
+MCP_PORT=3001
+```
+
+**Use cases:**
+- REST API integrations
+- Microservices architectures
+- Load-balanced deployments
+
+## CLI Arguments
+
+The MCP server accepts the following command-line arguments:
+
+```bash
+python -m slack_mcp.mcp [OPTIONS]
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--transport` | `choice` | `"stdio"` | Transport type: stdio, sse, streamable-http |
+| `--host` | `string` | `"127.0.0.1"` | Host interface to bind (HTTP transports only) |
+| `--port` | `integer` | `3001` | Port number (HTTP transports only) |
+| `--mount-path` | `string` | `"/mcp"` | Mount path for SSE transport |
+| `--log-level` | `string` | `"INFO"` | Logging level |
+| `--timeout` | `integer` | `30` | Request timeout in seconds |
+| `--max-retries` | `integer` | `3` | Maximum retry attempts |
+
+### CLI Examples
+
+```bash
+# Start with stdio transport (default)
+python -m slack_mcp.mcp
+
+# Start with SSE transport
+python -m slack_mcp.mcp --transport sse --host 0.0.0.0 --port 3001
+
+# Start with custom mount path
+python -m slack_mcp.mcp --transport sse --mount-path /api/mcp
+
+# Start with debug logging
+python -m slack_mcp.mcp --log-level DEBUG
+
+# Production configuration
+python -m slack_mcp.mcp \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO \
+  --timeout 60 \
+  --max-retries 5
+```
+
+## Configuration Validation
+
+### Startup Validation
+
+The MCP server performs validation on startup:
+
+```python
+# Token validation
+if not slack_token:
+    logger.error("SLACK_BOT_TOKEN not set in environment")
+    raise ValueError("Missing required Slack bot token")
+
+# Transport validation
+if transport not in ['stdio', 'sse', 'streamable-http']:
+    raise ValueError(f"Invalid transport: {transport}")
+
+# Port validation (for HTTP transports)
+if transport in ['sse', 'streamable-http']:
+    if not (1 <= port <= 65535):
+        raise ValueError(f"Invalid port number: {port}")
+```
+
+### Configuration Testing
+
+Test your configuration before deployment:
+
+```bash
+# Test configuration loading
+python -c "
+import os
+from dotenv import load_dotenv
+
+# Load environment file
+load_dotenv('.env.production')
+
+# Check required variables
+required_vars = ['SLACK_BOT_TOKEN']
+for var in required_vars:
+    if not os.environ.get(var):
+        print(f'ERROR: {var} not set')
+    else:
+        print(f'✓ {var} configured')
+
+# Check optional variables
+optional_vars = ['MCP_TRANSPORT', 'MCP_HOST', 'MCP_PORT']
+for var in optional_vars:
+    value = os.environ.get(var)
+    if value:
+        print(f'✓ {var}={value}')
+    else:
+        print(f'- {var} using default')
+"
+```
+
+## Docker Configuration
+
+### Dockerfile with Environment Variables
+
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+# Set default environment variables
+ENV MCP_TRANSPORT=sse
+ENV MCP_HOST=0.0.0.0
+ENV MCP_PORT=3001
+ENV LOG_LEVEL=INFO
+
+# Expose port
+EXPOSE 3001
+
+CMD ["python", "-m", "slack_mcp.mcp", "--transport", "sse"]
+```
+
+### Docker Compose with Environment File
+
+```yaml
+version: '3.8'
+
+services:
+  mcp-server:
+    build: .
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env.production
+    environment:
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=3001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/mcp"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+## Kubernetes Configuration
+
+### ConfigMap for Environment Variables
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-server-config
+data:
+  MCP_TRANSPORT: "sse"
+  MCP_HOST: "0.0.0.0"
+  MCP_PORT: "3001"
+  LOG_LEVEL: "INFO"
+  MCP_TIMEOUT: "60"
+  MCP_MAX_RETRIES: "5"
+```
+
+### Deployment with Configuration
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      containers:
+      - name: mcp-server
+        image: slack-mcp-server:latest
+        ports:
+        - containerPort: 3001
+        env:
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: bot-token
+        envFrom:
+        - configMapRef:
+            name: mcp-server-config
+        args:
+        - "--transport"
+        - "sse"
+        - "--host"
+        - "0.0.0.0"
+        - "--port"
+        - "3001"
+```
+
+## Security Best Practices
+
+### Token Management
+
+- **Never commit tokens to version control**
+- **Use environment variables or secret management systems**
+- **Rotate tokens regularly**
+- **Use different tokens for different environments**
+
+### Environment File Security
+
+```bash
+# Add to .gitignore
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Set proper file permissions
+chmod 600 .env.production
+```
+
+### Production Security
+
+```bash
+# .env.production (secure configuration)
+SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}  # Use environment substitution
+MCP_TRANSPORT=sse
+MCP_HOST=0.0.0.0
+MCP_PORT=3001
+LOG_LEVEL=WARNING                   # Reduce log verbosity
+MCP_TIMEOUT=60
+MCP_MAX_RETRIES=5
+```
+
+## Troubleshooting Configuration
+
+### Common Issues
+
+#### 1. Invalid Bot Token
+
+**Error**: `slack_sdk.errors.SlackApiError: invalid_auth`
+
+**Solutions**:
+```bash
+# Check if token is set
+echo $SLACK_BOT_TOKEN
+
+# Verify token format (should start with xoxb-)
+python -c "
+import os
+token = os.environ.get('SLACK_BOT_TOKEN', '')
+if token.startswith('xoxb-'):
+    print('✓ Token format is correct')
+else:
+    print('✗ Invalid token format')
+"
+
+# Test token with Slack API
+curl -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+     https://slack.com/api/auth.test
+```
+
+#### 2. Port Already in Use
+
+**Error**: `OSError: [Errno 48] Address already in use`
+
+**Solutions**:
+```bash
+# Find process using the port
+lsof -i :3001
+
+# Use a different port
+MCP_PORT=3002 python -m slack_mcp.mcp --transport sse
+
+# Kill conflicting process
+kill -9 <PID>
+```
+
+#### 3. Environment File Not Loading
+
+**Error**: Configuration not being read from .env file
+
+**Solutions**:
+```bash
+# Check if .env file exists
+ls -la .env*
+
+# Verify .env file format (no spaces around =)
+# Correct:   KEY=value
+# Incorrect: KEY = value
+
+# Test environment loading
+python -c "
+from dotenv import load_dotenv
+import os
+load_dotenv()
+print('SLACK_BOT_TOKEN:', 'SET' if os.environ.get('SLACK_BOT_TOKEN') else 'NOT SET')
+"
+```
+
+## Configuration Reference
+
+### Complete Environment Variables Reference
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `SLACK_BOT_TOKEN` | Yes | - | Slack bot token (xoxb-...) |
+| `SLACK_TOKEN` | No | - | Alternative token variable |
+| `MCP_TRANSPORT` | No | `stdio` | Transport type |
+| `MCP_HOST` | No | `127.0.0.1` | Host interface |
+| `MCP_PORT` | No | `3001` | Port number |
+| `MCP_MOUNT_PATH` | No | `/mcp` | SSE mount path |
+| `LOG_LEVEL` | No | `INFO` | Logging level |
+| `MCP_TIMEOUT` | No | `30` | Request timeout |
+| `MCP_MAX_RETRIES` | No | `3` | Maximum retries |
+
+For additional deployment and architectural information, see [MCP Server Architecture](/dev/next/architecture/mcp-server-architecture).
