@@ -25,18 +25,23 @@ SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
 # Alternative token variable (fallback)
 SLACK_TOKEN="xoxb-your-bot-token-here"
 
-# Server configuration
-MCP_TRANSPORT="stdio"              # stdio | sse | streamable-http
-MCP_HOST="127.0.0.1"              # Host to bind server (for HTTP transports)
-MCP_PORT="3001"                   # Port to listen on (for HTTP transports)
-MCP_MOUNT_PATH="/mcp"             # Mount path for SSE transport
+# Additional Slack credentials (for advanced features)
+SLACK_BOT_ID="your-slack-bot-id"
+SLACK_USER_TOKEN="xoxp-your-user-token"  # For user-level operations
+SLACK_SIGNING_SECRET="your-signing-secret"  # For webhook verification
 
-# Logging configuration
-LOG_LEVEL="INFO"                  # DEBUG | INFO | WARNING | ERROR | CRITICAL
+# Test channel configuration (for development/testing)
+SLACK_TEST_CHANNEL="#your-channel-name"
+SLACK_TEST_CHANNEL_ID="C1234567890"
 
-# Connection settings
-MCP_TIMEOUT="30"                  # Request timeout in seconds
-MCP_MAX_RETRIES="3"              # Maximum retry attempts
+# Queue backend configuration
+QUEUE_BACKEND="memory"            # memory | redis | kafka
+
+# Redis backend settings (when QUEUE_BACKEND=redis)
+REDIS_URL="redis://localhost:6379/0"
+
+# Kafka backend settings (when QUEUE_BACKEND=kafka)
+KAFKA_BOOTSTRAP="broker:9092"
 ```
 
 ## Environment File Configuration
@@ -48,99 +53,134 @@ Create a `.env` file in your project root for local development:
 ```bash
 # .env
 SLACK_BOT_TOKEN=xoxb-your-development-bot-token
-MCP_TRANSPORT=stdio
-LOG_LEVEL=DEBUG
+QUEUE_BACKEND=memory
+SLACK_TEST_CHANNEL=#general
 ```
 
 ### Development Environment (.env.development)
 
 ```bash
 # .env.development
+# Slack credentials
+SLACK_BOT_ID=B1234567890
 SLACK_BOT_TOKEN=xoxb-development-bot-token
-MCP_TRANSPORT=stdio
-MCP_HOST=127.0.0.1
-MCP_PORT=3001
-LOG_LEVEL=DEBUG
-MCP_TIMEOUT=30
-MCP_MAX_RETRIES=1
+SLACK_USER_TOKEN=xoxp-development-user-token
+SLACK_SIGNING_SECRET=development-signing-secret
+
+# Test configuration
+SLACK_TEST_CHANNEL=#dev-testing
+SLACK_TEST_CHANNEL_ID=C1234567890
+
+# Queue backend (in-memory for development)
+QUEUE_BACKEND=memory
 ```
 
 ### Production Environment (.env.production)
 
 ```bash
-# .env.production  
+# .env.production
+# Slack credentials
+SLACK_BOT_ID=B9876543210
 SLACK_BOT_TOKEN=xoxb-production-bot-token
-MCP_TRANSPORT=sse
-MCP_HOST=0.0.0.0
-MCP_PORT=3001
-MCP_MOUNT_PATH=/mcp
-LOG_LEVEL=INFO
-MCP_TIMEOUT=60
-MCP_MAX_RETRIES=5
+SLACK_USER_TOKEN=xoxp-production-user-token
+SLACK_SIGNING_SECRET=production-signing-secret
+
+# Production channel configuration
+SLACK_TEST_CHANNEL=#production-alerts
+SLACK_TEST_CHANNEL_ID=C9876543210
+
+# Queue backend (Redis for production)
+QUEUE_BACKEND=redis
+REDIS_URL=redis://prod-redis:6379/0
 ```
 
 ### Staging Environment (.env.staging)
 
 ```bash
 # .env.staging
+# Slack credentials
+SLACK_BOT_ID=B5555555555
 SLACK_BOT_TOKEN=xoxb-staging-bot-token
-MCP_TRANSPORT=streamable-http
-MCP_HOST=0.0.0.0
-MCP_PORT=3001
-LOG_LEVEL=WARNING
-MCP_TIMEOUT=45
-MCP_MAX_RETRIES=3
+SLACK_USER_TOKEN=xoxp-staging-user-token
+SLACK_SIGNING_SECRET=staging-signing-secret
+
+# Staging channel configuration
+SLACK_TEST_CHANNEL=#staging-tests
+SLACK_TEST_CHANNEL_ID=C5555555555
+
+# Queue backend (Redis for staging)
+QUEUE_BACKEND=redis
+REDIS_URL=redis://staging-redis:6379/1
 ```
 
-## Transport Configuration
+## Queue Backend Configuration
 
-### stdio Transport (Default)
+### Memory Backend (Default)
 
-Standard input/output communication for local development and client integrations:
+In-memory queue for development and testing:
 
 ```bash
 # .env
-MCP_TRANSPORT=stdio
-LOG_LEVEL=DEBUG
+QUEUE_BACKEND=memory
 ```
 
 **Use cases:**
-- Local development with MCP clients
-- Desktop applications
-- Command-line integrations
+- Local development
+- Unit testing
+- Single-process deployments
 
-### Server-Sent Events (SSE) Transport
+**Limitations:**
+- Messages lost on restart
+- Not suitable for production
+- Single process only
 
-HTTP-based event streaming for web applications:
+### Redis Backend
+
+Redis-based message queue for production deployments:
 
 ```bash
 # .env
-MCP_TRANSPORT=sse
-MCP_HOST=0.0.0.0
-MCP_PORT=3001
-MCP_MOUNT_PATH=/mcp
+QUEUE_BACKEND=redis
+REDIS_URL=redis://localhost:6379/0
 ```
 
 **Use cases:**
-- Web applications
-- Browser-based integrations
-- Real-time applications
+- Production deployments
+- Multi-process applications
+- Distributed systems
+- High availability setups
 
-### Streamable HTTP Transport
+**Additional Redis Configuration:**
+```bash
+# Advanced Redis settings (if supported by redis backend plugin)
+REDIS_MAX_CONNECTIONS=20
+REDIS_RETRY_ON_TIMEOUT=true
+REDIS_SOCKET_KEEPALIVE=true
+```
 
-HTTP-based streaming communication:
+### Kafka Backend
+
+Apache Kafka for high-throughput message processing:
 
 ```bash
 # .env
-MCP_TRANSPORT=streamable-http
-MCP_HOST=0.0.0.0
-MCP_PORT=3001
+QUEUE_BACKEND=kafka
+KAFKA_BOOTSTRAP=broker:9092
 ```
 
 **Use cases:**
-- REST API integrations
-- Microservices architectures
-- Load-balanced deployments
+- High-throughput applications
+- Event streaming
+- Complex event processing
+- Enterprise deployments
+
+**Additional Kafka Configuration:**
+```bash
+# Advanced Kafka settings (if supported by kafka backend plugin)
+KAFKA_TOPIC_PREFIX=slack_mcp
+KAFKA_CONSUMER_GROUP=mcp_consumers
+KAFKA_AUTO_OFFSET_RESET=earliest
+```
 
 ## CLI Arguments
 
@@ -157,8 +197,8 @@ python -m slack_mcp.mcp [OPTIONS]
 | `--port` | `integer` | `3001` | Port number (HTTP transports only) |
 | `--mount-path` | `string` | `"/mcp"` | Mount path for SSE transport |
 | `--log-level` | `string` | `"INFO"` | Logging level |
-| `--timeout` | `integer` | `30` | Request timeout in seconds |
-| `--max-retries` | `integer` | `3` | Maximum retry attempts |
+
+**Note:** The MCP server configuration is primarily handled through environment variables. CLI arguments are mainly used for transport configuration when running in HTTP mode.
 
 ### CLI Examples
 
@@ -229,13 +269,21 @@ for var in required_vars:
         print(f'✓ {var} configured')
 
 # Check optional variables
-optional_vars = ['MCP_TRANSPORT', 'MCP_HOST', 'MCP_PORT']
+optional_vars = ['QUEUE_BACKEND', 'REDIS_URL', 'KAFKA_BOOTSTRAP']
 for var in optional_vars:
     value = os.environ.get(var)
     if value:
         print(f'✓ {var}={value}')
     else:
         print(f'- {var} using default')
+
+# Test queue backend loading
+try:
+    from slack_mcp.backends.loader import load_backend
+    backend = load_backend()
+    print(f'✓ Queue backend loaded: {backend.__class__.__name__}')
+except Exception as e:
+    print(f'✗ Queue backend loading failed: {e}')
 "
 ```
 
@@ -456,12 +504,13 @@ print('SLACK_BOT_TOKEN:', 'SET' if os.environ.get('SLACK_BOT_TOKEN') else 'NOT S
 |----------|----------|---------|-------------|
 | `SLACK_BOT_TOKEN` | Yes | - | Slack bot token (xoxb-...) |
 | `SLACK_TOKEN` | No | - | Alternative token variable |
-| `MCP_TRANSPORT` | No | `stdio` | Transport type |
-| `MCP_HOST` | No | `127.0.0.1` | Host interface |
-| `MCP_PORT` | No | `3001` | Port number |
-| `MCP_MOUNT_PATH` | No | `/mcp` | SSE mount path |
-| `LOG_LEVEL` | No | `INFO` | Logging level |
-| `MCP_TIMEOUT` | No | `30` | Request timeout |
-| `MCP_MAX_RETRIES` | No | `3` | Maximum retries |
+| `SLACK_BOT_ID` | No | - | Slack bot ID |
+| `SLACK_USER_TOKEN` | No | - | Slack user token (xoxp-...) |
+| `SLACK_SIGNING_SECRET` | No | - | Slack signing secret for webhooks |
+| `SLACK_TEST_CHANNEL` | No | - | Test channel name (#channel) |
+| `SLACK_TEST_CHANNEL_ID` | No | - | Test channel ID (C1234567890) |
+| `QUEUE_BACKEND` | No | `memory` | Queue backend type |
+| `REDIS_URL` | No | - | Redis connection URL |
+| `KAFKA_BOOTSTRAP` | No | - | Kafka bootstrap servers |
 
 For additional deployment and architectural information, see [MCP Server Architecture](/dev/next/architecture/mcp-server-architecture).

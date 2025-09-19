@@ -218,24 +218,29 @@ python -m slack_mcp.webhook \
 
 ```bash
 # Slack authentication (required)
-export SLACK_SIGNING_SECRET="your_32_character_signing_secret"
 export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
+export SLACK_SIGNING_SECRET="your_32_character_signing_secret"
 ```
 
 ### Optional Environment Variables
 
 ```bash
-# Queue configuration
-export SLACK_EVENTS_TOPIC="production_slack_events"
+# Additional Slack credentials
+export SLACK_BOT_ID="your-slack-bot-id"
+export SLACK_USER_TOKEN="xoxp-your-user-token"  # For user-level operations
 
-# Queue backend configuration (depends on backend type)
-export QUEUE_BACKEND_TYPE="redis"
+# Test channel configuration (for development/testing)
+export SLACK_TEST_CHANNEL="#your-channel-name"
+export SLACK_TEST_CHANNEL_ID="C1234567890"
+
+# Queue backend configuration
+export QUEUE_BACKEND="memory"  # memory | redis | kafka
+
+# Redis backend settings (when QUEUE_BACKEND=redis)
 export REDIS_URL="redis://localhost:6379/0"
 
-# Server configuration
-export HOST="0.0.0.0"
-export PORT="8080"
-export LOG_LEVEL="INFO"
+# Kafka backend settings (when QUEUE_BACKEND=kafka)
+export KAFKA_BOOTSTRAP="broker:9092"
 ```
 
 ### Environment File Format
@@ -244,18 +249,19 @@ Create a `.env` file for environment-specific configuration:
 
 ```bash
 # .env.production
-SLACK_SIGNING_SECRET=your_production_signing_secret
+# Slack credentials
+SLACK_BOT_ID=B9876543210
 SLACK_BOT_TOKEN=xoxb-production-bot-token
-SLACK_EVENTS_TOPIC=production_slack_events
+SLACK_USER_TOKEN=xoxp-production-user-token
+SLACK_SIGNING_SECRET=your_production_signing_secret
 
-# Queue backend
-QUEUE_BACKEND_TYPE=redis
+# Production channel configuration
+SLACK_TEST_CHANNEL=#production-alerts
+SLACK_TEST_CHANNEL_ID=C9876543210
+
+# Queue backend (Redis for production)
+QUEUE_BACKEND=redis
 REDIS_URL=redis://prod-redis:6379/0
-
-# Server settings
-HOST=0.0.0.0
-PORT=8080
-LOG_LEVEL=INFO
 ```
 
 ## Configuration Validation
@@ -313,24 +319,60 @@ except Exception as e:
 
 ## Queue Backend Environment Variables
 
+### Memory Backend Configuration (Default)
+
+```bash
+# For development/testing only
+export QUEUE_BACKEND="memory"
+```
+
+**Use cases:**
+- Local development
+- Unit testing  
+- Single-process deployments
+
+**Limitations:**
+- Messages lost on restart
+- Not suitable for production
+- Single process only
+
 ### Redis Backend Configuration
 
 ```bash
 # Redis connection settings
-export QUEUE_BACKEND_TYPE="redis"
+export QUEUE_BACKEND="redis"
 export REDIS_URL="redis://localhost:6379/0"
+
+# Advanced Redis settings (if supported by redis backend plugin)
 export REDIS_MAX_CONNECTIONS=20
 export REDIS_RETRY_ON_TIMEOUT=true
 export REDIS_SOCKET_KEEPALIVE=true
 ```
 
-### In-Memory Backend Configuration
+**Use cases:**
+- Production deployments
+- Multi-process applications
+- Distributed systems
+- High availability setups
+
+### Kafka Backend Configuration
 
 ```bash
-# For development/testing only
-export QUEUE_BACKEND_TYPE="memory"
-export MEMORY_QUEUE_MAX_SIZE=1000
+# Kafka connection settings
+export QUEUE_BACKEND="kafka"
+export KAFKA_BOOTSTRAP="broker:9092"
+
+# Advanced Kafka settings (if supported by kafka backend plugin)
+export KAFKA_TOPIC_PREFIX="slack_mcp"
+export KAFKA_CONSUMER_GROUP="mcp_consumers"
+export KAFKA_AUTO_OFFSET_RESET="earliest"
 ```
+
+**Use cases:**
+- High-throughput applications
+- Event streaming
+- Complex event processing
+- Enterprise deployments
 
 **For deployment patterns, performance optimization, and architectural details, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).**
 
