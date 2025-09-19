@@ -4,6 +4,11 @@ title: CLI Reference
 sidebar_position: 4
 ---
 
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
 # MCP Server CLI Reference
 
 The Slack MCP Server provides a comprehensive command-line interface for starting and configuring the server. This reference covers all available CLI options, usage patterns, and examples.
@@ -12,33 +17,44 @@ The Slack MCP Server provides a comprehensive command-line interface for startin
 
 The MCP server can be started using multiple execution methods:
 
-### Method 1: Console Script (Recommended)
-```bash
-# After installation via pip/uv/poetry
-slack-mcp-server [OPTIONS]
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  # After installation via pip/uv/poetry
+  slack-mcp-server [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  # Using Python directly
+  python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  # Using Poetry in development
+  poetry run slack-mcp-server [OPTIONS]
+  ```
 
-### Method 2: Python Module
-```bash
-# Using Python directly
-python -m slack_mcp.mcp [OPTIONS]
-```
+  Or use poetry to run the module directly:
 
-### Method 3: Poetry
-```bash
-# Using Poetry in development
-poetry run slack-mcp-server [OPTIONS]
-# OR
-poetry run python -m slack_mcp.mcp [OPTIONS]
-```
+  ```bash
+  poetry run python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  # Using UV package manager
+  uv run slack-mcp-server [OPTIONS]
+  ```
 
-### Method 4: UV
-```bash
-# Using UV package manager
-uv run slack-mcp-server [OPTIONS]
-# OR
-uv run python -m slack_mcp.mcp [OPTIONS]
-```
+  Or use uv to run the module directly:
+
+  ```bash
+  uv run python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
 
 ## Command Options
 
@@ -50,25 +66,34 @@ uv run python -m slack_mcp.mcp [OPTIONS]
 **Default**: `stdio`  
 **Description**: Specifies the transport protocol for MCP communication.
 
-```bash
-# Method 1: Console Script
-slack-mcp-server --transport stdio
-slack-mcp-server --transport sse
-slack-mcp-server --transport streamable-http
-
-# Method 2: Python Module
-python -m slack_mcp.mcp --transport stdio
-python -m slack_mcp.mcp --transport sse
-python -m slack_mcp.mcp --transport streamable-http
-
-# Method 3: Poetry
-poetry run slack-mcp-server --transport sse
-poetry run python -m slack_mcp.mcp --transport sse
-
-# Method 4: UV
-uv run slack-mcp-server --transport sse
-uv run python -m slack_mcp.mcp --transport sse
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server --transport stdio
+  slack-mcp-server --transport sse
+  slack-mcp-server --transport streamable-http
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp --transport stdio
+  python -m slack_mcp.mcp --transport sse
+  python -m slack_mcp.mcp --transport streamable-http
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --transport sse
+  poetry run python -m slack_mcp.mcp --transport sse
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --transport sse
+  uv run python -m slack_mcp.mcp --transport sse
+  ```
+  </TabItem>
+</Tabs>
 
 **Transport Details**:
 - **stdio**: Communicates via standard input/output streams. Best for desktop applications and CLI integrations.
@@ -82,23 +107,32 @@ uv run python -m slack_mcp.mcp --transport sse
 **Default**: `127.0.0.1`  
 **Description**: Host interface to bind the server (HTTP transports only).
 
-```bash
-# Method 1: Console Script
-slack-mcp-server --transport sse --host 127.0.0.1
-slack-mcp-server --transport sse --host 0.0.0.0
-slack-mcp-server --transport sse --host 192.168.1.100
-
-# Method 2: Python Module
-python -m slack_mcp.mcp --transport sse --host 127.0.0.1
-python -m slack_mcp.mcp --transport sse --host 0.0.0.0
-python -m slack_mcp.mcp --transport sse --host 192.168.1.100
-
-# Method 3: Poetry
-poetry run slack-mcp-server --transport sse --host 0.0.0.0
-
-# Method 4: UV
-uv run slack-mcp-server --transport sse --host 0.0.0.0
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server --transport sse --host 127.0.0.1
+  slack-mcp-server --transport sse --host 0.0.0.0
+  slack-mcp-server --transport sse --host 192.168.1.100
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp --transport sse --host 127.0.0.1
+  python -m slack_mcp.mcp --transport sse --host 0.0.0.0
+  python -m slack_mcp.mcp --transport sse --host 192.168.1.100
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --transport sse --host 0.0.0.0
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --transport sse --host 0.0.0.0
+  ```
+  </TabItem>
+</Tabs>
 
 **Security Note**: Use `0.0.0.0` only in containerized environments or when you need external access. For local development, prefer `127.0.0.1`.
 
@@ -108,46 +142,64 @@ uv run slack-mcp-server --transport sse --host 0.0.0.0
 **Range**: `1-65535`  
 **Description**: Port number for HTTP transports.
 
-```bash
-# Method 1: Console Script
-slack-mcp-server --transport sse --port 3001
-slack-mcp-server --transport sse --port 8080
-slack-mcp-server --transport sse --port 0
-
-# Method 2: Python Module
-python -m slack_mcp.mcp --transport sse --port 3001
-python -m slack_mcp.mcp --transport sse --port 8080
-python -m slack_mcp.mcp --transport sse --port 0
-
-# Method 3: Poetry
-poetry run slack-mcp-server --transport sse --port 8080
-
-# Method 4: UV
-uv run slack-mcp-server --transport sse --port 8080
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server --transport sse --port 3001
+  slack-mcp-server --transport sse --port 8080
+  slack-mcp-server --transport sse --port 0  # Auto-assign available port
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp --transport sse --port 3001
+  python -m slack_mcp.mcp --transport sse --port 8080
+  python -m slack_mcp.mcp --transport sse --port 0  # Auto-assign available port
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --transport sse --port 8080
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --transport sse --port 8080
+  ```
+  </TabItem>
+</Tabs>
 
 #### `--mount-path`
 **Type**: `String`  
 **Default**: `/mcp`  
 **Description**: Mount path for SSE transport endpoints.
 
-```bash
-# Method 1: Console Script
-slack-mcp-server --transport sse --mount-path /mcp
-slack-mcp-server --transport sse --mount-path /api/v1/mcp
-slack-mcp-server --transport sse --mount-path /
-
-# Method 2: Python Module
-python -m slack_mcp.mcp --transport sse --mount-path /mcp
-python -m slack_mcp.mcp --transport sse --mount-path /api/v1/mcp
-python -m slack_mcp.mcp --transport sse --mount-path /
-
-# Method 3: Poetry
-poetry run slack-mcp-server --transport sse --mount-path /api/v1/mcp
-
-# Method 4: UV
-uv run slack-mcp-server --transport sse --mount-path /api/v1/mcp
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server --transport sse --mount-path /mcp
+  slack-mcp-server --transport sse --mount-path /api/v1/mcp
+  slack-mcp-server --transport sse --mount-path /
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp --transport sse --mount-path /mcp
+  python -m slack_mcp.mcp --transport sse --mount-path /api/v1/mcp
+  python -m slack_mcp.mcp --transport sse --mount-path /
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --transport sse --mount-path /api/v1/mcp
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --transport sse --mount-path /api/v1/mcp
+  ```
+  </TabItem>
+</Tabs>
 
 ### Logging Options
 
@@ -157,23 +209,32 @@ uv run slack-mcp-server --transport sse --mount-path /api/v1/mcp
 **Default**: `INFO`  
 **Description**: Sets the logging verbosity level.
 
-```bash
-# Method 1: Console Script
-slack-mcp-server --log-level DEBUG
-slack-mcp-server --log-level INFO
-slack-mcp-server --log-level ERROR
-
-# Method 2: Python Module
-python -m slack_mcp.mcp --log-level DEBUG
-python -m slack_mcp.mcp --log-level INFO
-python -m slack_mcp.mcp --log-level ERROR
-
-# Method 3: Poetry
-poetry run slack-mcp-server --log-level DEBUG
-
-# Method 4: UV
-uv run slack-mcp-server --log-level DEBUG
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server --log-level DEBUG
+  slack-mcp-server --log-level INFO
+  slack-mcp-server --log-level ERROR
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp --log-level DEBUG
+  python -m slack_mcp.mcp --log-level INFO
+  python -m slack_mcp.mcp --log-level ERROR
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --log-level DEBUG
+  ```
+  </TabItem>
+</Tabs>
 
 **Log Level Details**:
 - **DEBUG**: Detailed diagnostic information. Use for development and troubleshooting.

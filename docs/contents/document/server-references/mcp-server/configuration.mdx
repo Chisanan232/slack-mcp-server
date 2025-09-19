@@ -4,6 +4,11 @@ title: Configuration
 sidebar_position: 2
 ---
 
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
 # MCP Server Configuration
 
 The MCP (Model Context Protocol) server provides flexible configuration options through environment variables, CLI arguments, and configuration files. This guide covers all available configuration methods for both development and production deployments.
@@ -188,21 +193,40 @@ The MCP server accepts the following command-line arguments and can be executed 
 
 ### Execution Methods
 
-```bash
-# Method 1: Console Script (Recommended)
-slack-mcp-server [OPTIONS]
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server [OPTIONS]
+  ```
 
-# Method 2: Python Module
-python -m slack_mcp.mcp [OPTIONS]
+  Or use poetry to run the module directly:
 
-# Method 3: Poetry (Development)
-poetry run slack-mcp-server [OPTIONS]
-poetry run python -m slack_mcp.mcp [OPTIONS]
+  ```bash
+  poetry run python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server [OPTIONS]
+  ```
 
-# Method 4: UV (Modern Package Manager)
-uv run slack-mcp-server [OPTIONS]
-uv run python -m slack_mcp.mcp [OPTIONS]
-```
+  Or use uv to run the module directly:
+
+  ```bash
+  uv run python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -217,57 +241,75 @@ uv run python -m slack_mcp.mcp [OPTIONS]
 ### CLI Examples
 
 #### Basic Usage
-```bash
-# Method 1: Console Script (Recommended)
-slack-mcp-server  # Default: stdio transport
-slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
-slack-mcp-server --transport sse --mount-path /api/mcp
-slack-mcp-server --log-level DEBUG
-
-# Method 2: Python Module
-python -m slack_mcp.mcp  # Default: stdio transport
-python -m slack_mcp.mcp --transport sse --host 0.0.0.0 --port 3001
-python -m slack_mcp.mcp --log-level DEBUG
-
-# Method 3: Poetry (Development)
-poetry run slack-mcp-server --transport sse --host 127.0.0.1 --port 3001
-poetry run python -m slack_mcp.mcp --log-level DEBUG
-
-# Method 4: UV (Modern Package Manager)
-uv run slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
-uv run python -m slack_mcp.mcp --log-level DEBUG
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server  # Default: stdio transport
+  slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
+  slack-mcp-server --transport sse --mount-path /api/mcp
+  slack-mcp-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp  # Default: stdio transport
+  python -m slack_mcp.mcp --transport sse --host 0.0.0.0 --port 3001
+  python -m slack_mcp.mcp --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --transport sse --host 127.0.0.1 --port 3001
+  poetry run python -m slack_mcp.mcp --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
+  uv run python -m slack_mcp.mcp --log-level DEBUG
+  ```
+  </TabItem>
+</Tabs>
 
 #### Production Configuration
-```bash
-# Method 1: Console Script (Production Deployment)
-slack-mcp-server \
-  --transport sse \
-  --host 0.0.0.0 \
-  --port 3001 \
-  --log-level INFO
-
-# Method 2: Python Module (Alternative)
-python -m slack_mcp.mcp \
-  --transport sse \
-  --host 0.0.0.0 \
-  --port 3001 \
-  --log-level INFO
-
-# Method 3: Poetry (Development Server)
-poetry run slack-mcp-server \
-  --transport sse \
-  --host 0.0.0.0 \
-  --port 3001 \
-  --log-level INFO
-
-# Method 4: UV (Modern Deployment)
-uv run slack-mcp-server \
-  --transport sse \
-  --host 0.0.0.0 \
-  --port 3001 \
-  --log-level INFO
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server \
+    --transport sse \
+    --host 0.0.0.0 \
+    --port 3001 \
+    --log-level INFO
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp \
+    --transport sse \
+    --host 0.0.0.0 \
+    --port 3001 \
+    --log-level INFO
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server \
+    --transport sse \
+    --host 0.0.0.0 \
+    --port 3001 \
+    --log-level INFO
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server \
+    --transport sse \
+    --host 0.0.0.0 \
+    --port 3001 \
+    --log-level INFO
+  ```
+  </TabItem>
+</Tabs>
 
 ## Configuration Validation
 

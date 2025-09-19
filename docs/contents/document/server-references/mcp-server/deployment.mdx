@@ -4,6 +4,11 @@ title: Deployment
 sidebar_position: 3
 ---
 
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
 # MCP Server Deployment
 
 This guide covers deployment strategies for the Slack MCP Server across different environments and platforms, with practical examples and best practices.
@@ -27,17 +32,19 @@ QUEUE_BACKEND=memory
 EOF
 
 # Start the MCP server (Multiple execution methods)
-# Method 1: Console Script (Recommended)
+
+```bash
+# Console Script (Recommended)
 slack-mcp-server
 
-# Method 2: Python Module
+# Python Module
 python -m slack_mcp.mcp
 
-# Method 3: Poetry (if using Poetry)
+# Poetry
 poetry install
 poetry run slack-mcp-server
 
-# Method 4: UV (if using UV)
+# UV
 uv sync
 uv run slack-mcp-server
 ```
@@ -55,19 +62,28 @@ QUEUE_BACKEND=memory
 
 Start the server with development settings:
 
-```bash
-# Method 1: Console Script (Recommended for development)
-slack-mcp-server --log-level DEBUG
-
-# Method 2: Python Module
-python -m slack_mcp.mcp --log-level DEBUG
-
-# Method 3: Poetry (Development workflow)
-poetry run slack-mcp-server --log-level DEBUG
-
-# Method 4: UV (Modern development)
-uv run slack-mcp-server --log-level DEBUG
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-mcp-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.mcp --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-mcp-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-mcp-server --log-level DEBUG
+  ```
+  </TabItem>
+</Tabs>
 
 ## Docker Deployment
 

@@ -4,6 +4,11 @@ title: Server Configuration
 sidebar_position: 4
 ---
 
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
 # Server Configuration
 
 The Slack MCP webhook server provides comprehensive configuration options through command-line arguments, environment variables, and configuration files. This guide covers all available configuration options for both development and production deployments.
@@ -14,21 +19,40 @@ The webhook server supports a rich set of command-line options for flexible depl
 
 ### Execution Methods
 
-```bash
-# Method 1: Console Script (Recommended)
-slack-webhook-server [OPTIONS]
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-webhook-server [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.webhook [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-webhook-server [OPTIONS]
+  ```
 
-# Method 2: Python Module
-python -m slack_mcp.webhook [OPTIONS]
+  Or use poetry to run the module directly:
 
-# Method 3: Poetry (Development)
-poetry run slack-webhook-server [OPTIONS]
-poetry run python -m slack_mcp.webhook [OPTIONS]
+  ```bash
+  poetry run python -m slack_mcp.webhook [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-webhook-server [OPTIONS]
+  ```
 
-# Method 4: UV (Modern Package Manager)
-uv run slack-webhook-server [OPTIONS]
-uv run python -m slack_mcp.webhook [OPTIONS]
-```
+  Or use uv to run the module directly:
+
+  ```bash
+  uv run python -m slack_mcp.webhook [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
 
 ### Core Server Options
 
@@ -40,22 +64,31 @@ uv run python -m slack_mcp.webhook [OPTIONS]
 | `--port` | `integer` | `3000` | Port number to listen on |
 
 **Examples:**
-```bash
-# Method 1: Console Script
-slack-webhook-server --host 127.0.0.1 --port 3000  # Development
-slack-webhook-server --host 0.0.0.0 --port 8080   # Production
-slack-webhook-server --port $PORT                  # Cloud deployment
-
-# Method 2: Python Module
-python -m slack_mcp.webhook --host 127.0.0.1 --port 3000
-python -m slack_mcp.webhook --host 0.0.0.0 --port 8080
-
-# Method 3: Poetry
-poetry run slack-webhook-server --host 127.0.0.1 --port 3000
-
-# Method 4: UV
-uv run slack-webhook-server --host 0.0.0.0 --port 8080
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-webhook-server --host 127.0.0.1 --port 3000  # Development
+  slack-webhook-server --host 0.0.0.0 --port 8080   # Production
+  slack-webhook-server --port $PORT                  # Cloud deployment
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.webhook --host 127.0.0.1 --port 3000
+  python -m slack_mcp.webhook --host 0.0.0.0 --port 8080
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-webhook-server --host 127.0.0.1 --port 3000
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-webhook-server --host 0.0.0.0 --port 8080
+  ```
+  </TabItem>
+</Tabs>
 
 #### Logging Configuration
 
@@ -64,22 +97,31 @@ uv run slack-webhook-server --host 0.0.0.0 --port 8080
 | `--log-level` | `string` | `"INFO"` | Python logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
 
 **Examples:**
-```bash
-# Method 1: Console Script
-slack-webhook-server --log-level DEBUG    # Development
-slack-webhook-server --log-level WARNING  # Production
-slack-webhook-server --log-level DEBUG    # Troubleshooting
-
-# Method 2: Python Module
-python -m slack_mcp.webhook --log-level DEBUG
-python -m slack_mcp.webhook --log-level WARNING
-
-# Method 3: Poetry
-poetry run slack-webhook-server --log-level DEBUG
-
-# Method 4: UV
-uv run slack-webhook-server --log-level DEBUG
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-webhook-server --log-level DEBUG    # Development
+  slack-webhook-server --log-level WARNING  # Production
+  slack-webhook-server --log-level DEBUG    # Troubleshooting
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.webhook --log-level DEBUG
+  python -m slack_mcp.webhook --log-level WARNING
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-webhook-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-webhook-server --log-level DEBUG
+  ```
+  </TabItem>
+</Tabs>
 
 **Available Log Levels:**
 - `DEBUG` - Detailed information for debugging
@@ -97,27 +139,40 @@ uv run slack-webhook-server --log-level DEBUG
 | `--slack-token` | `string` | `None` | Slack bot token (overrides environment variables) |
 
 **Examples:**
-```bash
-# Method 1: Console Script (recommended - uses environment variables)
-export SLACK_BOT_TOKEN="xoxb-your-token-here"
-slack-webhook-server
-
-# Method 2: Python Module
-export SLACK_BOT_TOKEN="xoxb-your-token-here"
-python -m slack_mcp.webhook
-
-# Method 3: Poetry
-export SLACK_BOT_TOKEN="xoxb-your-token-here"
-poetry run slack-webhook-server
-
-# Method 4: UV
-export SLACK_BOT_TOKEN="xoxb-your-token-here"
-uv run slack-webhook-server
-
-# Alternative: Provide token via CLI (all methods, not recommended for production)
-slack-webhook-server --slack-token "xoxb-your-token-here"
-python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  # Recommended: Use environment variables
+  export SLACK_BOT_TOKEN="xoxb-your-token-here"
+  slack-webhook-server
+  
+  # Alternative: Direct CLI (not recommended for production)
+  slack-webhook-server --slack-token "xoxb-your-token-here"
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  # Recommended: Use environment variables
+  export SLACK_BOT_TOKEN="xoxb-your-token-here"
+  python -m slack_mcp.webhook
+  
+  # Alternative: Direct CLI (not recommended for production)
+  python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  export SLACK_BOT_TOKEN="xoxb-your-token-here"
+  poetry run slack-webhook-server
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  export SLACK_BOT_TOKEN="xoxb-your-token-here"
+  uv run slack-webhook-server
+  ```
+  </TabItem>
+</Tabs>
 
 ### Environment File Options
 
@@ -129,22 +184,31 @@ python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
 | `--no-env-file` | `flag` | `False` | Disable automatic environment file loading |
 
 **Examples:**
-```bash
-# Method 1: Console Script
-slack-webhook-server --env-file /etc/webhook/.env.production
-slack-webhook-server --env-file ../config/.env.staging
-slack-webhook-server --no-env-file
-
-# Method 2: Python Module
-python -m slack_mcp.webhook --env-file /etc/webhook/.env.production
-python -m slack_mcp.webhook --no-env-file
-
-# Method 3: Poetry
-poetry run slack-webhook-server --env-file ../config/.env.staging
-
-# Method 4: UV
-uv run slack-webhook-server --env-file /etc/webhook/.env.production
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-webhook-server --env-file /etc/webhook/.env.production
+  slack-webhook-server --env-file ../config/.env.staging
+  slack-webhook-server --no-env-file
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.webhook --env-file /etc/webhook/.env.production
+  python -m slack_mcp.webhook --no-env-file
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-webhook-server --env-file ../config/.env.staging
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-webhook-server --env-file /etc/webhook/.env.production
+  ```
+  </TabItem>
+</Tabs>
 
 ### Server Mode Options
 
@@ -157,23 +221,32 @@ uv run slack-webhook-server --env-file /etc/webhook/.env.production
 | `--mcp-mount-path` | `string` | `"/mcp"` | Mount path for MCP server (SSE transport only) |
 
 **Examples:**
-```bash
-# Method 1: Console Script
-slack-webhook-server                                      # Standalone (default)
-slack-webhook-server --integrated --mcp-transport sse    # Integrated with SSE
-slack-webhook-server --integrated --mcp-transport streamable-http  # HTTP streaming
-slack-webhook-server --integrated --mcp-mount-path /api/mcp  # Custom mount path
-
-# Method 2: Python Module
-python -m slack_mcp.webhook
-python -m slack_mcp.webhook --integrated --mcp-transport sse
-
-# Method 3: Poetry
-poetry run slack-webhook-server --integrated --mcp-transport sse
-
-# Method 4: UV
-uv run slack-webhook-server --integrated --mcp-transport streamable-http
-```
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  slack-webhook-server                                      # Standalone (default)
+  slack-webhook-server --integrated --mcp-transport sse    # Integrated with SSE
+  slack-webhook-server --integrated --mcp-transport streamable-http  # HTTP streaming
+  slack-webhook-server --integrated --mcp-mount-path /api/mcp  # Custom mount path
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  python -m slack_mcp.webhook
+  python -m slack_mcp.webhook --integrated --mcp-transport sse
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  poetry run slack-webhook-server --integrated --mcp-transport sse
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  uv run slack-webhook-server --integrated --mcp-transport streamable-http
+  ```
+  </TabItem>
+</Tabs>
 
 ### Network and Reliability Options
 
