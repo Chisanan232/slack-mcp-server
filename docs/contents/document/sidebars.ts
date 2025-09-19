@@ -27,7 +27,13 @@ const sidebars: SidebarsConfig = {
           label: 'Web Server',
           items: [
             'server-references/web-server/web-apis',
-            'server-references/web-server/web-api-health-check',
+            {
+              type: 'category',
+              label: 'End-points',
+              items: [
+                'server-references/web-server/end-points/web-api-health-check',
+              ],
+            },
           ],
         },
         {
@@ -35,12 +41,18 @@ const sidebars: SidebarsConfig = {
           label: 'MCP Server',
           items: [
             'server-references/mcp-server/mcp-apis',
-            'server-references/mcp-server/slack-post-message-mcp-api',
-            'server-references/mcp-server/slack-read-channel-messages-mcp-api',
-            'server-references/mcp-server/slack-read-thread-messages-mcp-api',
-            'server-references/mcp-server/slack-thread-reply-mcp-api',
-            'server-references/mcp-server/slack-read-emojis-mcp-api',
-            'server-references/mcp-server/slack-add-reactions-mcp-api',
+            {
+              type: 'category',
+              label: 'End-points',
+              items: [
+                'server-references/mcp-server/end-points/slack-post-message-mcp-api',
+                'server-references/mcp-server/end-points/slack-read-channel-messages-mcp-api',
+                'server-references/mcp-server/end-points/slack-read-thread-messages-mcp-api',
+                'server-references/mcp-server/end-points/slack-thread-reply-mcp-api',
+                'server-references/mcp-server/end-points/slack-read-emojis-mcp-api',
+                'server-references/mcp-server/end-points/slack-add-reactions-mcp-api',
+              ],
+            },
           ],
         },
         {
@@ -48,7 +60,13 @@ const sidebars: SidebarsConfig = {
           label: 'Webhook Server',
           items: [
             'server-references/webhook-server/webhook-apis',
-            'server-references/webhook-server/slack-events-endpoint',
+            {
+              type: 'category',
+              label: 'End-points',
+              items: [
+                'server-references/webhook-server/end-points/slack-events-endpoint',
+              ],
+            },
             // 'server-references/webhook-server/url-verification',
             // 'server-references/webhook-server/security',
             'server-references/webhook-server/server-configuration',
