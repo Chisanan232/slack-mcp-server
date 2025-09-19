@@ -12,8 +12,22 @@ The Slack MCP webhook server provides comprehensive configuration options throug
 
 The webhook server supports a rich set of command-line options for flexible deployment:
 
+### Execution Methods
+
 ```bash
+# Method 1: Console Script (Recommended)
+slack-webhook-server [OPTIONS]
+
+# Method 2: Python Module
 python -m slack_mcp.webhook [OPTIONS]
+
+# Method 3: Poetry (Development)
+poetry run slack-webhook-server [OPTIONS]
+poetry run python -m slack_mcp.webhook [OPTIONS]
+
+# Method 4: UV (Modern Package Manager)
+uv run slack-webhook-server [OPTIONS]
+uv run python -m slack_mcp.webhook [OPTIONS]
 ```
 
 ### Core Server Options
@@ -27,14 +41,20 @@ python -m slack_mcp.webhook [OPTIONS]
 
 **Examples:**
 ```bash
-# Listen on localhost only (development)
-python -m slack_mcp.webhook --host 127.0.0.1 --port 3000
+# Method 1: Console Script
+slack-webhook-server --host 127.0.0.1 --port 3000  # Development
+slack-webhook-server --host 0.0.0.0 --port 8080   # Production
+slack-webhook-server --port $PORT                  # Cloud deployment
 
-# Listen on all interfaces (production)
+# Method 2: Python Module
+python -m slack_mcp.webhook --host 127.0.0.1 --port 3000
 python -m slack_mcp.webhook --host 0.0.0.0 --port 8080
 
-# Use environment PORT variable (common in cloud deployments)
-PORT=8000 python -m slack_mcp.webhook --port $PORT
+# Method 3: Poetry
+poetry run slack-webhook-server --host 127.0.0.1 --port 3000
+
+# Method 4: UV
+uv run slack-webhook-server --host 0.0.0.0 --port 8080
 ```
 
 #### Logging Configuration
@@ -45,14 +65,20 @@ PORT=8000 python -m slack_mcp.webhook --port $PORT
 
 **Examples:**
 ```bash
-# Enable debug logging for development
-python -m slack_mcp.webhook --log-level DEBUG
+# Method 1: Console Script
+slack-webhook-server --log-level DEBUG    # Development
+slack-webhook-server --log-level WARNING  # Production
+slack-webhook-server --log-level DEBUG    # Troubleshooting
 
-# Quiet logging for production
+# Method 2: Python Module
+python -m slack_mcp.webhook --log-level DEBUG
 python -m slack_mcp.webhook --log-level WARNING
 
-# Verbose logging for troubleshooting
-python -m slack_mcp.webhook --log-level DEBUG
+# Method 3: Poetry
+poetry run slack-webhook-server --log-level DEBUG
+
+# Method 4: UV
+uv run slack-webhook-server --log-level DEBUG
 ```
 
 **Available Log Levels:**
@@ -72,12 +98,25 @@ python -m slack_mcp.webhook --log-level DEBUG
 
 **Examples:**
 ```bash
-# Provide token via CLI (not recommended for production)
-python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
+# Method 1: Console Script (recommended - uses environment variables)
+export SLACK_BOT_TOKEN="xoxb-your-token-here"
+slack-webhook-server
 
-# Use environment variable (recommended)
+# Method 2: Python Module
 export SLACK_BOT_TOKEN="xoxb-your-token-here"
 python -m slack_mcp.webhook
+
+# Method 3: Poetry
+export SLACK_BOT_TOKEN="xoxb-your-token-here"
+poetry run slack-webhook-server
+
+# Method 4: UV
+export SLACK_BOT_TOKEN="xoxb-your-token-here"
+uv run slack-webhook-server
+
+# Alternative: Provide token via CLI (all methods, not recommended for production)
+slack-webhook-server --slack-token "xoxb-your-token-here"
+python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
 ```
 
 ### Environment File Options
@@ -91,14 +130,20 @@ python -m slack_mcp.webhook
 
 **Examples:**
 ```bash
-# Use custom environment file
+# Method 1: Console Script
+slack-webhook-server --env-file /etc/webhook/.env.production
+slack-webhook-server --env-file ../config/.env.staging
+slack-webhook-server --no-env-file
+
+# Method 2: Python Module
 python -m slack_mcp.webhook --env-file /etc/webhook/.env.production
-
-# Use environment file from different directory
-python -m slack_mcp.webhook --env-file ../config/.env.staging
-
-# Disable environment file loading
 python -m slack_mcp.webhook --no-env-file
+
+# Method 3: Poetry
+poetry run slack-webhook-server --env-file ../config/.env.staging
+
+# Method 4: UV
+uv run slack-webhook-server --env-file /etc/webhook/.env.production
 ```
 
 ### Server Mode Options
@@ -113,17 +158,21 @@ python -m slack_mcp.webhook --no-env-file
 
 **Examples:**
 ```bash
-# Standalone webhook server (default)
-python -m slack_mcp.webhook
+# Method 1: Console Script
+slack-webhook-server                                      # Standalone (default)
+slack-webhook-server --integrated --mcp-transport sse    # Integrated with SSE
+slack-webhook-server --integrated --mcp-transport streamable-http  # HTTP streaming
+slack-webhook-server --integrated --mcp-mount-path /api/mcp  # Custom mount path
 
-# Integrated server with SSE transport
+# Method 2: Python Module
+python -m slack_mcp.webhook
 python -m slack_mcp.webhook --integrated --mcp-transport sse
 
-# Integrated server with HTTP streaming
-python -m slack_mcp.webhook --integrated --mcp-transport streamable-http
+# Method 3: Poetry
+poetry run slack-webhook-server --integrated --mcp-transport sse
 
-# Custom MCP mount path
-python -m slack_mcp.webhook --integrated --mcp-mount-path /api/mcp
+# Method 4: UV
+uv run slack-webhook-server --integrated --mcp-transport streamable-http
 ```
 
 ### Network and Reliability Options

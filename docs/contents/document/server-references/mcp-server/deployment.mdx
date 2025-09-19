@@ -23,12 +23,23 @@ pip install -e .
 # Create environment file
 cat > .env << EOF
 SLACK_BOT_TOKEN=xoxb-your-development-token
-MCP_TRANSPORT=stdio
-LOG_LEVEL=DEBUG
+QUEUE_BACKEND=memory
 EOF
 
-# Start the MCP server
+# Start the MCP server (Multiple execution methods)
+# Method 1: Console Script (Recommended)
+slack-mcp-server
+
+# Method 2: Python Module
 python -m slack_mcp.mcp
+
+# Method 3: Poetry (if using Poetry)
+poetry install
+poetry run slack-mcp-server
+
+# Method 4: UV (if using UV)
+uv sync
+uv run slack-mcp-server
 ```
 
 ### Development Environment Setup
@@ -38,17 +49,24 @@ Create a comprehensive development configuration:
 ```bash
 # .env.development
 SLACK_BOT_TOKEN=xoxb-your-development-token
-MCP_TRANSPORT=stdio
-LOG_LEVEL=DEBUG
-MCP_TIMEOUT=30
-MCP_MAX_RETRIES=1
+SLACK_TEST_CHANNEL=#dev-testing
+QUEUE_BACKEND=memory
 ```
 
 Start the server with development settings:
 
 ```bash
-# Load development environment
+# Method 1: Console Script (Recommended for development)
+slack-mcp-server --log-level DEBUG
+
+# Method 2: Python Module
 python -m slack_mcp.mcp --log-level DEBUG
+
+# Method 3: Poetry (Development workflow)
+poetry run slack-mcp-server --log-level DEBUG
+
+# Method 4: UV (Modern development)
+uv run slack-mcp-server --log-level DEBUG
 ```
 
 ## Docker Deployment
@@ -76,20 +94,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set environment variables
-ENV MCP_TRANSPORT=sse
-ENV MCP_HOST=0.0.0.0
-ENV MCP_PORT=3001
-ENV LOG_LEVEL=INFO
+ENV QUEUE_BACKEND=memory
 
-# Expose port
+# Expose port (for HTTP transports only)
 EXPOSE 3001
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3001/mcp || exit 1
+# Install slack-mcp-server package
+RUN pip install -e .
 
-# Run the application
-CMD ["python", "-m", "slack_mcp.mcp", "--transport", "sse", "--host", "0.0.0.0", "--port", "3001"]
+# Run the application (stdio transport by default)
+CMD ["slack-mcp-server"]
 ```
 
 Build and run the Docker container:
@@ -109,7 +123,7 @@ docker run -d \
 docker run -d \
   --name mcp-server \
   -e SLACK_BOT_TOKEN=xoxb-your-token \
-  -e MCP_TRANSPORT=sse \
+  -e QUEUE_BACKEND=memory \
   -p 3001:3001 \
   slack-mcp-server
 ```
@@ -130,9 +144,7 @@ services:
     env_file:
       - .env.production
     environment:
-      - MCP_TRANSPORT=sse
-      - MCP_HOST=0.0.0.0
-      - MCP_PORT=3001
+      - QUEUE_BACKEND=memory
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001/mcp"]

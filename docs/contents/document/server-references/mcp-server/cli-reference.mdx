@@ -10,8 +10,34 @@ The Slack MCP Server provides a comprehensive command-line interface for startin
 
 ## Basic Usage
 
+The MCP server can be started using multiple execution methods:
+
+### Method 1: Console Script (Recommended)
 ```bash
+# After installation via pip/uv/poetry
+slack-mcp-server [OPTIONS]
+```
+
+### Method 2: Python Module
+```bash
+# Using Python directly
 python -m slack_mcp.mcp [OPTIONS]
+```
+
+### Method 3: Poetry
+```bash
+# Using Poetry in development
+poetry run slack-mcp-server [OPTIONS]
+# OR
+poetry run python -m slack_mcp.mcp [OPTIONS]
+```
+
+### Method 4: UV
+```bash
+# Using UV package manager
+uv run slack-mcp-server [OPTIONS]
+# OR
+uv run python -m slack_mcp.mcp [OPTIONS]
 ```
 
 ## Command Options
@@ -25,14 +51,23 @@ python -m slack_mcp.mcp [OPTIONS]
 **Description**: Specifies the transport protocol for MCP communication.
 
 ```bash
-# Use standard input/output (default)
+# Method 1: Console Script
+slack-mcp-server --transport stdio
+slack-mcp-server --transport sse
+slack-mcp-server --transport streamable-http
+
+# Method 2: Python Module
 python -m slack_mcp.mcp --transport stdio
-
-# Use Server-Sent Events over HTTP
 python -m slack_mcp.mcp --transport sse
-
-# Use streamable HTTP protocol
 python -m slack_mcp.mcp --transport streamable-http
+
+# Method 3: Poetry
+poetry run slack-mcp-server --transport sse
+poetry run python -m slack_mcp.mcp --transport sse
+
+# Method 4: UV
+uv run slack-mcp-server --transport sse
+uv run python -m slack_mcp.mcp --transport sse
 ```
 
 **Transport Details**:
@@ -48,14 +83,21 @@ python -m slack_mcp.mcp --transport streamable-http
 **Description**: Host interface to bind the server (HTTP transports only).
 
 ```bash
-# Bind to localhost (default)
+# Method 1: Console Script
+slack-mcp-server --transport sse --host 127.0.0.1
+slack-mcp-server --transport sse --host 0.0.0.0
+slack-mcp-server --transport sse --host 192.168.1.100
+
+# Method 2: Python Module
 python -m slack_mcp.mcp --transport sse --host 127.0.0.1
-
-# Bind to all interfaces
 python -m slack_mcp.mcp --transport sse --host 0.0.0.0
-
-# Bind to specific IP address
 python -m slack_mcp.mcp --transport sse --host 192.168.1.100
+
+# Method 3: Poetry
+poetry run slack-mcp-server --transport sse --host 0.0.0.0
+
+# Method 4: UV
+uv run slack-mcp-server --transport sse --host 0.0.0.0
 ```
 
 **Security Note**: Use `0.0.0.0` only in containerized environments or when you need external access. For local development, prefer `127.0.0.1`.
@@ -67,14 +109,21 @@ python -m slack_mcp.mcp --transport sse --host 192.168.1.100
 **Description**: Port number for HTTP transports.
 
 ```bash
-# Use default port
+# Method 1: Console Script
+slack-mcp-server --transport sse --port 3001
+slack-mcp-server --transport sse --port 8080
+slack-mcp-server --transport sse --port 0
+
+# Method 2: Python Module
 python -m slack_mcp.mcp --transport sse --port 3001
-
-# Use custom port
 python -m slack_mcp.mcp --transport sse --port 8080
-
-# Use system-assigned port (useful for testing)
 python -m slack_mcp.mcp --transport sse --port 0
+
+# Method 3: Poetry
+poetry run slack-mcp-server --transport sse --port 8080
+
+# Method 4: UV
+uv run slack-mcp-server --transport sse --port 8080
 ```
 
 #### `--mount-path`
@@ -83,14 +132,21 @@ python -m slack_mcp.mcp --transport sse --port 0
 **Description**: Mount path for SSE transport endpoints.
 
 ```bash
-# Use default mount path
+# Method 1: Console Script
+slack-mcp-server --transport sse --mount-path /mcp
+slack-mcp-server --transport sse --mount-path /api/v1/mcp
+slack-mcp-server --transport sse --mount-path /
+
+# Method 2: Python Module
 python -m slack_mcp.mcp --transport sse --mount-path /mcp
-
-# Use custom mount path
 python -m slack_mcp.mcp --transport sse --mount-path /api/v1/mcp
-
-# Use root path
 python -m slack_mcp.mcp --transport sse --mount-path /
+
+# Method 3: Poetry
+poetry run slack-mcp-server --transport sse --mount-path /api/v1/mcp
+
+# Method 4: UV
+uv run slack-mcp-server --transport sse --mount-path /api/v1/mcp
 ```
 
 ### Logging Options
@@ -102,14 +158,21 @@ python -m slack_mcp.mcp --transport sse --mount-path /
 **Description**: Sets the logging verbosity level.
 
 ```bash
-# Development logging (verbose)
+# Method 1: Console Script
+slack-mcp-server --log-level DEBUG
+slack-mcp-server --log-level INFO
+slack-mcp-server --log-level ERROR
+
+# Method 2: Python Module
 python -m slack_mcp.mcp --log-level DEBUG
-
-# Production logging (default)
 python -m slack_mcp.mcp --log-level INFO
-
-# Error-only logging
 python -m slack_mcp.mcp --log-level ERROR
+
+# Method 3: Poetry
+poetry run slack-mcp-server --log-level DEBUG
+
+# Method 4: UV
+uv run slack-mcp-server --log-level DEBUG
 ```
 
 **Log Level Details**:
@@ -160,80 +223,148 @@ python -m slack_mcp.mcp --max-retries 5
 ### Development Environment
 
 ```bash
-# Local development with debug logging
+# Method 1: Console Script (Recommended for development)
+slack-mcp-server \
+  --transport stdio \
+  --log-level DEBUG
+
+slack-mcp-server \
+  --transport sse \
+  --host 127.0.0.1 \
+  --port 3001 \
+  --log-level DEBUG
+
+# Method 2: Python Module
 python -m slack_mcp.mcp \
   --transport stdio \
   --log-level DEBUG
 
-# Development with HTTP transport
-python -m slack_mcp.mcp \
+# Method 3: Poetry (Development workflow)
+poetry run slack-mcp-server \
   --transport sse \
   --host 127.0.0.1 \
   --port 3001 \
-  --log-level DEBUG \
-  --timeout 15
+  --log-level DEBUG
+
+# Method 4: UV (Modern Python package management)
+uv run slack-mcp-server \
+  --transport sse \
+  --host 127.0.0.1 \
+  --port 3001 \
+  --log-level DEBUG
 ```
 
 ### Production Environment
 
 ```bash
-# Production SSE server
-python -m slack_mcp.mcp \
+# Method 1: Console Script (Recommended for production deployments)
+slack-mcp-server \
   --transport sse \
   --host 0.0.0.0 \
   --port 3001 \
-  --log-level INFO \
-  --timeout 60 \
-  --max-retries 5
+  --log-level INFO
 
-# Production HTTP streaming server
-python -m slack_mcp.mcp \
+slack-mcp-server \
   --transport streamable-http \
   --host 0.0.0.0 \
   --port 8080 \
-  --log-level WARNING \
-  --timeout 45 \
-  --max-retries 3
-```
+  --log-level WARNING
 
-### Testing Configurations
-
-```bash
-# Quick test with stdio transport
-python -m slack_mcp.mcp --log-level DEBUG
-
-# Test HTTP endpoints
-python -m slack_mcp.mcp \
-  --transport sse \
-  --port 0 \
-  --log-level DEBUG \
-  --timeout 10 \
-  --max-retries 1
-
-# Test custom mount path
-python -m slack_mcp.mcp \
-  --transport sse \
-  --mount-path /test/mcp \
-  --log-level DEBUG
-```
-
-### Container Deployments
-
-```bash
-# Docker container configuration
+# Method 2: Python Module (Alternative)
 python -m slack_mcp.mcp \
   --transport sse \
   --host 0.0.0.0 \
   --port 3001 \
   --log-level INFO
 
-# Kubernetes pod configuration
+# Method 3: Poetry (Development server in production-like mode)
+poetry run slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+
+# Method 4: UV (Production deployment with UV)
+uv run slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+```
+
+### Testing Configurations
+
+```bash
+# Method 1: Console Script (Quick testing)
+slack-mcp-server --log-level DEBUG
+slack-mcp-server \
+  --transport sse \
+  --port 0 \
+  --log-level DEBUG
+slack-mcp-server \
+  --transport sse \
+  --mount-path /test/mcp \
+  --log-level DEBUG
+
+# Method 2: Python Module (Direct execution)
+python -m slack_mcp.mcp --log-level DEBUG
+python -m slack_mcp.mcp \
+  --transport sse \
+  --port 0 \
+  --log-level DEBUG
+
+# Method 3: Poetry (Development testing)
+poetry run slack-mcp-server --log-level DEBUG
+poetry run slack-mcp-server \
+  --transport sse \
+  --port 0 \
+  --log-level DEBUG
+
+# Method 4: UV (Modern testing workflow)
+uv run slack-mcp-server --log-level DEBUG
+uv run slack-mcp-server \
+  --transport sse \
+  --port 0 \
+  --log-level DEBUG
+```
+
+### Container Deployments
+
+```bash
+# Docker container configuration (Method 1: Console Script)
+slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+
+# Docker container configuration (Method 2: Python Module)
+python -m slack_mcp.mcp \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+
+# Kubernetes pod configuration (Method 1: Console Script)
+slack-mcp-server \
+  --transport streamable-http \
+  --host 0.0.0.0 \
+  --port ${PORT:-3001} \
+  --log-level ${LOG_LEVEL:-INFO}
+
+# Kubernetes pod configuration (Method 2: Python Module)
 python -m slack_mcp.mcp \
   --transport streamable-http \
   --host 0.0.0.0 \
   --port ${PORT:-3001} \
-  --log-level ${LOG_LEVEL:-INFO} \
-  --timeout ${MCP_TIMEOUT:-60}
+  --log-level ${LOG_LEVEL:-INFO}
+
+# UV in container (Method 4: Modern approach)
+uv run slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
 ```
 
 ## Environment Variable Override

@@ -184,10 +184,24 @@ KAFKA_AUTO_OFFSET_RESET=earliest
 
 ## CLI Arguments
 
-The MCP server accepts the following command-line arguments:
+The MCP server accepts the following command-line arguments and can be executed using multiple methods:
+
+### Execution Methods
 
 ```bash
+# Method 1: Console Script (Recommended)
+slack-mcp-server [OPTIONS]
+
+# Method 2: Python Module
 python -m slack_mcp.mcp [OPTIONS]
+
+# Method 3: Poetry (Development)
+poetry run slack-mcp-server [OPTIONS]
+poetry run python -m slack_mcp.mcp [OPTIONS]
+
+# Method 4: UV (Modern Package Manager)
+uv run slack-mcp-server [OPTIONS]
+uv run python -m slack_mcp.mcp [OPTIONS]
 ```
 
 | Option | Type | Default | Description |
@@ -202,27 +216,57 @@ python -m slack_mcp.mcp [OPTIONS]
 
 ### CLI Examples
 
+#### Basic Usage
 ```bash
-# Start with stdio transport (default)
-python -m slack_mcp.mcp
+# Method 1: Console Script (Recommended)
+slack-mcp-server  # Default: stdio transport
+slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
+slack-mcp-server --transport sse --mount-path /api/mcp
+slack-mcp-server --log-level DEBUG
 
-# Start with SSE transport
+# Method 2: Python Module
+python -m slack_mcp.mcp  # Default: stdio transport
 python -m slack_mcp.mcp --transport sse --host 0.0.0.0 --port 3001
-
-# Start with custom mount path
-python -m slack_mcp.mcp --transport sse --mount-path /api/mcp
-
-# Start with debug logging
 python -m slack_mcp.mcp --log-level DEBUG
 
-# Production configuration
+# Method 3: Poetry (Development)
+poetry run slack-mcp-server --transport sse --host 127.0.0.1 --port 3001
+poetry run python -m slack_mcp.mcp --log-level DEBUG
+
+# Method 4: UV (Modern Package Manager)
+uv run slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
+uv run python -m slack_mcp.mcp --log-level DEBUG
+```
+
+#### Production Configuration
+```bash
+# Method 1: Console Script (Production Deployment)
+slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+
+# Method 2: Python Module (Alternative)
 python -m slack_mcp.mcp \
   --transport sse \
   --host 0.0.0.0 \
   --port 3001 \
-  --log-level INFO \
-  --timeout 60 \
-  --max-retries 5
+  --log-level INFO
+
+# Method 3: Poetry (Development Server)
+poetry run slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+
+# Method 4: UV (Modern Deployment)
+uv run slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
 ```
 
 ## Configuration Validation
@@ -456,6 +500,18 @@ else:
 # Test token with Slack API
 curl -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
      https://slack.com/api/auth.test
+
+# Test MCP server startup (Method 1: Console Script)
+slack-mcp-server --help
+
+# Test MCP server startup (Method 2: Python Module)
+python -m slack_mcp.mcp --help
+
+# Test MCP server startup (Method 3: Poetry)
+poetry run slack-mcp-server --help
+
+# Test MCP server startup (Method 4: UV)
+uv run slack-mcp-server --help
 ```
 
 #### 2. Port Already in Use
@@ -467,8 +523,17 @@ curl -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
 # Find process using the port
 lsof -i :3001
 
-# Use a different port
-MCP_PORT=3002 python -m slack_mcp.mcp --transport sse
+# Use a different port (Method 1: Console Script)
+slack-mcp-server --transport sse --port 3002
+
+# Use a different port (Method 2: Python Module)
+python -m slack_mcp.mcp --transport sse --port 3002
+
+# Use a different port (Method 3: Poetry)
+poetry run slack-mcp-server --transport sse --port 3002
+
+# Use a different port (Method 4: UV)
+uv run slack-mcp-server --transport sse --port 3002
 
 # Kill conflicting process
 kill -9 <PID>
