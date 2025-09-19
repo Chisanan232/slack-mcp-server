@@ -46,7 +46,7 @@ const sidebars: SidebarsConfig = {
             'server-references/mcp-server/mcp-server-cli-reference',
             {
               type: 'category',
-              label: 'End-points',
+              label: 'Tools (End-points)',
               items: [
                 'server-references/mcp-server/end-points/slack-post-message-mcp-api',
                 'server-references/mcp-server/end-points/slack-read-channel-messages-mcp-api',
