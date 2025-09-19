@@ -64,6 +64,7 @@ const sidebars: SidebarsConfig = {
           label: 'Webhook Server',
           items: [
             'server-references/webhook-server/webhook-apis',
+            'server-references/webhook-server/webhook-server-cli-reference',
             {
               type: 'category',
               label: 'End-points',
