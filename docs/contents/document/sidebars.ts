@@ -41,6 +41,9 @@ const sidebars: SidebarsConfig = {
           label: 'MCP Server',
           items: [
             'server-references/mcp-server/mcp-apis',
+            'server-references/mcp-server/mcp-server-configuration',
+            'server-references/mcp-server/mcp-server-deployment',
+            'server-references/mcp-server/mcp-server-cli-reference',
             {
               type: 'category',
               label: 'End-points',

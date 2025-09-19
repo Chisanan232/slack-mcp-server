@@ -8,6 +8,14 @@ sidebar_position: 2
 
 The MCP (Model Context Protocol) Server APIs provide programmatic interfaces for client libraries and applications to interact with Slack resources through a standardized protocol. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
 
+## Server Setup & Configuration
+
+Before using the MCP Server APIs, you need to properly configure and deploy the server:
+
+- 📋 [**Configuration Guide**](./configuration.mdx) - Environment variables, CLI options, and .env file setup
+- 🚀 [**Deployment Guide**](./deployment.mdx) - Local, Docker, Kubernetes, and cloud deployment examples  
+- 🔧 [**CLI Reference**](./cli-reference.mdx) - Complete command-line interface documentation
+
 ## Transport Options
 
 MCP Server supports three transport mechanisms:
@@ -15,6 +23,8 @@ MCP Server supports three transport mechanisms:
 1. **stdio** - Standard input/output communication (default)
 2. **Server-Sent Events (SSE)** - Event-based communication over HTTP
 3. **Streamable HTTP** - HTTP-based streaming communication
+
+For detailed transport configuration, see the [Configuration Guide](./configuration.mdx).
 
 ## Available Tools
 
