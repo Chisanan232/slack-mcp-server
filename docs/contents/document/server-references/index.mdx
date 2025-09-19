@@ -6,14 +6,51 @@ sidebar_position: 3
 
 # Server References
 
-This section provides detailed documentation for all the server APIs and interfaces available in Slack MCP Server. The references are divided into three categories:
+This section provides comprehensive documentation for all server APIs, configuration, and deployment options available in Slack MCP Server. The documentation is organized into common setup guides and server-specific references.
 
-1. **Web Server** - RESTful endpoints for interacting with the server directly via HTTP
-2. **MCP Server** - Programmatic interfaces for client libraries and applications  
-3. **Webhook Server** - Event handling endpoints for Slack webhook integration
+## 🛠️ Common Setup Guides
 
-Choose a category below to explore the available server references:
+Start here for configuration and deployment that applies to all servers:
 
-- [Web Server](./web-server/index.mdx) - HTTP-based RESTful APIs
-- [MCP Server](./mcp-server/index.mdx) - Client library interfaces
-- [Webhook Server](./webhook-server/index.mdx) - Slack event handling endpoints
+### **📋 [Environment Configuration](./environment-configuration.mdx)**
+Essential setup for all server types:
+- Slack authentication tokens and bot configuration
+- Queue backend options (memory, Redis, Kafka)
+- Environment variables and `.env` file management
+- Security best practices for token handling
+
+### **🔧 [CLI Execution Methods](./cli-execution-methods.mdx)**
+Multiple ways to run the servers:
+- Console script execution (`slack-mcp-server`, `slack-webhook-server`)
+- Python module execution (`python -m slack_mcp.mcp`)
+- Poetry and UV dependency management
+- Docker and containerized execution
+
+### **🚀 [Deployment Guide](./deployment-guide.mdx)**
+Production-ready deployment patterns:
+- Local development setup and testing
+- Docker and Docker Compose configurations
+- Kubernetes manifests and cloud deployments
+- Process management, monitoring, and troubleshooting
+
+## 🖥️ Server-Specific References
+
+Once you've completed the common setup, explore the server-specific documentation:
+
+### **📡 [Web Server](./web-server/index.mdx)**
+HTTP-based RESTful APIs for direct server interaction:
+- Health check endpoints
+- Web API documentation
+- REST interface specifications
+
+### **🔧 [MCP Server](./mcp-server/index.mdx)**
+Model Context Protocol interfaces for client applications:
+- MCP transport protocols (stdio, SSE, streamable-http)
+- Client library integration patterns
+- Available Slack tools and capabilities
+
+### **🪝 [Webhook Server](./webhook-server/index.mdx)**
+Slack event handling and webhook integration:
+- Event subscription and processing
+- Standalone and integrated server modes
+- Webhook verification and security
