@@ -1,0 +1,458 @@
+---
+id: mcp-server-cli-reference
+title: CLI Reference
+sidebar_position: 4
+---
+
+# MCP Server CLI Reference
+
+The Slack MCP Server provides a comprehensive command-line interface for starting and configuring the server. This reference covers all available CLI options, usage patterns, and examples.
+
+## Basic Usage
+
+```bash
+python -m slack_mcp.mcp [OPTIONS]
+```
+
+## Command Options
+
+### Transport Options
+
+#### `--transport`
+**Type**: `Choice`  
+**Choices**: `stdio`, `sse`, `streamable-http`  
+**Default**: `stdio`  
+**Description**: Specifies the transport protocol for MCP communication.
+
+```bash
+# Use standard input/output (default)
+python -m slack_mcp.mcp --transport stdio
+
+# Use Server-Sent Events over HTTP
+python -m slack_mcp.mcp --transport sse
+
+# Use streamable HTTP protocol
+python -m slack_mcp.mcp --transport streamable-http
+```
+
+**Transport Details**:
+- **stdio**: Communicates via standard input/output streams. Best for desktop applications and CLI integrations.
+- **sse**: Server-Sent Events over HTTP. Ideal for web applications and real-time streaming.
+- **streamable-http**: HTTP-based streaming protocol. Suitable for REST API integrations and microservices.
+
+### Network Options
+
+#### `--host`
+**Type**: `String`  
+**Default**: `127.0.0.1`  
+**Description**: Host interface to bind the server (HTTP transports only).
+
+```bash
+# Bind to localhost (default)
+python -m slack_mcp.mcp --transport sse --host 127.0.0.1
+
+# Bind to all interfaces
+python -m slack_mcp.mcp --transport sse --host 0.0.0.0
+
+# Bind to specific IP address
+python -m slack_mcp.mcp --transport sse --host 192.168.1.100
+```
+
+**Security Note**: Use `0.0.0.0` only in containerized environments or when you need external access. For local development, prefer `127.0.0.1`.
+
+#### `--port`
+**Type**: `Integer`  
+**Default**: `3001`  
+**Range**: `1-65535`  
+**Description**: Port number for HTTP transports.
+
+```bash
+# Use default port
+python -m slack_mcp.mcp --transport sse --port 3001
+
+# Use custom port
+python -m slack_mcp.mcp --transport sse --port 8080
+
+# Use system-assigned port (useful for testing)
+python -m slack_mcp.mcp --transport sse --port 0
+```
+
+#### `--mount-path`
+**Type**: `String`  
+**Default**: `/mcp`  
+**Description**: Mount path for SSE transport endpoints.
+
+```bash
+# Use default mount path
+python -m slack_mcp.mcp --transport sse --mount-path /mcp
+
+# Use custom mount path
+python -m slack_mcp.mcp --transport sse --mount-path /api/v1/mcp
+
+# Use root path
+python -m slack_mcp.mcp --transport sse --mount-path /
+```
+
+### Logging Options
+
+#### `--log-level`
+**Type**: `String`  
+**Choices**: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`  
+**Default**: `INFO`  
+**Description**: Sets the logging verbosity level.
+
+```bash
+# Development logging (verbose)
+python -m slack_mcp.mcp --log-level DEBUG
+
+# Production logging (default)
+python -m slack_mcp.mcp --log-level INFO
+
+# Error-only logging
+python -m slack_mcp.mcp --log-level ERROR
+```
+
+**Log Level Details**:
+- **DEBUG**: Detailed diagnostic information. Use for development and troubleshooting.
+- **INFO**: General informational messages. Good for production monitoring.
+- **WARNING**: Warning messages for potentially problematic situations.
+- **ERROR**: Error messages for serious problems.
+- **CRITICAL**: Critical error messages for fatal problems.
+
+### Connection Options
+
+#### `--timeout`
+**Type**: `Integer`  
+**Default**: `30`  
+**Unit**: `Seconds`  
+**Description**: Request timeout for Slack API calls.
+
+```bash
+# Default timeout (30 seconds)
+python -m slack_mcp.mcp --timeout 30
+
+# Shorter timeout for fast networks
+python -m slack_mcp.mcp --timeout 15
+
+# Longer timeout for slow networks
+python -m slack_mcp.mcp --timeout 60
+```
+
+#### `--max-retries`
+**Type**: `Integer`  
+**Default**: `3`  
+**Range**: `0-10`  
+**Description**: Maximum number of retry attempts for failed requests.
+
+```bash
+# Default retries
+python -m slack_mcp.mcp --max-retries 3
+
+# No retries (fail fast)
+python -m slack_mcp.mcp --max-retries 0
+
+# More retries for unreliable networks
+python -m slack_mcp.mcp --max-retries 5
+```
+
+## Usage Examples
+
+### Development Environment
+
+```bash
+# Local development with debug logging
+python -m slack_mcp.mcp \
+  --transport stdio \
+  --log-level DEBUG
+
+# Development with HTTP transport
+python -m slack_mcp.mcp \
+  --transport sse \
+  --host 127.0.0.1 \
+  --port 3001 \
+  --log-level DEBUG \
+  --timeout 15
+```
+
+### Production Environment
+
+```bash
+# Production SSE server
+python -m slack_mcp.mcp \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO \
+  --timeout 60 \
+  --max-retries 5
+
+# Production HTTP streaming server
+python -m slack_mcp.mcp \
+  --transport streamable-http \
+  --host 0.0.0.0 \
+  --port 8080 \
+  --log-level WARNING \
+  --timeout 45 \
+  --max-retries 3
+```
+
+### Testing Configurations
+
+```bash
+# Quick test with stdio transport
+python -m slack_mcp.mcp --log-level DEBUG
+
+# Test HTTP endpoints
+python -m slack_mcp.mcp \
+  --transport sse \
+  --port 0 \
+  --log-level DEBUG \
+  --timeout 10 \
+  --max-retries 1
+
+# Test custom mount path
+python -m slack_mcp.mcp \
+  --transport sse \
+  --mount-path /test/mcp \
+  --log-level DEBUG
+```
+
+### Container Deployments
+
+```bash
+# Docker container configuration
+python -m slack_mcp.mcp \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+
+# Kubernetes pod configuration
+python -m slack_mcp.mcp \
+  --transport streamable-http \
+  --host 0.0.0.0 \
+  --port ${PORT:-3001} \
+  --log-level ${LOG_LEVEL:-INFO} \
+  --timeout ${MCP_TIMEOUT:-60}
+```
+
+## Environment Variable Override
+
+CLI options can be overridden by environment variables:
+
+| CLI Option | Environment Variable | Example |
+|------------|---------------------|---------|
+| `--transport` | `MCP_TRANSPORT` | `export MCP_TRANSPORT=sse` |
+| `--host` | `MCP_HOST` | `export MCP_HOST=0.0.0.0` |
+| `--port` | `MCP_PORT` | `export MCP_PORT=8080` |
+| `--mount-path` | `MCP_MOUNT_PATH` | `export MCP_MOUNT_PATH=/api` |
+| `--log-level` | `LOG_LEVEL` | `export LOG_LEVEL=DEBUG` |
+| `--timeout` | `MCP_TIMEOUT` | `export MCP_TIMEOUT=60` |
+| `--max-retries` | `MCP_MAX_RETRIES` | `export MCP_MAX_RETRIES=5` |
+
+**Precedence**: CLI arguments override environment variables, which override defaults.
+
+```bash
+# Environment variable with CLI override
+export MCP_TRANSPORT=sse
+export MCP_PORT=8080
+
+# This will use stdio transport and port 3001 (CLI overrides)
+python -m slack_mcp.mcp --transport stdio --port 3001
+```
+
+## Configuration Scripts
+
+### Startup Script Examples
+
+Create reusable startup scripts for different environments:
+
+#### Development Script (`start-dev.sh`)
+
+```bash
+#!/bin/bash
+# start-dev.sh
+
+export SLACK_BOT_TOKEN="xoxb-your-dev-token"
+export MCP_TRANSPORT="stdio"
+export LOG_LEVEL="DEBUG"
+
+echo "Starting MCP server in development mode..."
+python -m slack_mcp.mcp \
+  --log-level DEBUG \
+  --timeout 15 \
+  --max-retries 1
+```
+
+#### Production Script (`start-prod.sh`)
+
+```bash
+#!/bin/bash
+# start-prod.sh
+
+# Load environment variables
+source .env.production
+
+echo "Starting MCP server in production mode..."
+python -m slack_mcp.mcp \
+  --transport ${MCP_TRANSPORT:-sse} \
+  --host ${MCP_HOST:-0.0.0.0} \
+  --port ${MCP_PORT:-3001} \
+  --log-level ${LOG_LEVEL:-INFO} \
+  --timeout ${MCP_TIMEOUT:-60} \
+  --max-retries ${MCP_MAX_RETRIES:-5}
+```
+
+#### Testing Script (`start-test.sh`)
+
+```bash
+#!/bin/bash
+# start-test.sh
+
+export SLACK_BOT_TOKEN="xoxb-test-token"
+
+echo "Starting MCP server in test mode..."
+python -m slack_mcp.mcp \
+  --transport sse \
+  --port 0 \
+  --log-level DEBUG \
+  --timeout 10 \
+  --max-retries 0
+```
+
+### Process Management
+
+#### Using systemd
+
+Create a systemd service (`/etc/systemd/system/mcp-server.service`):
+
+```ini
+[Unit]
+Description=Slack MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=mcp
+WorkingDirectory=/opt/slack-mcp-server
+EnvironmentFile=/opt/slack-mcp-server/.env.production
+ExecStart=/opt/slack-mcp-server/venv/bin/python -m slack_mcp.mcp \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level INFO
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### Using supervisor
+
+Create supervisor configuration (`/etc/supervisor/conf.d/mcp-server.conf`):
+
+```ini
+[program:mcp-server]
+command=/opt/slack-mcp-server/venv/bin/python -m slack_mcp.mcp --transport sse --host 0.0.0.0 --port 3001
+directory=/opt/slack-mcp-server
+environment=SLACK_BOT_TOKEN="xoxb-token",MCP_TRANSPORT="sse",LOG_LEVEL="INFO"
+user=mcp
+autostart=true
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/var/log/mcp-server.log
+```
+
+## Help and Version Information
+
+### Display Help
+
+```bash
+# Show all available options
+python -m slack_mcp.mcp --help
+
+# Show version information
+python -m slack_mcp.mcp --version
+```
+
+### Built-in Validation
+
+The CLI performs automatic validation:
+
+```bash
+# Invalid transport (will show error)
+python -m slack_mcp.mcp --transport invalid
+
+# Invalid port range (will show error)  
+python -m slack_mcp.mcp --transport sse --port 70000
+
+# Invalid log level (will show error)
+python -m slack_mcp.mcp --log-level INVALID
+```
+
+## Troubleshooting CLI Issues
+
+### Common Problems
+
+#### 1. Permission Denied
+
+```bash
+# Error: Permission denied on port 80
+python -m slack_mcp.mcp --transport sse --port 80
+
+# Solution: Use non-privileged port or run with sudo
+python -m slack_mcp.mcp --transport sse --port 8080
+```
+
+#### 2. Port Already in Use
+
+```bash
+# Error: Address already in use
+python -m slack_mcp.mcp --transport sse --port 3001
+
+# Solution: Find and kill process or use different port
+lsof -ti:3001 | xargs kill -9
+# OR
+python -m slack_mcp.mcp --transport sse --port 3002
+```
+
+#### 3. Invalid Configuration
+
+```bash
+# Error: Invalid transport specified
+python -m slack_mcp.mcp --transport http
+
+# Solution: Use valid transport option
+python -m slack_mcp.mcp --transport sse
+```
+
+### Debug Mode
+
+Enable maximum verbosity for troubleshooting:
+
+```bash
+# Maximum debug output
+python -m slack_mcp.mcp \
+  --log-level DEBUG \
+  --timeout 5 \
+  --max-retries 0
+```
+
+### Configuration Verification
+
+```bash
+# Test configuration without starting server
+python -c "
+import sys
+sys.argv = ['mcp', '--transport', 'sse', '--help']
+try:
+    from slack_mcp.mcp.cli import main
+    print('✅ CLI configuration is valid')
+except Exception as e:
+    print(f'❌ CLI configuration error: {e}')
+"
+```
+
+For more detailed configuration options, see [MCP Server Configuration](./configuration.mdx).
+For deployment examples using these CLI options, see [MCP Server Deployment](./deployment.mdx).
