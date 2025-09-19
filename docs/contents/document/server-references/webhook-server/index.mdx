@@ -98,10 +98,11 @@ The webhook server processes all Slack event types including:
 
 ## Configuration Options
 
-### **📋 [Server Configuration](./server-configuration.mdx)**
+### **📋 [Environment Configuration](../environment-configuration.mdx)**
 Complete configuration guide including:
-- Host and port settings
-- SSL/TLS configuration  
+- Environment variables and authentication
+- Queue backend configuration
+- SSL/TLS and security settings  
 - Logging levels and formats
 - Retry mechanisms
 - Environment file loading
@@ -113,7 +114,7 @@ For deployment patterns, container configurations, and production recommendation
 ## Development Tools
 
 ### **🛠️ CLI Interface**
-For complete CLI options and usage patterns, see [Server Configuration](./server-configuration.mdx).
+For complete CLI options and usage patterns, see [CLI Execution Methods](../cli-execution-methods.mdx).
 
 ### **💻 Local Development**
 For development setup and testing guides, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
@@ -162,4 +163,4 @@ python -m slack_mcp.webhook --host 0.0.0.0 --port 3000
 python -m slack_mcp.webhook --integrated --mcp-transport sse
 ```
 
-For detailed setup instructions, see the [Server Configuration](./server-configuration.mdx) guide.
+For detailed setup instructions, see the [Environment Configuration](../environment-configuration.mdx) and [CLI Execution Methods](../cli-execution-methods.mdx) guides.

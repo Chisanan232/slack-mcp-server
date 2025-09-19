@@ -22,6 +22,9 @@ const sidebars: SidebarsConfig = {
       label: '🧑‍💻 Server References',
       items: [
         'server-references/server-references',
+        'server-references/environment-configuration',
+        'server-references/cli-execution-methods',
+        'server-references/deployment-guide',
         {
           type: 'category',
           label: 'Web Server',
@@ -41,8 +44,6 @@ const sidebars: SidebarsConfig = {
           label: 'MCP Server',
           items: [
             'server-references/mcp-server/mcp-apis',
-            'server-references/mcp-server/mcp-server-configuration',
-            'server-references/mcp-server/mcp-server-deployment',
             'server-references/mcp-server/mcp-server-cli-reference',
             {
               type: 'category',
@@ -70,9 +71,6 @@ const sidebars: SidebarsConfig = {
                 'server-references/webhook-server/end-points/slack-events-endpoint',
               ],
             },
-            // 'server-references/webhook-server/url-verification',
-            // 'server-references/webhook-server/security',
-            'server-references/webhook-server/server-configuration',
             'server-references/webhook-server/standalone-server',
             'server-references/webhook-server/integrated-server',
           ],

@@ -1,0 +1,367 @@
+---
+id: cli-execution-methods
+title: CLI Execution Methods
+sidebar_position: 3
+---
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+# CLI Execution Methods
+
+Both the MCP server and webhook server can be executed using multiple methods depending on your development workflow and deployment preferences. This guide covers all available execution methods with their respective use cases and examples.
+
+## Available Execution Methods
+
+### Overview
+
+The Slack MCP servers support four primary execution methods:
+
+1. **Console Script** - Recommended for most users and production deployments
+2. **Python Module** - Direct execution using Python's module system
+3. **Poetry** - Development workflow using Poetry package manager
+4. **UV** - Modern Python package management with uv
+
+## Execution Method Details
+
+### 1. Console Script (Recommended)
+
+The console script method is the most straightforward and recommended approach for most users.
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Install and run MCP server
+  pip install slack-mcp-server
+  slack-mcp-server [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Install and run webhook server  
+  pip install slack-mcp-server
+  slack-webhook-server [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
+
+**When to use:**
+- ✅ Production deployments
+- ✅ Simple local development
+- ✅ CI/CD pipelines
+- ✅ Docker containers
+
+### 2. Python Module
+
+Execute servers directly using Python's module system.
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Run MCP server as Python module
+  python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Run webhook server as Python module
+  python -m slack_mcp.webhook [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
+
+**When to use:**
+- ✅ Development environments
+- ✅ Custom Python environments
+- ✅ Script automation
+- ✅ Debugging with specific Python versions
+
+### 3. Poetry
+
+Development workflow using Poetry for dependency management.
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Setup and run MCP server with Poetry
+  poetry install
+  poetry run slack-mcp-server [OPTIONS]
+  
+  # Alternative: Run as module
+  poetry run python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Setup and run webhook server with Poetry
+  poetry install  
+  poetry run slack-webhook-server [OPTIONS]
+  
+  # Alternative: Run as module
+  poetry run python -m slack_mcp.webhook [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
+
+**When to use:**
+- ✅ Local development
+- ✅ Contributing to the project
+- ✅ Isolated development environments
+- ✅ Team development with locked dependencies
+
+### 4. UV (Modern Package Manager)
+
+Modern Python package management using UV for fast, reliable dependency resolution.
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Setup and run MCP server with UV
+  uv sync
+  uv run slack-mcp-server [OPTIONS]
+  
+  # Alternative: Run as module
+  uv run python -m slack_mcp.mcp [OPTIONS]
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Setup and run webhook server with UV
+  uv sync
+  uv run slack-webhook-server [OPTIONS]
+  
+  # Alternative: Run as module  
+  uv run python -m slack_mcp.webhook [OPTIONS]
+  ```
+  </TabItem>
+</Tabs>
+
+**When to use:**
+- ✅ Modern development workflows
+- ✅ Fast dependency resolution
+- ✅ CI/CD with performance requirements
+- ✅ Large-scale deployments
+
+## Installation Methods
+
+### Standard Installation (pip)
+
+```bash
+# Install from PyPI
+pip install slack-mcp-server
+
+# Install development version
+pip install -e .
+
+# Install with specific extras
+pip install slack-mcp-server[redis,kafka]
+```
+
+### Poetry Installation
+
+```bash
+# Add to existing Poetry project
+poetry add slack-mcp-server
+
+# Development installation
+poetry install
+
+# Install with extras
+poetry add slack-mcp-server[redis,kafka]
+```
+
+### UV Installation
+
+```bash
+# Add to UV project
+uv add slack-mcp-server
+
+# Development installation
+uv sync
+
+# Install with extras
+uv add slack-mcp-server[redis,kafka]
+```
+
+## Common Usage Patterns
+
+### Development Environment
+
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  # Quick development setup
+  pip install -e .
+  slack-mcp-server --log-level DEBUG
+  slack-webhook-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="Poetry">
+  ```bash
+  # Development with Poetry
+  poetry install
+  poetry run slack-mcp-server --log-level DEBUG
+  poetry run slack-webhook-server --log-level DEBUG
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```bash
+  # Development with UV
+  uv sync
+  uv run slack-mcp-server --log-level DEBUG
+  uv run slack-webhook-server --log-level DEBUG
+  ```
+  </TabItem>
+</Tabs>
+
+### Production Environment
+
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  # Production deployment
+  pip install slack-mcp-server
+  slack-mcp-server --log-level INFO
+  slack-webhook-server --log-level INFO
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  # Production with Python module
+  python -m slack_mcp.mcp --log-level INFO
+  python -m slack_mcp.webhook --log-level INFO
+  ```
+  </TabItem>
+</Tabs>
+
+### Container Deployments
+
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```dockerfile
+  # Dockerfile example
+  FROM python:3.11-slim
+  RUN pip install slack-mcp-server
+  CMD ["slack-mcp-server", "--log-level", "INFO"]
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```dockerfile
+  # Dockerfile with Python module
+  FROM python:3.11-slim
+  RUN pip install slack-mcp-server
+  CMD ["python", "-m", "slack_mcp.mcp", "--log-level", "INFO"]
+  ```
+  </TabItem>
+  <TabItem value="uv" label="UV">
+  ```dockerfile
+  # Dockerfile with UV
+  FROM python:3.11-slim
+  RUN pip install uv
+  COPY pyproject.toml uv.lock ./
+  RUN uv sync --frozen
+  CMD ["uv", "run", "slack-mcp-server", "--log-level", "INFO"]
+  ```
+  </TabItem>
+</Tabs>
+
+## Troubleshooting Execution Issues
+
+### Common Problems
+
+#### 1. Command Not Found
+
+<Tabs>
+  <TabItem value="console" label="Console Script" default>
+  ```bash
+  # Error: command not found
+  slack-mcp-server: command not found
+  
+  # Solution: Ensure proper installation
+  pip install slack-mcp-server
+  pip show slack-mcp-server  # Verify installation
+  ```
+  </TabItem>
+  <TabItem value="python" label="Python Module">
+  ```bash
+  # Error: No module named 'slack_mcp'
+  python -m slack_mcp.mcp
+  
+  # Solution: Install package
+  pip install slack-mcp-server
+  python -c "import slack_mcp; print('OK')"  # Verify
+  ```
+  </TabItem>
+</Tabs>
+
+#### 2. Import Errors
+
+```bash
+# Check Python environment
+python --version
+pip list | grep slack-mcp
+
+# Verify installation location
+python -c "import slack_mcp; print(slack_mcp.__file__)"
+```
+
+#### 3. Permission Issues
+
+```bash
+# Fix permissions for user installation
+pip install --user slack-mcp-server
+
+# Add user bin to PATH
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+### Environment-Specific Issues
+
+#### Virtual Environment Activation
+
+<Tabs>
+  <TabItem value="venv" label="venv" default>
+  ```bash
+  # Activate virtual environment
+  source venv/bin/activate  # Linux/Mac
+  venv\Scripts\activate     # Windows
+  
+  # Install and run
+  pip install slack-mcp-server
+  slack-mcp-server
+  ```
+  </TabItem>
+  <TabItem value="conda" label="Conda">
+  ```bash
+  # Activate conda environment
+  conda activate your-env
+  
+  # Install and run
+  pip install slack-mcp-server
+  slack-mcp-server
+  ```
+  </TabItem>
+</Tabs>
+
+## Best Practices
+
+### Development
+- Use **Poetry** or **UV** for development to ensure reproducible environments
+- Use `--log-level DEBUG` for detailed debugging information
+- Set up `.env` files for local configuration
+
+### Production
+- Use **Console Script** method for simplicity and performance
+- Use `--log-level INFO` or `WARNING` to reduce log verbosity
+- Implement proper process management (systemd, supervisor, etc.)
+
+### CI/CD
+- Use **UV** for fastest dependency resolution
+- Use **Console Script** for execution in containers
+- Cache dependencies between builds
+
+For server-specific CLI options and advanced configuration, see:
+- [MCP Server CLI Reference](./mcp-server/cli-reference.mdx)
+- [Webhook Server Modes](./webhook-server/server-modes.mdx)
