@@ -6,11 +6,11 @@ sidebar_position: 4
 
 # Webhook Server Architecture
 
-The Webhook Server is a FastAPI-based component that receives and processes Slack events through HTTP webhooks. This document details the architecture, components, and implementation of the webhook server.
+The Webhook Server is a FastAPI-based component that receives and processes Slack events through HTTP webhooks. This document provides comprehensive architectural coverage including security implementation, verification processes, deployment patterns, and system design.
 
 ## Overview
 
-The Webhook Server provides a secure, scalable endpoint for receiving Slack events. It handles request verification, event parsing, and publishing to queue backends for asynchronous processing. The server can operate in standalone mode or as part of an integrated deployment.
+The Webhook Server provides a secure, scalable endpoint for receiving Slack events with enterprise-grade security and reliability. It implements multi-layer security verification, event parsing with Pydantic models, and asynchronous publishing to configurable queue backends. The server supports both standalone and integrated deployment modes with comprehensive monitoring and error handling.
 
 ```mermaid
 graph TB
@@ -37,6 +37,494 @@ graph TB
     E --> F
     F --> G
 ```
+
+## Security Architecture
+
+The webhook server implements enterprise-grade security with multiple layers of protection against unauthorized access, replay attacks, and request forgery.
+
+### **Multi-Layer Security Model**
+
+Security is implemented at multiple layers:
+
+1. **🔐 Signature Verification** - HMAC-SHA256 verification of all incoming requests
+2. **🛡️ Environment Security** - Secure management of secrets and tokens
+3. **⏱️ Timestamp Validation** - Protection against replay attacks
+4. **🚨 Request Validation** - Comprehensive payload and header validation
+5. **📝 Audit Logging** - Detailed logging of security events
+
+```mermaid
+graph TD
+    A[Incoming Request] --> B[Extract Headers]
+    B --> C[Get X-Slack-Signature]
+    B --> D[Get X-Slack-Request-Timestamp]
+    B --> E[Get Request Body]
+    
+    C --> F[Parse Signature]
+    D --> G[Validate Timestamp]
+    E --> H[Read Body String]
+    
+    F --> I[Calculate Expected Signature]
+    G --> I
+    H --> I
+    
+    I --> J{Compare Signatures}
+    J -->|Match| K[✅ Request Verified]
+    J -->|No Match| L[❌ Request Rejected]
+    
+    G --> M{Timestamp Valid?}
+    M -->|Too Old| N[❌ Request Rejected - Replay Attack]
+    M -->|Valid| I
+    
+    style K fill:#c8e6c9
+    style L fill:#ffcdd2
+    style N fill:#ffcdd2
+```
+
+### **HMAC-SHA256 Signature Verification**
+
+Slack signs every request using your app's signing secret with HMAC-SHA256 to ensure authenticity.
+
+#### **Signature Algorithm**
+```python
+# Pseudo-code for signature generation (Slack side)
+timestamp = current_unix_timestamp()
+body = request_body_as_string
+basestring = f"v0:{timestamp}:{body}"
+signature = f"v0={hmac_sha256(signing_secret, basestring)}"
+```
+
+#### **Server Implementation**
+```python
+from slack_sdk.signature import SignatureVerifier
+
+async def verify_slack_request(request: Request, signing_secret: str | None = None) -> bool:
+    """Verify that the request is coming from Slack."""
+    
+    if signing_secret is None:
+        signing_secret = os.environ.get("SLACK_SIGNING_SECRET", "")
+        if not signing_secret:
+            _LOG.error("SLACK_SIGNING_SECRET not set in environment")
+            return False
+
+    verifier = SignatureVerifier(signing_secret)
+
+    # Get request headers and body
+    signature = request.headers.get("X-Slack-Signature", "")
+    timestamp = request.headers.get("X-Slack-Request-Timestamp", "")
+    
+    # Read the body
+    body = await request.body()
+    body_str = body.decode("utf-8")
+
+    # Verify the request
+    return verifier.is_valid(signature=signature, timestamp=timestamp, body=body_str)
+```
+
+### **Required Security Headers**
+
+| Header | Format | Description |
+|--------|--------|-------------|
+| `X-Slack-Signature` | `v0=<signature>` | HMAC-SHA256 signature of the request |
+| `X-Slack-Request-Timestamp` | `<unix_timestamp>` | Unix timestamp when the request was created |
+| `Content-Type` | `application/json` | Request content type |
+
+### **Replay Attack Protection**
+
+Timestamp validation prevents replay attacks by rejecting requests older than 5 minutes:
+
+```python
+def validate_timestamp(timestamp: str, tolerance_seconds: int = 300) -> bool:
+    """Validate request timestamp to prevent replay attacks"""
+    try:
+        request_time = int(timestamp)
+        current_time = int(time.time())
+        age = abs(current_time - request_time)
+        return age <= tolerance_seconds
+    except (ValueError, TypeError):
+        return False
+```
+
+### **Environment-Based Secret Management**
+
+```python
+import os
+from typing import Optional
+
+class SecurityConfig:
+    """Centralized security configuration"""
+    
+    def __init__(self):
+        self.signing_secret = self._get_required_env("SLACK_SIGNING_SECRET")
+        self.bot_token = self._get_required_env("SLACK_BOT_TOKEN")
+        self.timestamp_tolerance = int(os.getenv("TIMESTAMP_TOLERANCE", "300"))
+        
+    def _get_required_env(self, key: str) -> str:
+        value = os.getenv(key)
+        if not value:
+            raise ValueError(f"Required environment variable {key} not set")
+        return value
+```
+
+**Security Best Practices:**
+- Never log or expose signing secrets
+- Use environment variables for all secrets
+- Implement proper secret rotation procedures
+- Monitor for invalid signature attempts
+- Use HTTPS in production environments
+
+## Deployment Architecture
+
+The webhook server supports two primary deployment patterns, each optimized for different use cases and architectural requirements.
+
+### **Deployment Modes**
+
+#### **Standalone Mode**
+Focused webhook-only deployment for microservices architectures:
+
+```mermaid
+graph TD
+    A[Slack Events API] --> B[Load Balancer]
+    B --> C[Webhook Server Instance 1]
+    B --> D[Webhook Server Instance 2]
+    B --> E[Webhook Server Instance N]
+    
+    C --> F[Queue Backend]
+    D --> F
+    E --> F
+    
+    F --> G[Event Consumer 1]
+    F --> H[Event Consumer 2]
+    F --> I[Event Consumer N]
+    
+    subgraph "Standalone Webhook Servers"
+        C
+        D
+        E
+    end
+    
+    subgraph "Event Processing"
+        G
+        H
+        I
+    end
+    
+    style B fill:#f3e5f5
+    style F fill:#e1f5fe
+```
+
+**Characteristics:**
+- **Lightweight**: Minimal resource footprint
+- **Scalable**: Easy horizontal scaling
+- **Focused**: Single responsibility (webhook processing)
+- **Queue-first**: Immediate event publishing for asynchronous processing
+
+#### **Integrated Mode**
+Unified MCP + webhook server for complete Slack integration:
+
+```mermaid
+graph TD
+    A[AI Assistant] --> B[MCP Transport]
+    C[Slack Events API] --> D[Webhook Endpoints]
+    
+    B --> E[Integrated Server]
+    D --> E
+    
+    subgraph "Integrated FastAPI Server"
+        E --> F[MCP Tools]
+        E --> G[Webhook Handler]
+        E --> H[Shared Auth]
+        E --> I[Shared Logging]
+    end
+    
+    F --> J[Slack Web API]
+    G --> K[Queue Backend]
+    H --> J
+    
+    style E fill:#c8e6c9
+    style H fill:#e1f5fe
+```
+
+**Characteristics:**
+- **Unified**: Single server for MCP + webhook functionality
+- **Transport options**: SSE and HTTP streaming support
+- **Shared resources**: Common authentication and configuration
+- **Complete integration**: Full Slack capabilities in one deployment
+
+### **Container Deployment Patterns**
+
+#### **Docker Configuration**
+```dockerfile
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+EXPOSE 8080
+
+# Standalone mode
+CMD ["python", "-m", "slack_mcp.webhook", \
+     "--host", "0.0.0.0", \
+     "--port", "8080", \
+     "--log-level", "INFO"]
+
+# Integrated mode alternative
+# CMD ["python", "-m", "slack_mcp.webhook", \
+#      "--integrated", \
+#      "--host", "0.0.0.0", \
+#      "--port", "8080"]
+```
+
+#### **Docker Compose Architecture**
+```yaml
+version: '3.8'
+
+services:
+  slack-webhook:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+    
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    
+  event-processor:
+    build: .
+    command: python -m your_app.event_processor
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+```
+
+### **Kubernetes Deployment Architecture**
+
+#### **Production Deployment Manifest**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-webhook
+  labels:
+    app: slack-webhook
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: slack-webhook
+  template:
+    metadata:
+      labels:
+        app: slack-webhook
+    spec:
+      containers:
+      - name: webhook
+        image: slack-webhook:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SLACK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: signing-secret
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets  
+              key: bot-token
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+```
+
+### **Cloud Platform Deployments**
+
+#### **Heroku**
+```bash
+# Procfile
+web: python -m slack_mcp.webhook --host 0.0.0.0 --port $PORT --no-env-file
+
+# Deploy commands
+heroku create slack-webhook-app
+heroku config:set SLACK_SIGNING_SECRET="your_secret"
+heroku config:set SLACK_BOT_TOKEN="your_token"
+git push heroku main
+```
+
+#### **Google Cloud Run**
+```yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: slack-webhook
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      containers:
+      - image: gcr.io/PROJECT_ID/slack-webhook
+        ports:
+        - containerPort: 8080
+        env:
+        - name: SLACK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: signing-secret
+        resources:
+          limits:
+            cpu: "1"
+            memory: "512Mi"
+```
+
+#### **AWS ECS Fargate**
+```json
+{
+  "family": "slack-webhook",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "containerDefinitions": [
+    {
+      "name": "webhook",
+      "image": "ACCOUNT.dkr.ecr.REGION.amazonaws.com/slack-webhook:latest",
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "SLACK_SIGNING_SECRET",
+          "value": "your_secret"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### **Scaling and Performance Architecture**
+
+#### **Horizontal Scaling**
+```bash
+# Load balancer configuration
+upstream slack_webhook {
+    server webhook-1:8080;
+    server webhook-2:8080;
+    server webhook-3:8080;
+}
+
+server {
+    listen 80;
+    location / {
+        proxy_pass http://slack_webhook;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+#### **Resource Optimization**
+- **Memory**: 128Mi-256Mi per instance (standalone), 256Mi-512Mi (integrated)
+- **CPU**: 100m-200m per instance for typical workloads
+- **Network**: Configure connection pooling for queue backends
+- **Storage**: Stateless design requires no persistent storage
+
+### **Queue Backend Architecture**
+
+The webhook server integrates with various queue backends for event processing:
+
+```mermaid
+graph LR
+    A[Webhook Server] --> B[Queue Backend]
+    
+    subgraph "Supported Backends"
+        C[Redis]
+        D[RabbitMQ]
+        E[AWS SQS]
+        F[Memory Queue]
+    end
+    
+    B --> C
+    B --> D
+    B --> E
+    B --> F
+    
+    C --> G[Event Consumers]
+    D --> G
+    E --> G
+    F --> G
+```
+
+**Redis Configuration:**
+```bash
+export QUEUE_BACKEND_TYPE="redis"
+export REDIS_URL="redis://localhost:6379/0"
+export REDIS_MAX_CONNECTIONS="50"
+```
+
+**Configuration Patterns:**
+- **Development**: In-memory queue for testing
+- **Production**: Redis or cloud-managed queues
+- **High-volume**: Dedicated queue clusters with replication
+
+### **Transport Architecture (Integrated Mode)**
+
+#### **Server-Sent Events (SSE)**
+```bash
+# SSE transport configuration
+python -m slack_mcp.webhook \
+  --integrated \
+  --mcp-transport sse \
+  --mcp-mount-path /api/mcp
+```
+
+**Endpoints:**
+- `GET /mcp` - SSE connection endpoint
+- `POST /mcp` - Optional HTTP request endpoint
+
+#### **HTTP Streaming**
+```bash
+# HTTP streaming transport
+python -m slack_mcp.webhook \
+  --integrated \
+  --mcp-transport streamable-http
+```
+
+**Endpoints:**
+- `POST /` - Streaming HTTP endpoint
 
 ## Core Components
 

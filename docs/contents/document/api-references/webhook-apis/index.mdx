@@ -25,7 +25,8 @@ The webhook server is built on FastAPI and provides secure, scalable handling of
 The webhook server exposes the following REST API endpoints:
 
 - ✅ [**POST /slack/events**](./slack-events-endpoint.mdx) - Main endpoint for receiving Slack events
-- ✅ [**URL Verification**](./url-verification.mdx) - Automatic handling of Slack's challenge requests
+
+[//]: # (- ✅ [**URL Verification**]&#40;./url-verification.mdx&#41; - Automatic handling of Slack's challenge requests)
 
 ## Server Modes
 
@@ -45,37 +46,29 @@ The webhook server supports two deployment modes:
 
 ## Event Processing Flow
 
-```mermaid
-graph TD
-    A[Slack Event] --> B[Webhook Endpoint]
-    B --> C[Signature Verification]
-    C --> D{Valid Signature?}
-    D -->|No| E[Return 401 Unauthorized]
-    D -->|Yes| F[Parse Event Payload]
-    F --> G{URL Verification?}
-    G -->|Yes| H[Return Challenge Response]
-    G -->|No| I[Validate with Pydantic Models]
-    I --> J[Publish to Message Queue]
-    J --> K[Return 200 OK]
-    
-    style A fill:#e1f5fe
-    style H fill:#c8e6c9
-    style K fill:#c8e6c9
-    style E fill:#ffcdd2
-```
+The webhook server processes Slack events through a secure validation and queuing pipeline. For detailed architectural information, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
 
-## Authentication & Security
+[//]: # (## Authentication & Security)
 
-### **🔐 [Security Features](./security.mdx)**
-- **Slack Signature Verification**: All requests validated using HMAC-SHA256
-- **Environment-based Configuration**: Secure token and secret management
-- **Request Validation**: Comprehensive payload validation with Pydantic models
-- **HTTPS Support**: Production-ready HTTPS deployment capabilities
+[//]: # ()
+[//]: # (### **🔐 [Security Features]&#40;./security.mdx&#41;**)
 
-### **Required Environment Variables**
-- `SLACK_SIGNING_SECRET` - Required for request signature verification
-- `SLACK_BOT_TOKEN` - Required for Slack API operations
-- `SLACK_EVENTS_TOPIC` - Optional queue topic name (default: "slack_events")
+[//]: # (- **Slack Signature Verification**: All requests validated using HMAC-SHA256)
+
+[//]: # (- **Environment-based Configuration**: Secure token and secret management)
+
+[//]: # (- **Request Validation**: Comprehensive payload validation with Pydantic models)
+
+[//]: # (- **HTTPS Support**: Production-ready HTTPS deployment capabilities)
+
+[//]: # ()
+[//]: # (### **Required Environment Variables**)
+
+[//]: # (- `SLACK_SIGNING_SECRET` - Required for request signature verification)
+
+[//]: # (- `SLACK_BOT_TOKEN` - Required for Slack API operations)
+
+[//]: # (- `SLACK_EVENTS_TOPIC` - Optional queue topic name &#40;default: "slack_events"&#41;)
 
 ## Supported Event Types
 
@@ -114,38 +107,21 @@ Complete configuration guide including:
 - Environment file loading
 - Queue backend configuration
 
-### **🚀 [Deployment Guide](./deployment.mdx)**
-Production deployment recommendations:
-- Docker deployment strategies
-- Load balancing considerations
-- Health check endpoints
-- Monitoring and alerting
-- Performance optimization
+### **🚀 Deployment**
+For deployment patterns, container configurations, and production recommendations, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
 
 ## Development Tools
 
-### **🛠️ [CLI Interface](./cli-interface.mdx)**
-The webhook server includes a comprehensive CLI:
-- Flexible server startup options
-- Environment configuration
-- Integrated vs standalone mode selection
-- Development and production profiles
+### **🛠️ CLI Interface**
+For complete CLI options and usage patterns, see [Server Configuration](./server-configuration.mdx).
 
-### **💻 [Local Development](./local-development.mdx)**
-Tools and guides for local development:
-- Environment setup
-- Event testing with ngrok
-- Debug logging configuration
-- Hot reload capabilities
+### **💻 Local Development**
+For development setup and testing guides, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
 
 ## Queue Integration
 
-### **📨 [Message Queue Backend](./queue-integration.mdx)**
-Automatic event publishing to configurable message queues:
-- Multiple queue backend support
-- Topic-based event routing
-- Retry and error handling
-- Event serialization with Pydantic models
+### **📨 Message Queue Backend**
+For queue backend architecture and configuration details, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
 
 ## Error Handling
 
@@ -165,34 +141,9 @@ The webhook server provides comprehensive error handling:
 }
 ```
 
-## Performance Characteristics
+## Performance & Best Practices
 
-- **High Throughput**: ASGI-based async request handling
-- **Low Latency**: Minimal processing overhead per event
-- **Scalable**: Horizontal scaling with load balancers
-- **Reliable**: Built-in retry mechanisms and error recovery
-- **Memory Efficient**: Streaming request processing
-
-## Best Practices
-
-### **🏗️ Production Deployment**
-- Use HTTPS in production environments
-- Configure proper logging levels
-- Set up health monitoring
-- Implement proper secret management
-- Use container orchestration for scaling
-
-### **🔧 Development Workflow**
-- Use ngrok for local Slack event testing
-- Enable debug logging during development
-- Validate events with Pydantic models
-- Test signature verification thoroughly
-
-### **⚡ Performance Optimization**
-- Configure appropriate queue backends
-- Use connection pooling for database connections
-- Implement proper request rate limiting
-- Monitor memory usage and optimize accordingly
+For performance characteristics, deployment best practices, development workflows, and optimization strategies, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
 
 ## Quick Start
 

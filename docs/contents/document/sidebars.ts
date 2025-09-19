@@ -43,6 +43,19 @@ const sidebars: SidebarsConfig = {
             'api-references/mcp-apis/slack-add-reactions-mcp-api',
           ],
         },
+        {
+          type: 'category',
+          label: 'Webhook Server APIs',
+          items: [
+            'api-references/webhook-apis/webhook-apis',
+            'api-references/webhook-apis/slack-events-endpoint',
+            // 'api-references/webhook-apis/url-verification',
+            // 'api-references/webhook-apis/security',
+            'api-references/webhook-apis/server-configuration',
+            'api-references/webhook-apis/standalone-server',
+            'api-references/webhook-apis/integrated-server',
+          ],
+        },
       ],
     },
     {
