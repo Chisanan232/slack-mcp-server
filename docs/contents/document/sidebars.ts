@@ -45,6 +45,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'server-references/mcp-server/mcp-apis',
             'server-references/mcp-server/mcp-server-cli-reference',
+            'server-references/mcp-server/mcp-server-modes',
             {
               type: 'category',
               label: 'Tools (End-points)',

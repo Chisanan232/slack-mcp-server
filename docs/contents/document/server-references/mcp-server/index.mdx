@@ -16,6 +16,15 @@ Before using the MCP Server APIs, you need to properly configure and deploy the 
 - 🚀 [**Deployment Guide**](../deployment-guide.mdx) - Local, Docker, Kubernetes, and cloud deployment examples  
 - 🔧 [**CLI Reference**](./cli-reference.mdx) - Complete command-line interface documentation
 
+## Deployment Modes
+
+MCP Server supports two operational deployment modes:
+
+1. **Standalone Mode** - Dedicated MCP server for client library integration
+2. **Integrated Mode** - Combined MCP + Webhook server for complete Slack platform integration
+
+For detailed deployment options and usage examples, see [Server Modes](./server-modes.mdx).
+
 ## Transport Options
 
 MCP Server supports three transport mechanisms:
@@ -24,7 +33,7 @@ MCP Server supports three transport mechanisms:
 2. **Server-Sent Events (SSE)** - Event-based communication over HTTP
 3. **Streamable HTTP** - HTTP-based streaming communication
 
-For detailed transport configuration, see the [CLI Reference](./cli-reference.mdx) and [Environment Configuration](../environment-configuration.mdx).
+For detailed transport configuration, see the [CLI Reference](./cli-reference.mdx).
 
 ## Available Tools
 
