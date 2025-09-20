@@ -3,127 +3,133 @@ name: documentation
 on:
   push:
     branches:
-#      - "develop/**"    # For testing
-      - "sample_master_never_run"
+#      - "develop/**"    # For development and testing
+      - "master"
     paths:
 #     Documentation
 #     Doc - CI workflow
       - ".github/workflows/documentation.yaml"
       - "scripts/ci/**documentation**.sh"
+#     Doc - Font-End config
+      - "docs/package.json"
+      - "docs/pnpm-lock.yaml"
+#     Doc - Docusaurus config
+      - "docs/docusaurus.config.ts"
 #     Doc - Content
       - "docs/**/*.md"
-#     Doc - MkDoc config
-      - "mkdocs.yml"
-#     Python source code package info
-      - "**/__pkg_info__.py"
-
-env:
-  RELEASE_TYPE: python-package
-  PYTHON_PACKAGE_NAME: <your lib name>
-  SOFTWARE_VERSION_FORMAT: general-3
-  RUNNING_MODE: dry-run
+      - "docs/**/*.mdx"
+      - "docs/**/*.ts"
+      - "docs/**/*.tsx"
+      - "docs/**/*.js"
+      - "docs/**/*.jsx"
+      - "docs/**/*.css"
+#     Doc - versioning (Docusaurus versioned content)
+      - "docs/*_versions.json"
+      - "docs/*_versioned_docs/**"
+      - "docs/*_versioned_sidebars/**"
+  workflow_run:
+    workflows: ["release"]
+    types: [completed]
+    branches: ["master"]
 
 permissions:
   contents: write
   id-token: write
   pages: write
 
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
-  deploy_latest_documentation:
+  # Guard job: Check if documentation files changed and if release workflow succeeded
+  check_docs_changes:
     runs-on: ubuntu-latest
+    # Only run for workflow_run events (not direct push events)
+    if: github.event_name == 'workflow_run'
+    outputs:
+      should_deploy: ${{ steps.check_changes.outputs.should_deploy }}
+    steps:
+      - name: Download docs update flag from release workflow
+        uses: actions/download-artifact@v5
+        with:
+          name: release-docs-flag
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+
+      - name: Check release workflow success and docs update flag
+        id: check_changes
+        run: |
+          set -euo pipefail
+          
+          # Verify release workflow succeeded
+          if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
+            echo "Release workflow failed, skipping documentation deployment"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Read docs update flag from artifact
+          DOCS_UPDATED=$(cat docs_updated.txt)
+          
+          echo "Documentation updated flag: $DOCS_UPDATED"
+          
+          if [[ "$DOCS_UPDATED" == "true" ]]; then
+            echo "Documentation was updated during release, proceeding with deployment"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+          else
+            echo "No documentation files were updated, skipping deployment"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+          fi
+
+  deploy_documentation:
+    runs-on: ubuntu-latest
+    # Run for direct push OR workflow_run with docs changes
+    if: |
+      github.event_name == 'push' || 
+      (github.event_name == 'workflow_run' && needs.check_docs_changes.outputs.should_deploy == 'true')
+    needs: [check_docs_changes]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Install Python 3.13
-        uses: actions/setup-python@v6
+      # Setup pnpm first
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
         with:
-          python-version: "3.13"
+          version: 10
+          run_install: false
 
-      - name: Install Python dependencies about Poetry
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install -U pip
-          pip install -U poetry
-
-      - name: Build Python runtime environment and dependencies by Poetry
-        run: |
-          poetry --version
-          poetry install --with docs
-
-      # build and commit documentation with versioning
-      - name: Build versioning documentation
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "Documentation tool version info:"
-          poetry run mkdocs --version
-          poetry run mike --version
-          bash ./scripts/ci/deploy-latest-version-documentation.sh
-
-  check_version-state:
-#    name: Check the version update state
-    uses: ./.github/workflows/rw_checking_deployment_state.yaml
-
-  check_version_info:
-#    name: Check the package version info to make sure whether it should release Docker image or not.
-    needs: check_version-state
-    if: ${{ needs.check_version-state.outputs.version_update_state == 'VERSION UPDATE' }}
-    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_build_git-tag_and_create_github-release.yaml@v7.3
-    secrets:
-      github_auth_token: ${{ secrets.GITHUB_TOKEN }}
-    with:
-      project_type: python-package
-      project_name: fake_api_server
-      software_version_format: general-3
-      debug_mode: true
-
-  deploy_stable_documentation:
-    needs: check_version_info
-    if: ${{ needs.check_version_info.outputs.python_release_version == 'Official-Release' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      # Then setup Node.js with pnpm cache
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
-          fetch-depth: 0
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: docs/pnpm-lock.yaml
 
-      - name: Install Python 3.12
-        uses: actions/setup-python@v6
+      - name: Install dependencies
+        working-directory: docs
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Build website
+        working-directory: docs
+        run: pnpm build
+
+      # Setup Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      # Upload artifact
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          python-version: "3.12"
+          path: ./docs/build
 
-      - name: Install Python dependencies about Poetry
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install -U pip
-          pip install -U poetry
-
-      - name: Build Python runtime environment and dependencies by Poetry
-        run: |
-          poetry --version
-          poetry install --with docs
-
-      # build and commit documentation with versioning
-      - name: Build versioning documentation
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: |
-          echo "Documentation tool version info:"
-          poetry run mkdocs --version
-          poetry run mike --version
-          bash ./scripts/ci/deploy-stable-version-documentation.sh \
-               -r '${{ env.RELEASE_TYPE }}' \
-               -p '${{ env.PYTHON_PACKAGE_NAME }}' \
-               -v '${{ env.SOFTWARE_VERSION_FORMAT }}' \
-#               -d '${{ env.RUNNING_MODE }}'
-
-#      # general build and deploy documentation to GitHub Page
-#      - name: Deploy documentation
-#        env:
-#          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-#        run: |
-#          poetry run mkdocs gh-deploy --clean --force --ignore-version
-#          poetry run mkdocs --version
+      # Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
