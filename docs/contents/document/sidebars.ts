@@ -66,6 +66,7 @@ const sidebars: SidebarsConfig = {
           items: [
             'server-references/webhook-server/webhook-apis',
             'server-references/webhook-server/webhook-server-cli-reference',
+            'server-references/webhook-server/server-modes',
             {
               type: 'category',
               label: 'End-points',
@@ -73,7 +74,6 @@ const sidebars: SidebarsConfig = {
                 'server-references/webhook-server/end-points/slack-events-endpoint',
               ],
             },
-            'server-references/webhook-server/server-modes',
           ],
         },
       ],
