@@ -5,73 +5,169 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
  */
 const sidebars: SidebarsConfig = {
   docs: [
-    'introduction',
+    {
+      type: 'doc',
+      id: 'introduction',
+      label: '📖 Introduction',
+    },
     {
       type: 'category',
       label: '🤟 Quickly Start',
       collapsed: false,
       items: [
-        'quick-start/quick-start',
-        'quick-start/requirements',
-        'quick-start/installation',
-        'quick-start/how-to-run',
+        {
+          type: 'doc',
+          id: 'quick-start/quick-start',
+          label: '⚡ Quick Start',
+        },
+        {
+          type: 'doc',
+          id: 'quick-start/requirements',
+          label: '📋 Requirements',
+        },
+        {
+          type: 'doc',
+          id: 'quick-start/installation',
+          label: '💾 Installation',
+        },
+        {
+          type: 'doc',
+          id: 'quick-start/how-to-run',
+          label: '▶️ How to Run',
+        },
       ],
     },
     {
       type: 'category',
       label: '🧑‍💻 Server References',
       items: [
-        'server-references/server-references',
-        'server-references/environment-configuration',
-        'server-references/cli-execution-methods',
-        'server-references/deployment-guide',
+        {
+          type: 'doc',
+          id: 'server-references/server-references',
+          label: '📚 Server References',
+        },
+        {
+          type: 'doc',
+          id: 'server-references/environment-configuration',
+          label: '🌍 Environment Configuration',
+        },
+        {
+          type: 'doc',
+          id: 'server-references/cli-execution-methods',
+          label: '⌨️ CLI Execution Methods',
+        },
+        {
+          type: 'doc',
+          id: 'server-references/deployment-guide',
+          label: '🚀 Deployment Guide',
+        },
         {
           type: 'category',
-          label: 'Web Server',
+          label: '🌐 Web Server',
           items: [
-            'server-references/web-server/web-apis',
+            {
+              type: 'doc',
+              id: 'server-references/web-server/web-apis',
+              label: '🌐 Web APIs',
+            },
             {
               type: 'category',
-              label: 'End-points',
+              label: '🔌 End-points',
               items: [
-                'server-references/web-server/end-points/web-api-health-check',
+                {
+                  type: 'doc',
+                  id: 'server-references/web-server/end-points/web-api-health-check',
+                  label: '💓 Health Check',
+                },
               ],
             },
           ],
         },
         {
           type: 'category',
-          label: 'MCP Server',
+          label: '🤖 MCP Server',
           items: [
-            'server-references/mcp-server/mcp-apis',
-            'server-references/mcp-server/mcp-server-cli-reference',
-            'server-references/mcp-server/mcp-server-modes',
+            {
+              type: 'doc',
+              id: 'server-references/mcp-server/mcp-apis',
+              label: '🔧 MCP APIs',
+            },
+            {
+              type: 'doc',
+              id: 'server-references/mcp-server/mcp-server-cli-reference',
+              label: '⌨️ CLI Reference',
+            },
+            {
+              type: 'doc',
+              id: 'server-references/mcp-server/mcp-server-modes',
+              label: '🔄 Server Modes',
+            },
             {
               type: 'category',
-              label: 'Tools (End-points)',
+              label: '🛠️ Tools (End-points)',
               items: [
-                'server-references/mcp-server/end-points/slack-post-message-mcp-api',
-                'server-references/mcp-server/end-points/slack-read-channel-messages-mcp-api',
-                'server-references/mcp-server/end-points/slack-read-thread-messages-mcp-api',
-                'server-references/mcp-server/end-points/slack-thread-reply-mcp-api',
-                'server-references/mcp-server/end-points/slack-read-emojis-mcp-api',
-                'server-references/mcp-server/end-points/slack-add-reactions-mcp-api',
+                {
+                  type: 'doc',
+                  id: 'server-references/mcp-server/end-points/slack-post-message-mcp-api',
+                  label: '💬 Post Message',
+                },
+                {
+                  type: 'doc',
+                  id: 'server-references/mcp-server/end-points/slack-read-channel-messages-mcp-api',
+                  label: '📖 Read Channel Messages',
+                },
+                {
+                  type: 'doc',
+                  id: 'server-references/mcp-server/end-points/slack-read-thread-messages-mcp-api',
+                  label: '🧵 Read Thread Messages',
+                },
+                {
+                  type: 'doc',
+                  id: 'server-references/mcp-server/end-points/slack-thread-reply-mcp-api',
+                  label: '↩️ Thread Reply',
+                },
+                {
+                  type: 'doc',
+                  id: 'server-references/mcp-server/end-points/slack-read-emojis-mcp-api',
+                  label: '😀 Read Emojis',
+                },
+                {
+                  type: 'doc',
+                  id: 'server-references/mcp-server/end-points/slack-add-reactions-mcp-api',
+                  label: '👍 Add Reactions',
+                },
               ],
             },
           ],
         },
         {
           type: 'category',
-          label: 'Webhook Server',
+          label: '🪝 Webhook Server',
           items: [
-            'server-references/webhook-server/webhook-apis',
-            'server-references/webhook-server/webhook-server-cli-reference',
-            'server-references/webhook-server/server-modes',
+            {
+              type: 'doc',
+              id: 'server-references/webhook-server/webhook-apis',
+              label: '🪝 Webhook APIs',
+            },
+            {
+              type: 'doc',
+              id: 'server-references/webhook-server/webhook-server-cli-reference',
+              label: '⌨️ CLI Reference',
+            },
+            {
+              type: 'doc',
+              id: 'server-references/webhook-server/server-modes',
+              label: '🔄 Server Modes',
+            },
             {
               type: 'category',
-              label: 'End-points',
+              label: '🔌 End-points',
               items: [
-                'server-references/webhook-server/end-points/slack-events-endpoint',
+                {
+                  type: 'doc',
+                  id: 'server-references/webhook-server/end-points/slack-events-endpoint',
+                  label: '📡 Slack Events Endpoint',
+                },
               ],
             },
           ],
@@ -82,13 +178,33 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: '👋 Welcome to contribute',
       items: [
-        'contribute/contribute',
-        'contribute/report-bug',
-        'contribute/request-changes',
-        'contribute/discuss',
+        {
+          type: 'doc',
+          id: 'contribute/contribute',
+          label: '🤝 Contribute',
+        },
+        {
+          type: 'doc',
+          id: 'contribute/report-bug',
+          label: '🐛 Report Bug',
+        },
+        {
+          type: 'doc',
+          id: 'contribute/request-changes',
+          label: '💡 Request Changes',
+        },
+        {
+          type: 'doc',
+          id: 'contribute/discuss',
+          label: '💬 Discuss',
+        },
       ],
     },
-    'changelog',
+    {
+      type: 'doc',
+      id: 'changelog',
+      label: '📝 Changelog',
+    },
   ],
 };
 
