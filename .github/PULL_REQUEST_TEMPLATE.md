@@ -11,7 +11,7 @@
 
     * Task ID: N/A.
     * Relative task IDs:
-        * N/A.
+        * [ ] N/A.
     * Relative PRs:
         * N/A.
 
@@ -24,7 +24,39 @@
 [//]: # (What's the scope in project it would affect with your modify? For example, would it affect CI workflow? Or any feature usage? Please list all the items which may be affected.)
 ## _Effecting Scope_
 
-* N/A.
+* Action Types:
+    * [ ] ✨ Adding new something
+        * [ ] 🟢 No breaking change
+        * [ ] 🟠 Has breaking change
+    * [ ] ✏️ Modifying existing something
+        * [ ] 🟢 No breaking change
+        * [ ] 🟠 Has breaking change
+    * [ ] 🚮 Removing something
+    * [ ] 🔧 Fixing bug
+    * [ ] ♻️ Refactoring something
+    * [ ] 🍀 Improving something (maybe performance, code quality, security, etc.)
+    * [ ] 🚀 Release
+* Scopes:
+    * [ ] ✍️ Command line interface
+    * [ ] 💼 Core feature
+        * [ ] 🕸️ Web server
+        * [ ] 🤖 MCP server
+        * [ ] 🪡 API client
+        * [ ] 🫀 Data model
+    * [ ] 🎨 UI/UX (maybe command line interface, etc.)
+    * [ ] ⛑️ Error handling
+    * [ ] 🧪 Testing
+        * [ ] 🧪 Unit testing
+        * [ ] 🧪 Integration testing
+        * [ ] 🧪 End-to-end testing
+        * [ ] 🧪 Contract testing
+    * [ ] 📚 Documentation
+    * [ ] 🚀 Building
+        * [ ] 🤖 CI/CD
+        * [ ] 🔗 Dependencies
+        * [ ] 📦 Project configurations
+* Additional description:
+    N/A.
 
 
 [//]: # (The brief of major changes what your modify. Please list it.)
