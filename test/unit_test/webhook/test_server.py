@@ -698,12 +698,13 @@ class TestHealthCheckEndpoint:
                 
         # Now patch to use the failing backend for health check
         with patch("slack_mcp.webhook.server.get_queue_backend", return_value=failing_backend):
-            client = TestClient(app)
-            response = client.get("/health")
+            with patch("slack_mcp.webhook.server.slack_client", None):  # Ensure slack_client is None during health check
+                client = TestClient(app)
+                response = client.get("/health")
 
-            assert response.status_code == 503
-            response_data = response.json()
-            assert response_data["status"] == "unhealthy"
-            assert response_data["service"] == "slack-webhook-server"
-            assert response_data["components"]["queue_backend"] == "unhealthy: Connection failed"
-            assert response_data["components"]["slack_client"] == "not_initialized"
+                assert response.status_code == 503
+                response_data = response.json()
+                assert response_data["status"] == "unhealthy"
+                assert response_data["service"] == "slack-webhook-server"
+                assert response_data["components"]["queue_backend"] == "unhealthy: Connection failed"
+                assert response_data["components"]["slack_client"] == "not_initialized"
