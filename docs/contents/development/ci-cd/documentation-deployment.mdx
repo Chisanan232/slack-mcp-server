@@ -71,7 +71,11 @@ on:
 
 **GitHub Actions Limitation**: GitHub Actions doesn't trigger workflows on commits made by `GITHUB_TOKEN` (used in release workflows) to prevent infinite loops. This caused documentation workflow to never trigger after release workflow commits that updated documentation files.
 
-**Impact**: Documentation would become stale after releases because version references in docs weren't being deployed.
+**Critical Bug Fixed**: The original implementation had a dependency issue where the `check_docs_changes` job only ran for `workflow_run` events, but the deployment job depended on it for all events. This caused push events to never deploy because GitHub Actions skips dependent jobs when their dependencies are skipped.
+
+**Impact**: 
+- Documentation would become stale after releases because version references in docs weren't being deployed
+- **Direct documentation pushes were completely broken** - they would never trigger deployment due to the skipped dependency
 
 ### Solution Architecture
 
@@ -81,12 +85,16 @@ graph TD
     B --> C[Set DOCS_UPDATED Flag]
     C --> D[Upload Flag Artifact]
     D --> E[Documentation Workflow Triggered]
-    E --> F[Guard Job: Check Flag]
-    F --> G{Docs Updated?}
-    G -->|Yes| H[Deploy Documentation]
-    G -->|No| I[Skip Deployment]
+    E --> F[Guard Job: Always Runs]
+    F --> G{Event Type?}
+    G -->|Push| H[Auto-approve Deployment]
+    G -->|Workflow Run| I[Check Release Flag]
+    I --> J{Docs Updated?}
+    J -->|Yes| K[Deploy Documentation]
+    J -->|No| L[Skip Deployment]
+    H --> K
     
-    J[Direct Doc Push] --> H
+    M[Direct Doc Push] --> E
 ```
 
 ### Guard Job Implementation
@@ -97,42 +105,58 @@ The documentation workflow includes an intelligent **guard job** that provides c
 
 ```yaml
 check_docs_changes:
-  if: github.event_name == 'workflow_run'
   runs-on: ubuntu-latest
   outputs:
-    should_deploy: ${{ steps.check_flag.outputs.should_deploy }}
+    should_deploy: ${{ steps.check_changes.outputs.should_deploy || steps.set_push_deploy.outputs.should_deploy }}
   steps:
+    - name: Set deployment flag for push events
+      id: set_push_deploy
+      if: github.event_name == 'push'
+      run: |
+        echo "Direct push event detected, proceeding with deployment"
+        echo "should_deploy=true" >> $GITHUB_OUTPUT
+
     - name: Download docs update flag from release workflow
-      uses: actions/download-artifact@v4
+      if: github.event_name == 'workflow_run'
+      uses: actions/download-artifact@v5
       with:
         name: release-docs-flag
+        github-token: ${{ secrets.GITHUB_TOKEN }}
         run-id: ${{ github.event.workflow_run.id }}
     
     - name: Check release workflow success and docs update flag
-      id: check_flag
+      id: check_changes
+      if: github.event_name == 'workflow_run'
       run: |
+        set -euo pipefail
+        
         # Verify release workflow succeeded
         if [[ "${{ github.event.workflow_run.conclusion }}" != "success" ]]; then
-          echo "Release workflow did not succeed. Skipping documentation deployment."
+          echo "Release workflow failed, skipping documentation deployment"
           echo "should_deploy=false" >> $GITHUB_OUTPUT
           exit 0
         fi
         
         # Read docs update flag from artifact  
         DOCS_UPDATED=$(cat docs_updated.txt)
-        echo "Documentation update flag: $DOCS_UPDATED"
+        echo "Documentation updated flag: $DOCS_UPDATED"
         
         if [[ "$DOCS_UPDATED" == "true" ]]; then
-          echo "Documentation was updated during release. Proceeding with deployment."
+          echo "Documentation was updated during release, proceeding with deployment"
           echo "should_deploy=true" >> $GITHUB_OUTPUT
         else
-          echo "No documentation updates detected. Skipping deployment."
+          echo "No documentation files were updated, skipping deployment"
           echo "should_deploy=false" >> $GITHUB_OUTPUT
         fi
 ```
 
 #### Guard Job Functions
 
+**For Push Events**:
+1. **Immediate Approval**: Sets `should_deploy=true` since documentation files were changed (triggering the workflow)
+2. **No Artifact Processing**: Skips artifact-related steps as they're not needed for direct pushes
+
+**For Workflow Run Events**:
 1. **Downloads Release Artifacts**: Retrieves the `DOCS_UPDATED` flag from the completed release workflow
 2. **Verifies Release Success**: Ensures the release workflow completed successfully
 3. **Evaluates Update Flag**: Checks if documentation files were actually updated during the release
@@ -144,17 +168,15 @@ The main deployment job runs conditionally based on the trigger type:
 
 ```yaml
 deploy_documentation:
-  # Run for direct push OR workflow_run with docs changes
-  if: |
-    github.event_name == 'push' || 
-    (github.event_name == 'workflow_run' && needs.check_docs_changes.outputs.should_deploy == 'true')
-  needs: [check_docs_changes]
   runs-on: ubuntu-latest
+  # Run based on the check_docs_changes job output (which handles both push and workflow_run events)
+  if: needs.check_docs_changes.outputs.should_deploy == 'true'
+  needs: [check_docs_changes]
 ```
 
 **Deployment Conditions**:
-- **Direct Push Events**: Always deploy (traditional behavior)
-- **Workflow Run Events**: Only deploy if guard job approves (`should_deploy=true`)
+- **Direct Push Events**: Always deploy because the guard job automatically approves (`should_deploy=true`)
+- **Workflow Run Events**: Only deploy if guard job approves after checking the release flag (`should_deploy=true`)
 
 ## Release Workflow Integration
 
@@ -289,7 +311,8 @@ The documentation deployment uses modern Node.js tooling:
 ✅ **Backward Compatible**: Direct push functionality remains unchanged  
 ✅ **Intelligent**: Uses existing business logic to determine if docs need updating  
 ✅ **Fast**: Leverages pnpm caching for quick builds  
-✅ **Robust**: Multiple fallback mechanisms and error handling
+✅ **Robust**: Multiple fallback mechanisms and error handling  
+✅ ****BUG FIXED**: Push events now correctly trigger documentation deployment**
 
 ## Advanced Features
 
@@ -337,6 +360,16 @@ sequenceDiagram
 ## Troubleshooting
 
 ### Common Issues and Solutions
+
+#### Documentation Not Deploying After Push Events
+
+**Symptoms**: Documentation doesn't deploy after direct pushes to master branch with documentation changes.
+
+**Status**: **🔧 FIXED** - This was a critical bug in the original implementation where push events would never deploy due to skipped job dependencies.
+
+**Previous Issue**: The guard job was set to only run for `workflow_run` events, but the deployment job always depended on it, causing push events to be skipped.
+
+**Current Solution**: The guard job now runs for all events and handles both push and workflow_run logic internally.
 
 #### Documentation Not Deploying After Release
 
