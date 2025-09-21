@@ -171,6 +171,57 @@ def create_slack_app() -> FastAPI:
     # Get the topic for Slack events from environment or use default
     slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
 
+    @app.get("/health")
+    async def health_check() -> JSONResponse:
+        """Health check endpoint for monitoring and load balancers.
+
+        Returns
+        -------
+        JSONResponse
+            Status information about the webhook server
+        """
+        try:
+            # Check if the queue backend is accessible and functional
+            backend = get_queue_backend()
+
+            # Test if backend is actually functional by attempting a test operation
+            try:
+                # Try a lightweight test - attempt to publish a health check message
+                test_payload = {"type": "health_check", "timestamp": "test"}
+                await backend.publish("_health_check", test_payload)
+                backend_status = "healthy"
+            except Exception as backend_error:
+                _LOG.warning(f"Queue backend health check failed: {backend_error}")
+                backend_status = f"unhealthy: {str(backend_error)}"
+
+            # If we have a slack client, check its status
+            slack_status = "not_initialized"
+            if slack_client is not None:
+                slack_status = "initialized"
+
+            # Determine overall health status
+            is_healthy = backend_status == "healthy"
+            overall_status = "healthy" if is_healthy else "unhealthy"
+            status_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+
+            return JSONResponse(
+                status_code=status_code,
+                content={
+                    "status": overall_status,
+                    "service": "slack-webhook-server",
+                    "components": {
+                        "queue_backend": backend_status,
+                        "slack_client": slack_status,
+                    },
+                },
+            )
+        except Exception as e:
+            _LOG.error(f"Health check failed: {e}")
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"status": "unhealthy", "service": "slack-webhook-server", "error": str(e)},
+            )
+
     @app.post("/slack/events")
     async def slack_events(request: Request) -> Response:
         """Handle Slack events."""
