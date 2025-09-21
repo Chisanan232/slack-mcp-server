@@ -660,6 +660,11 @@ class TestHealthCheckEndpoint:
                 assert response_data["service"] == "slack-webhook-server"
                 assert response_data["components"]["queue_backend"] == "healthy"
                 assert response_data["components"]["slack_client"] == "initialized"
+                
+                # Verify that the backend publish was called with health check message
+                assert len(mock_queue_backend.published_events) == 1
+                published_event = mock_queue_backend.published_events[0]
+                assert published_event["type"] == "health_check"
 
     def test_health_check_success_without_slack_client(self, mock_queue_backend):
         """Test health check returns 200 even when Slack client is not initialized."""
@@ -676,16 +681,23 @@ class TestHealthCheckEndpoint:
                 assert response_data["service"] == "slack-webhook-server"
                 assert response_data["components"]["queue_backend"] == "healthy"
                 assert response_data["components"]["slack_client"] == "not_initialized"
+                
+                # Verify that the backend publish was called with health check message
+                assert len(mock_queue_backend.published_events) == 1
 
     def test_health_check_failure_queue_backend_error(self, mock_queue_backend):
         """Test health check returns 503 when queue backend fails."""
+        # Create a mock backend that fails on publish
+        failing_backend = MockQueueBackend()
+        failing_backend.publish = AsyncMock(side_effect=Exception("Connection failed"))
+        
         # First create the app with a working queue backend
         with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
             with patch("slack_mcp.webhook.server.slack_client", None):
                 app = create_slack_app()
                 
-        # Now patch get_queue_backend to raise an exception for the health check
-        with patch("slack_mcp.webhook.server.get_queue_backend", side_effect=Exception("Queue backend error")):
+        # Now patch to use the failing backend for health check
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=failing_backend):
             client = TestClient(app)
             response = client.get("/health")
 
@@ -693,4 +705,5 @@ class TestHealthCheckEndpoint:
             response_data = response.json()
             assert response_data["status"] == "unhealthy"
             assert response_data["service"] == "slack-webhook-server"
-            assert "Queue backend error" in response_data["error"]
+            assert response_data["components"]["queue_backend"] == "unhealthy: Connection failed"
+            assert response_data["components"]["slack_client"] == "not_initialized"

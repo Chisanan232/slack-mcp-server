@@ -150,8 +150,10 @@ class TestIntegratedServerHealthCheck:
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
         
-        # Mock the health check dependencies
-        mock_queue_backend = object()  # Simple mock
+        # Mock the health check dependencies with a functional backend
+        from unittest.mock import AsyncMock
+        mock_queue_backend = AsyncMock()
+        mock_queue_backend.publish = AsyncMock()  # Mock successful publish
         mock_slack_client = object()  # Simple mock
         
         monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_queue_backend)
@@ -171,6 +173,9 @@ class TestIntegratedServerHealthCheck:
         assert response_data["components"]["webhook_server"] == "healthy"
         assert response_data["components"]["queue_backend"] == "healthy"
         assert response_data["components"]["slack_client"] == "initialized"
+        
+        # Verify backend publish was called for health check
+        mock_queue_backend.publish.assert_called_once()
 
     def test_integrated_health_check_success_streamable_http(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test integrated server health check with streamable-http transport."""
@@ -182,8 +187,10 @@ class TestIntegratedServerHealthCheck:
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
         
-        # Mock the health check dependencies
-        mock_queue_backend = object()  # Simple mock
+        # Mock the health check dependencies with a functional backend
+        from unittest.mock import AsyncMock
+        mock_queue_backend = AsyncMock()
+        mock_queue_backend.publish = AsyncMock()  # Mock successful publish
         
         monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_queue_backend)
         monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
@@ -202,6 +209,9 @@ class TestIntegratedServerHealthCheck:
         assert response_data["components"]["webhook_server"] == "healthy"
         assert response_data["components"]["queue_backend"] == "healthy"
         assert response_data["components"]["slack_client"] == "not_initialized"
+        
+        # Verify backend publish was called for health check
+        mock_queue_backend.publish.assert_called_once()
 
     def test_integrated_health_check_failure_queue_backend_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test integrated server health check returns 503 when queue backend fails."""
@@ -213,11 +223,12 @@ class TestIntegratedServerHealthCheck:
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
         
-        # Mock queue backend to raise an exception
-        def mock_get_queue_backend():
-            raise Exception("Queue backend connection failed")
+        # Mock a backend that fails on publish (simulates connection issues)
+        from unittest.mock import AsyncMock
+        mock_failing_backend = AsyncMock()
+        mock_failing_backend.publish = AsyncMock(side_effect=Exception("Redis connection timeout"))
         
-        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", mock_get_queue_backend)
+        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_failing_backend)
         monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
         
         app = create_integrated_app(token="test-token", mcp_transport="sse")
@@ -229,4 +240,5 @@ class TestIntegratedServerHealthCheck:
         response_data = response.json()
         assert response_data["status"] == "unhealthy"
         assert response_data["service"] == "integrated-server"
-        assert "Queue backend connection failed" in response_data["error"]
+        assert response_data["components"]["queue_backend"] == "unhealthy: Redis connection timeout"
+        assert response_data["components"]["slack_client"] == "not_initialized"

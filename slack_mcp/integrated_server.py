@@ -77,9 +77,18 @@ def create_integrated_app(
             Status information about both MCP and webhook components
         """
         try:
-            # Check queue backend
+            # Check queue backend functionality
             backend = get_queue_backend()
-            backend_status = "healthy"
+            
+            # Test if backend is actually functional by attempting a test operation
+            try:
+                # Try a lightweight test - attempt to publish a health check message
+                test_payload = {"type": "health_check", "timestamp": "test"}
+                await backend.publish("_health_check", test_payload)
+                backend_status = "healthy"
+            except Exception as backend_error:
+                _LOG.warning(f"Queue backend health check failed: {backend_error}")
+                backend_status = f"unhealthy: {str(backend_error)}"
             
             # Check Slack client status
             slack_status = "not_initialized" if slack_client is None else "initialized"
@@ -88,10 +97,15 @@ def create_integrated_app(
             mcp_status = "healthy"  # MCP server is healthy if we can access the instance
             _ = _server_instance  # Access the server instance to verify it's available
             
+            # Determine overall health status
+            is_healthy = backend_status == "healthy"
+            overall_status = "healthy" if is_healthy else "unhealthy"
+            status_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+            
             return JSONResponse(
-                status_code=status.HTTP_200_OK,
+                status_code=status_code,
                 content={
-                    "status": "healthy",
+                    "status": overall_status,
                     "service": "integrated-server",
                     "transport": mcp_transport,
                     "components": {
