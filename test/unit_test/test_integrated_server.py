@@ -135,3 +135,141 @@ def test_create_integrated_app_default_mount_path(mock_dependencies: Dict[str, A
     # Verify default mount path was used
     assert "/mcp" in mock_webhook_app.mounted_apps
     assert mock_webhook_app.mounted_apps["/mcp"] is mock_mcp.mock_app
+
+
+class TestIntegratedServerHealthCheck:
+    """Tests for the integrated server health check endpoint."""
+
+    def test_integrated_health_check_success_sse(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test integrated server health check with SSE transport."""
+        # Mock dependencies
+        mock_mcp = _MockMCPServer()
+        mock_webhook_app = _MockWebhookApp()
+
+        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+
+        # Mock the health check dependencies with a functional backend
+        from unittest.mock import AsyncMock
+
+        mock_queue_backend = AsyncMock()
+        mock_queue_backend.publish = AsyncMock()  # Mock successful publish
+        mock_slack_client = object()  # Simple mock
+
+        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_queue_backend)
+        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", mock_slack_client)
+
+        app = create_integrated_app(token="test-token", mcp_transport="sse", mcp_mount_path="/mcp")
+        client = TestClient(app)
+
+        response = client.get("/health")
+
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status"] == "healthy"
+        assert response_data["service"] == "integrated-server"
+        assert response_data["transport"] == "sse"
+        assert response_data["components"]["mcp_server"] == "healthy"
+        assert response_data["components"]["webhook_server"] == "healthy"
+        assert response_data["components"]["queue_backend"] == "healthy"
+        assert response_data["components"]["slack_client"] == "initialized"
+
+        # Verify backend publish was called for health check
+        mock_queue_backend.publish.assert_called_once()
+
+    def test_integrated_health_check_success_streamable_http(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test integrated server health check with streamable-http transport."""
+        # Mock dependencies
+        mock_mcp = _MockMCPServer()
+        mock_webhook_app = _MockWebhookApp()
+
+        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+
+        # Mock the health check dependencies with a functional backend
+        from unittest.mock import AsyncMock
+
+        mock_queue_backend = AsyncMock()
+        mock_queue_backend.publish = AsyncMock()  # Mock successful publish
+
+        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_queue_backend)
+        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+
+        app = create_integrated_app(token="test-token", mcp_transport="streamable-http")
+        client = TestClient(app)
+
+        response = client.get("/health")
+
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data["status"] == "healthy"
+        assert response_data["service"] == "integrated-server"
+        assert response_data["transport"] == "streamable-http"
+        assert response_data["components"]["mcp_server"] == "healthy"
+        assert response_data["components"]["webhook_server"] == "healthy"
+        assert response_data["components"]["queue_backend"] == "healthy"
+        assert response_data["components"]["slack_client"] == "not_initialized"
+
+        # Verify backend publish was called for health check
+        mock_queue_backend.publish.assert_called_once()
+
+    def test_integrated_health_check_failure_queue_backend_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test integrated server health check returns 503 when queue backend fails."""
+        # Mock dependencies
+        mock_mcp = _MockMCPServer()
+        mock_webhook_app = _MockWebhookApp()
+
+        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+
+        # Mock a backend that fails on publish (simulates connection issues)
+        from unittest.mock import AsyncMock
+
+        mock_failing_backend = AsyncMock()
+        mock_failing_backend.publish = AsyncMock(side_effect=Exception("Redis connection timeout"))
+
+        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_failing_backend)
+        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+
+        app = create_integrated_app(token="test-token", mcp_transport="sse")
+        client = TestClient(app)
+
+        response = client.get("/health")
+
+        assert response.status_code == 503
+        response_data = response.json()
+        assert response_data["status"] == "unhealthy"
+        assert response_data["service"] == "integrated-server"
+        assert response_data["components"]["queue_backend"] == "unhealthy: Redis connection timeout"
+        assert response_data["components"]["slack_client"] == "not_initialized"
+
+    def test_integrated_health_check_failure_get_queue_backend_error(self, monkeypatch):
+        """Test integrated health check when get_queue_backend itself raises an exception."""
+        # Mock dependencies
+        mock_mcp = _MockMCPServer()
+        mock_webhook_app = _MockWebhookApp()
+
+        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+
+        # Mock get_queue_backend to raise an exception (triggers outer exception handler)
+        monkeypatch.setattr(
+            "slack_mcp.integrated_server.get_queue_backend",
+            lambda: (_ for _ in ()).throw(Exception("Database connection failed")),
+        )
+        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+
+        app = create_integrated_app(token="test-token", mcp_transport="sse")
+        client = TestClient(app)
+
+        response = client.get("/health")
+
+        assert response.status_code == 503
+        response_data = response.json()
+        assert response_data["status"] == "unhealthy"
+        assert response_data["service"] == "integrated-server"
+        assert response_data["error"] == "Database connection failed"

@@ -9,10 +9,16 @@ from __future__ import annotations
 import logging
 from typing import Final, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
 
 from .mcp.server import mcp as _server_instance
-from .webhook.server import create_slack_app, initialize_slack_client
+from .webhook.server import (
+    create_slack_app,
+    get_queue_backend,
+    initialize_slack_client,
+    slack_client,
+)
 
 __all__: list[str] = [
     "create_integrated_app",
@@ -64,6 +70,63 @@ def create_integrated_app(
 
     # Initialize the global Slack client with the provided token and retry settings
     initialize_slack_client(token, retry=retry)
+
+    # Add integrated health check endpoint
+    @app.get("/health")
+    async def integrated_health_check() -> JSONResponse:
+        """Health check endpoint for the integrated server.
+
+        Returns
+        -------
+        JSONResponse
+            Status information about both MCP and webhook components
+        """
+        try:
+            # Check queue backend functionality
+            backend = get_queue_backend()
+
+            # Test if backend is actually functional by attempting a test operation
+            try:
+                # Try a lightweight test - attempt to publish a health check message
+                test_payload = {"type": "health_check", "timestamp": "test"}
+                await backend.publish("_health_check", test_payload)
+                backend_status = "healthy"
+            except Exception as backend_error:
+                _LOG.warning(f"Queue backend health check failed: {backend_error}")
+                backend_status = f"unhealthy: {str(backend_error)}"
+
+            # Check Slack client status
+            slack_status = "not_initialized" if slack_client is None else "initialized"
+
+            # Check MCP server status
+            mcp_status = "healthy"  # MCP server is healthy if we can access the instance
+            _ = _server_instance  # Access the server instance to verify it's available
+
+            # Determine overall health status
+            is_healthy = backend_status == "healthy"
+            overall_status = "healthy" if is_healthy else "unhealthy"
+            status_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+
+            return JSONResponse(
+                status_code=status_code,
+                content={
+                    "status": overall_status,
+                    "service": "integrated-server",
+                    "transport": mcp_transport,
+                    "components": {
+                        "mcp_server": mcp_status,
+                        "webhook_server": "healthy",
+                        "queue_backend": backend_status,
+                        "slack_client": slack_status,
+                    },
+                },
+            )
+        except Exception as e:
+            _LOG.error(f"Integrated health check failed: {e}")
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"status": "unhealthy", "service": "integrated-server", "error": str(e)},
+            )
 
     # Get the appropriate MCP app based on the transport
     if mcp_transport == "sse":
