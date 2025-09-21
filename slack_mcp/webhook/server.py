@@ -174,7 +174,7 @@ def create_slack_app() -> FastAPI:
     @app.get("/health")
     async def health_check() -> JSONResponse:
         """Health check endpoint for monitoring and load balancers.
-        
+
         Returns
         -------
         JSONResponse
@@ -183,7 +183,7 @@ def create_slack_app() -> FastAPI:
         try:
             # Check if the queue backend is accessible and functional
             backend = get_queue_backend()
-            
+
             # Test if backend is actually functional by attempting a test operation
             try:
                 # Try a lightweight test - attempt to publish a health check message
@@ -193,17 +193,17 @@ def create_slack_app() -> FastAPI:
             except Exception as backend_error:
                 _LOG.warning(f"Queue backend health check failed: {backend_error}")
                 backend_status = f"unhealthy: {str(backend_error)}"
-            
+
             # If we have a slack client, check its status
             slack_status = "not_initialized"
             if slack_client is not None:
                 slack_status = "initialized"
-            
+
             # Determine overall health status
             is_healthy = backend_status == "healthy"
             overall_status = "healthy" if is_healthy else "unhealthy"
             status_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
-            
+
             return JSONResponse(
                 status_code=status_code,
                 content={
@@ -212,18 +212,14 @@ def create_slack_app() -> FastAPI:
                     "components": {
                         "queue_backend": backend_status,
                         "slack_client": slack_status,
-                    }
-                }
+                    },
+                },
             )
         except Exception as e:
             _LOG.error(f"Health check failed: {e}")
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={
-                    "status": "unhealthy",
-                    "service": "slack-webhook-server",
-                    "error": str(e)
-                }
+                content={"status": "unhealthy", "service": "slack-webhook-server", "error": str(e)},
             )
 
     @app.post("/slack/events")

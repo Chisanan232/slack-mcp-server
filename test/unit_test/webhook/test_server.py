@@ -660,7 +660,7 @@ class TestHealthCheckEndpoint:
                 assert response_data["service"] == "slack-webhook-server"
                 assert response_data["components"]["queue_backend"] == "healthy"
                 assert response_data["components"]["slack_client"] == "initialized"
-                
+
                 # Verify that the backend publish was called with health check message
                 assert len(mock_queue_backend.published_events) == 1
                 published_event = mock_queue_backend.published_events[0]
@@ -681,7 +681,7 @@ class TestHealthCheckEndpoint:
                 assert response_data["service"] == "slack-webhook-server"
                 assert response_data["components"]["queue_backend"] == "healthy"
                 assert response_data["components"]["slack_client"] == "not_initialized"
-                
+
                 # Verify that the backend publish was called with health check message
                 assert len(mock_queue_backend.published_events) == 1
 
@@ -690,15 +690,17 @@ class TestHealthCheckEndpoint:
         # Create a mock backend that fails on publish
         failing_backend = MockQueueBackend()
         failing_backend.publish = AsyncMock(side_effect=Exception("Connection failed"))
-        
+
         # First create the app with a working queue backend
         with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
             with patch("slack_mcp.webhook.server.slack_client", None):
                 app = create_slack_app()
-                
+
         # Now patch to use the failing backend for health check
         with patch("slack_mcp.webhook.server.get_queue_backend", return_value=failing_backend):
-            with patch("slack_mcp.webhook.server.slack_client", None):  # Ensure slack_client is None during health check
+            with patch(
+                "slack_mcp.webhook.server.slack_client", None
+            ):  # Ensure slack_client is None during health check
                 client = TestClient(app)
                 response = client.get("/health")
 
