@@ -171,6 +171,47 @@ def create_slack_app() -> FastAPI:
     # Get the topic for Slack events from environment or use default
     slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
 
+    @app.get("/health")
+    async def health_check() -> JSONResponse:
+        """Health check endpoint for monitoring and load balancers.
+        
+        Returns
+        -------
+        JSONResponse
+            Status information about the webhook server
+        """
+        try:
+            # Check if the queue backend is accessible
+            backend = get_queue_backend()
+            backend_status = "healthy"
+            
+            # If we have a slack client, check its status
+            slack_status = "not_initialized"
+            if slack_client is not None:
+                slack_status = "initialized"
+            
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={
+                    "status": "healthy",
+                    "service": "slack-webhook-server",
+                    "components": {
+                        "queue_backend": backend_status,
+                        "slack_client": slack_status,
+                    }
+                }
+            )
+        except Exception as e:
+            _LOG.error(f"Health check failed: {e}")
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={
+                    "status": "unhealthy",
+                    "service": "slack-webhook-server",
+                    "error": str(e)
+                }
+            )
+
     @app.post("/slack/events")
     async def slack_events(request: Request) -> Response:
         """Handle Slack events."""

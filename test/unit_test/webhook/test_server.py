@@ -640,3 +640,57 @@ async def test_slack_events_endpoint_parametrized(
         # For event_callback types that aren't URL verification, verify queue publish was called
         if event_data.get("type") == "event_callback":
             mock_backend.publish.assert_awaited_once()
+
+
+class TestHealthCheckEndpoint:
+    """Tests for the health check endpoint."""
+
+    def test_health_check_success_with_initialized_client(self, mock_queue_backend):
+        """Test health check returns 200 when all components are healthy."""
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
+            with patch("slack_mcp.webhook.server.slack_client", AsyncWebClient(token="test")):
+                app = create_slack_app()
+                client = TestClient(app)
+
+                response = client.get("/health")
+
+                assert response.status_code == 200
+                response_data = response.json()
+                assert response_data["status"] == "healthy"
+                assert response_data["service"] == "slack-webhook-server"
+                assert response_data["components"]["queue_backend"] == "healthy"
+                assert response_data["components"]["slack_client"] == "initialized"
+
+    def test_health_check_success_without_slack_client(self, mock_queue_backend):
+        """Test health check returns 200 even when Slack client is not initialized."""
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
+            with patch("slack_mcp.webhook.server.slack_client", None):
+                app = create_slack_app()
+                client = TestClient(app)
+
+                response = client.get("/health")
+
+                assert response.status_code == 200
+                response_data = response.json()
+                assert response_data["status"] == "healthy"
+                assert response_data["service"] == "slack-webhook-server"
+                assert response_data["components"]["queue_backend"] == "healthy"
+                assert response_data["components"]["slack_client"] == "not_initialized"
+
+    def test_health_check_failure_queue_backend_error(self, mock_queue_backend):
+        """Test health check returns 503 when queue backend fails."""
+        # First create the app with a working queue backend
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
+            with patch("slack_mcp.webhook.server.slack_client", None):
+                app = create_slack_app()
+                
+        # Now patch get_queue_backend to raise an exception for the health check
+        with patch("slack_mcp.webhook.server.get_queue_backend", side_effect=Exception("Queue backend error")):
+            client = TestClient(app)
+            response = client.get("/health")
+
+            assert response.status_code == 503
+            response_data = response.json()
+            assert response_data["status"] == "unhealthy"
+            assert response_data["service"] == "slack-webhook-server"
+            assert "Queue backend error" in response_data["error"]
