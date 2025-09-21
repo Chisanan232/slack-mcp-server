@@ -245,3 +245,29 @@ class TestIntegratedServerHealthCheck:
         assert response_data["service"] == "integrated-server"
         assert response_data["components"]["queue_backend"] == "unhealthy: Redis connection timeout"
         assert response_data["components"]["slack_client"] == "not_initialized"
+
+    def test_integrated_health_check_failure_get_queue_backend_error(self, monkeypatch):
+        """Test integrated health check when get_queue_backend itself raises an exception."""
+        # Mock dependencies
+        mock_mcp = _MockMCPServer()
+        mock_webhook_app = _MockWebhookApp()
+
+        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+
+        # Mock get_queue_backend to raise an exception (triggers outer exception handler)
+        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: (_ for _ in ()).throw(Exception("Database connection failed")))
+        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+
+        app = create_integrated_app(token="test-token", mcp_transport="sse")
+        client = TestClient(app)
+
+        response = client.get("/health")
+
+        assert response.status_code == 503
+        response_data = response.json()
+        assert response_data["status"] == "unhealthy"
+        assert response_data["service"] == "integrated-server"
+        assert response_data["error"] == "Database connection failed"
+

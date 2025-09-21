@@ -710,3 +710,49 @@ class TestHealthCheckEndpoint:
                 assert response_data["service"] == "slack-webhook-server"
                 assert response_data["components"]["queue_backend"] == "unhealthy: Connection failed"
                 assert response_data["components"]["slack_client"] == "not_initialized"
+
+    def test_health_check_failure_get_queue_backend_error(self, mock_queue_backend):
+        """Test health check when get_queue_backend itself raises an exception."""
+        # First create the app with a working queue backend
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
+            with patch("slack_mcp.webhook.server.slack_client", None):
+                app = create_slack_app()
+
+        # Now patch get_queue_backend to raise an exception (triggers outer exception handler)
+        with patch("slack_mcp.webhook.server.get_queue_backend", side_effect=Exception("Backend service unavailable")):
+            with patch("slack_mcp.webhook.server.slack_client", None):
+                client = TestClient(app)
+                response = client.get("/health")
+
+                assert response.status_code == 503
+                response_data = response.json()
+                assert response_data["status"] == "unhealthy"
+                assert response_data["service"] == "slack-webhook-server"
+                assert response_data["error"] == "Backend service unavailable"
+
+    def test_health_check_failure_str_conversion_error(self, mock_queue_backend):
+        """Test health check when string conversion fails during error handling."""
+        # First create the app with a working queue backend
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=mock_queue_backend):
+            with patch("slack_mcp.webhook.server.slack_client", None):
+                app = create_slack_app()
+
+        # Create a backend that raises an exception with unprintable object
+        class UnprintableError(Exception):
+            def __str__(self):
+                raise RuntimeError("Cannot convert error to string")
+
+        failing_backend = MockQueueBackend()
+        failing_backend.publish = AsyncMock(side_effect=UnprintableError("Original error"))
+
+        # This should trigger outer exception handler when trying to format the error message
+        with patch("slack_mcp.webhook.server.get_queue_backend", return_value=failing_backend):
+            with patch("slack_mcp.webhook.server.slack_client", None):
+                client = TestClient(app)
+                response = client.get("/health")
+
+                assert response.status_code == 503
+                response_data = response.json()
+                assert response_data["status"] == "unhealthy"
+                assert response_data["service"] == "slack-webhook-server"
+                assert "Cannot convert error to string" in response_data["error"]
