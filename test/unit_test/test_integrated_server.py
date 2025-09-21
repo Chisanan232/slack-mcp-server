@@ -257,7 +257,10 @@ class TestIntegratedServerHealthCheck:
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
         # Mock get_queue_backend to raise an exception (triggers outer exception handler)
-        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: (_ for _ in ()).throw(Exception("Database connection failed")))
+        monkeypatch.setattr(
+            "slack_mcp.integrated_server.get_queue_backend",
+            lambda: (_ for _ in ()).throw(Exception("Database connection failed")),
+        )
         monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
 
         app = create_integrated_app(token="test-token", mcp_transport="sse")
@@ -270,4 +273,3 @@ class TestIntegratedServerHealthCheck:
         assert response_data["status"] == "unhealthy"
         assert response_data["service"] == "integrated-server"
         assert response_data["error"] == "Database connection failed"
-
