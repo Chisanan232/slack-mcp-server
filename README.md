@@ -47,7 +47,7 @@
 
 **Use Cases:**
 - Building AI assistants with Slack integration
-- Creating custom automation tools for Slack workflows  
+- Creating custom automation tools for Slack workflows
 - Developing real-time Slack applications with event processing
 - Integrating Slack with other tools and platforms
 
@@ -162,7 +162,7 @@ Comprehensive documentation is available at **[https://chisanan232.github.io/sla
 ### Code Quality Tools
 
 - **Black**: Consistent code formatting
-- **PyLint**: Code analysis and style checking  
+- **PyLint**: Code analysis and style checking
 - **MyPy**: Static type checking
 - **isort**: Import sorting and organization
 - **Pre-commit**: Automated code quality checks
