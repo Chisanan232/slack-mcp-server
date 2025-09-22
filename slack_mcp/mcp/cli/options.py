@@ -11,7 +11,7 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
     parser = argparse.ArgumentParser(description="Run the Slack MCP server")
     parser.add_argument(
         "--host",
-        default="127.0.0.1",
+        default="0.0.0.0",
         help="Host to bind to when using HTTP transport (default: 127.0.0.1)",
     )
     parser.add_argument(
@@ -23,7 +23,7 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
     parser.add_argument(
         "--transport",
         choices=["stdio", "sse", "streamable-http"],
-        default="stdio",
+        default="sse",
         help="Transport to use for MCP server (default: stdio)",
     )
     parser.add_argument(
