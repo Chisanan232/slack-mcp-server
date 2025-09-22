@@ -7,7 +7,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2020",
+    "target": "ES2023",
     "lib": ["ESNext", "DOM"],
     "moduleResolution": "node",
     "jsx": "react-jsx",
@@ -25,6 +25,7 @@
   "exclude": [
     "node_modules",
     "build",
-    "dist"
+    "dist",
+    "static/js/**/*.ts"
   ]
 }

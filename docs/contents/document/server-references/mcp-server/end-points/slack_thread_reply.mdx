@@ -1,0 +1,247 @@
+---
+id: slack-thread-reply-mcp-api
+title: Thread Reply
+sidebar_position: 4
+---
+
+# Slack Thread Reply MCP API
+
+The Slack Thread Reply MCP API allows you to send one or more messages as replies to a specific thread in Slack channels using the Model Context Protocol interface. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Tool Information
+
+### slack_thread_reply
+
+* **Tool name**: `slack_thread_reply`
+* **Function**: `send_slack_thread_reply`
+* **Description**: Send one or more messages as replies to a specific thread in a Slack channel. This tool is ideal for continuing conversations in a structured thread format.
+
+## Input Parameters
+
+The tool accepts a `SlackThreadReplyInput` object with the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `channel` | `string` | Yes | Slack channel ID (e.g., `C12345678`) or name with `#` (e.g., `#general`) |
+| `thread_ts` | `string` | Yes | The timestamp ID of the parent message to reply to |
+| `texts` | `array[string]` | Yes | A list of text messages to send as separate replies to the thread |
+
+## Usage Examples
+
+### Single Thread Reply
+```json
+{
+  "channel": "#general",
+  "thread_ts": "1234567890.123456",
+  "texts": ["Thanks for the update! This looks great."]
+}
+```
+
+### Multiple Thread Replies
+```json
+{
+  "channel": "C1234567890",
+  "thread_ts": "1234567890.123456",
+  "texts": [
+    "I've reviewed the proposal and have a few comments:",
+    "1. The timeline looks reasonable",
+    "2. We should consider the budget implications",
+    "3. Let's schedule a follow-up meeting"
+  ]
+}
+```
+
+### Complex Thread Response
+```json
+{
+  "channel": "#support-requests",
+  "thread_ts": "1640995200.000000",
+  "texts": [
+    "I've investigated the issue you reported.",
+    "Root cause: Database connection timeout",
+    "Solution: Increased timeout from 30s to 60s",
+    "Status: Issue resolved and deployed to production ✅"
+  ]
+}
+```
+
+### Meeting Follow-up
+```json
+{
+  "channel": "#project-alpha",
+  "thread_ts": "1641081600.123456", 
+  "texts": [
+    "Action items from today's meeting:",
+    "• @john to review the architecture docs by Friday",
+    "• @sarah to prepare the demo environment", 
+    "• @mike to coordinate with the QA team"
+  ]
+}
+```
+
+## Response Format
+
+The tool returns a dictionary containing a list of responses under the 'responses' key. Each response is the raw JSON returned by Slack for each message posted:
+
+```json
+{
+  "responses": [
+    {
+      "ok": true,
+      "channel": "C1234567890",
+      "ts": "1234567891.456789",
+      "message": {
+        "text": "Thanks for the update! This looks great.",
+        "user": "U12345678",
+        "ts": "1234567891.456789",
+        "team": "T1234567890",
+        "thread_ts": "1234567890.123456",
+        "parent_user_id": "U87654321",
+        "type": "message"
+      }
+    }
+  ]
+}
+```
+
+### For Multiple Messages
+```json
+{
+  "responses": [
+    {
+      "ok": true,
+      "channel": "C1234567890",
+      "ts": "1234567891.456789",
+      "message": {
+        "text": "I've reviewed the proposal and have a few comments:",
+        "user": "U12345678",
+        "ts": "1234567891.456789",
+        "thread_ts": "1234567890.123456",
+        "parent_user_id": "U87654321"
+      }
+    },
+    {
+      "ok": true,
+      "channel": "C1234567890", 
+      "ts": "1234567891.567890",
+      "message": {
+        "text": "1. The timeline looks reasonable",
+        "user": "U12345678",
+        "ts": "1234567891.567890",
+        "thread_ts": "1234567890.123456",
+        "parent_user_id": "U87654321"
+      }
+    }
+  ]
+}
+```
+
+### Key Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `responses` | Array of response objects, one for each message sent |
+| `responses[].ok` | Boolean indicating if the individual message was successful |
+| `responses[].ts` | Timestamp of the posted reply message |
+| `responses[].message` | The complete message object that was posted |
+| `responses[].message.thread_ts` | Timestamp of the parent thread message |
+| `responses[].message.parent_user_id` | User ID who started the thread |
+
+## Error Handling
+
+This function may raise errors in the following situations:
+- Missing or invalid Slack API token
+- Invalid channel name or ID
+- Invalid thread timestamp
+- Insufficient permissions to post in the channel
+- Thread doesn't exist or is archived
+- Network connectivity issues
+- API rate limiting
+- Message too long (exceeds 40 kB limit per message)
+
+If any individual message fails, the corresponding response will have `"ok": false`:
+
+```json
+{
+  "responses": [
+    {
+      "ok": true,
+      "channel": "C1234567890",
+      "ts": "1234567891.456789",
+      "message": {...}
+    },
+    {
+      "ok": false,
+      "error": "thread_not_found",
+      "detail": "Value passed for thread_ts was invalid."
+    }
+  ]
+}
+```
+
+### Common Error Codes
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `channel_not_found` | Channel doesn't exist or bot lacks access | Verify channel name/ID and bot permissions |
+| `thread_not_found` | Thread timestamp is invalid or thread doesn't exist | Verify the thread_ts parameter |
+| `not_in_channel` | Bot is not a member of the channel | Invite the bot to the channel |
+| `invalid_auth` | Invalid or missing API token | Check SLACK_BOT_TOKEN environment variable |
+| `msg_too_long` | Individual message exceeds 40,000 characters | Shorten the message or split further |
+| `rate_limited` | Too many requests sent | Implement rate limiting in your application |
+| `thread_locked` | Thread is locked and cannot accept new replies | Contact channel admin to unlock thread |
+
+## Use Cases
+
+Typical scenarios for using `slack_thread_reply`:
+- **Structured Responses**: Break down complex responses into multiple organized messages
+- **Meeting Follow-ups**: Post action items and summaries in meeting threads
+- **Support Conversations**: Provide step-by-step troubleshooting in support threads
+- **Status Updates**: Send progress updates to project discussion threads
+- **Code Reviews**: Provide detailed feedback in development discussion threads
+- **Incident Updates**: Post investigation progress in incident response threads
+- **Q&A Sessions**: Provide comprehensive answers in help threads
+
+## Authentication
+
+This tool requires a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+The bot must have the following OAuth scopes:
+- `chat:write` - Required to post thread replies
+- `channels:read` - Required to access public channels
+- `groups:read` - Required to access private channels (if needed)
+
+## Rate Limiting
+
+Slack enforces rate limits on the `chat.postMessage` API (used for thread replies):
+- **Tier 1**: 1+ message per second
+- **Tier 2**: 20+ messages per minute
+- **Tier 3**: 50+ messages per minute
+- **Tier 4**: 100+ messages per minute
+
+The server will automatically handle retries according to Slack's rate limiting headers.
+
+## Thread Reply Best Practices
+
+- **Message Order**: Messages are sent sequentially in the order provided in the `texts` array
+- **Atomic Operations**: All messages in a single call are processed together
+- **Message Limits**: Each individual message has a 40 kB limit
+- **Thread Context**: Include context in your messages since readers may join the thread later
+- **Error Handling**: Check each response individually as some messages may succeed while others fail
+- **Threading Etiquette**: Keep replies focused and relevant to the original thread topic
+
+## Performance Considerations
+
+- **Batch Size**: Consider breaking very large message lists into smaller batches
+- **Response Processing**: Handle partial failures gracefully in your application
+- **Network Latency**: Multiple messages will increase total API call time
+- **Memory Usage**: Large text arrays may consume significant memory
+
+## Thread Continuity
+
+- **Parent Context**: The thread_ts always references the original parent message, not the previous reply
+- **Thread Ordering**: Replies appear in chronological order based on when they were posted
+- **Thread Notifications**: All thread participants will be notified of new replies
+- **Thread Persistence**: Thread replies remain linked even if the parent message is edited

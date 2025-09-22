@@ -1,0 +1,220 @@
+---
+id: slack-read-thread-messages-mcp-api
+title: Read Thread Messages
+sidebar_position: 3
+---
+
+# Slack Read Thread Messages MCP API
+
+The Slack Read Thread Messages MCP API allows you to retrieve messages from a specific thread in Slack channels using the Model Context Protocol interface. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Tool Information
+
+### slack_read_thread_messages
+
+* **Tool name**: `slack_read_thread_messages`
+* **Function**: `read_thread_messages`
+* **Description**: Read messages from a specific thread in a given Slack channel. This tool retrieves threaded conversation history for context analysis or follow-up actions.
+
+## Input Parameters
+
+The tool accepts a `SlackReadThreadMessagesInput` object with the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `channel` | `string` | Yes | Slack channel ID (e.g., `C12345678`) or name with `#` (e.g., `#general`) |
+| `thread_ts` | `string` | Yes | Timestamp ID of the parent message that started the thread |
+| `limit` | `integer` | No | Maximum number of messages to retrieve (default: 100) |
+
+## Usage Examples
+
+### Basic Thread Reading
+```json
+{
+  "channel": "#general",
+  "thread_ts": "1234567890.123456",
+  "limit": 50
+}
+```
+
+### Channel ID with Thread
+```json
+{
+  "channel": "C1234567890",
+  "thread_ts": "1234567890.123456"
+}
+```
+
+### Limited Thread Messages
+```json
+{
+  "channel": "#support-requests",
+  "thread_ts": "1640995200.000000",
+  "limit": 25
+}
+```
+
+### Recent Thread Activity
+```json
+{
+  "channel": "C9876543210",
+  "thread_ts": "1641081600.123456",
+  "limit": 10
+}
+```
+
+## Response Format
+
+The tool returns the raw JSON response from Slack's `conversations.replies` API:
+
+```json
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U12345678",
+      "text": "This is the original message that started the thread",
+      "ts": "1234567890.123456",
+      "team": "T1234567890",
+      "thread_ts": "1234567890.123456",
+      "reply_count": 3,
+      "reply_users_count": 2,
+      "latest_reply": "1234567892.789012",
+      "reply_users": ["U87654321", "U11111111"]
+    },
+    {
+      "type": "message",
+      "user": "U87654321",
+      "text": "This is a reply in the thread",
+      "ts": "1234567891.456789",
+      "team": "T1234567890",
+      "thread_ts": "1234567890.123456",
+      "parent_user_id": "U12345678"
+    },
+    {
+      "type": "message",
+      "user": "U11111111",
+      "text": "Another reply with more details",
+      "ts": "1234567892.789012",
+      "team": "T1234567890",
+      "thread_ts": "1234567890.123456",
+      "parent_user_id": "U12345678",
+      "reactions": [
+        {
+          "name": "eyes",
+          "users": ["U12345678"],
+          "count": 1
+        }
+      ]
+    }
+  ],
+  "has_more": false,
+  "response_metadata": {
+    "next_cursor": ""
+  }
+}
+```
+
+### Key Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `ok` | Boolean indicating if the operation was successful |
+| `messages` | Array of message objects, including the parent message and all replies |
+| `has_more` | Boolean indicating if there are more messages beyond the limit |
+| `response_metadata` | Pagination metadata including next_cursor |
+
+### Thread Message Object Fields
+
+| Field | Description |
+|-------|-------------|
+| `type` | Message type (usually "message") |
+| `user` | User ID of the message sender |
+| `text` | The message text content |
+| `ts` | Message timestamp (unique message ID) |
+| `thread_ts` | Timestamp of the parent message (same for all messages in thread) |
+| `parent_user_id` | User ID of the thread starter (only on replies, not parent) |
+| `reply_count` | Number of replies in thread (only on parent message) |
+| `reply_users` | Array of user IDs who have replied (only on parent message) |
+| `latest_reply` | Timestamp of the most recent reply (only on parent message) |
+
+## Error Handling
+
+This function may raise errors in the following situations:
+- Missing or invalid Slack API token
+- Invalid channel name or ID
+- Invalid thread timestamp
+- Insufficient permissions to read the channel
+- Thread doesn't exist
+- Network connectivity issues
+- API rate limiting
+
+Error responses will have `"ok": false` and include an error message:
+
+```json
+{
+  "ok": false,
+  "error": "thread_not_found",
+  "detail": "Value passed for thread_ts was invalid."
+}
+```
+
+### Common Error Codes
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `channel_not_found` | Channel doesn't exist or bot lacks access | Verify channel name/ID and bot permissions |
+| `thread_not_found` | Thread timestamp is invalid or thread doesn't exist | Verify the thread_ts parameter |
+| `not_in_channel` | Bot is not a member of the channel | Invite the bot to the channel |
+| `invalid_auth` | Invalid or missing API token | Check SLACK_BOT_TOKEN environment variable |
+| `invalid_ts` | Invalid thread timestamp format | Use proper Unix timestamp format |
+| `rate_limited` | Too many requests sent | Implement rate limiting in your application |
+
+## Use Cases
+
+Typical scenarios for using `slack_read_thread_messages`:
+- **Thread Context Analysis**: Understand the full context of a conversation thread
+- **Follow-up Actions**: Retrieve thread history before adding new replies
+- **Support Ticket Tracking**: Monitor resolution progress in support threads
+- **Meeting Notes**: Extract discussion details from meeting-related threads
+- **Decision Tracking**: Follow the evolution of decisions made in threads
+- **Knowledge Base**: Extract Q&A patterns from help threads
+- **Conversation Summarization**: Generate summaries of lengthy thread discussions
+
+## Authentication
+
+This tool requires a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+The bot must have the following OAuth scopes:
+- `channels:history` - Required to read public channel thread history
+- `groups:history` - Required to read private channel thread history (if needed)
+- `channels:read` - Required to access channel information
+- `groups:read` - Required to access private channel information (if needed)
+
+## Rate Limiting
+
+Slack enforces rate limits on the `conversations.replies` API:
+- **Tier 2**: 20+ requests per minute
+- **Tier 3**: 50+ requests per minute
+- **Tier 4**: 100+ requests per minute
+
+The server will automatically handle retries according to Slack's rate limiting headers.
+
+## Thread Behavior Notes
+
+- **Parent Message**: The first message in the response is always the original message that started the thread
+- **Chronological Order**: Messages are returned in chronological order (oldest first)
+- **Thread Limits**: Threads can have up to 1000 replies
+- **Pagination**: Use `limit` parameter and `next_cursor` for large threads
+- **Thread Identification**: All messages in a thread share the same `thread_ts` value
+
+## Best Practices
+
+- **Cache Thread Data**: Store thread information to avoid repeated API calls
+- **Monitor Thread Updates**: Use webhooks or periodic polling for active threads
+- **Handle Large Threads**: Implement pagination for threads with many messages
+- **Preserve Context**: Keep the parent message for context when processing replies
+- **Thread Completion**: Check `latest_reply` timestamp to determine thread recency

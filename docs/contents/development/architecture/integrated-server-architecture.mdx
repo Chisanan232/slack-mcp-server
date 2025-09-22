@@ -1,0 +1,453 @@
+---
+id: integrated-server-architecture
+title: Integrated Server Architecture
+sidebar_position: 5
+---
+
+# Integrated Server Architecture
+
+The Integrated Server combines both MCP and webhook server functionality into a single FastAPI application. This document details the architecture, implementation, and deployment patterns for the unified server approach.
+
+## Overview
+
+The integrated server provides a comprehensive solution that handles both MCP client requests and Slack webhook events in a single deployment. This approach simplifies deployment, reduces operational overhead, and enables unified configuration and monitoring.
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        A[MCP Clients]
+        B[Slack Workspace]
+    end
+    
+    subgraph "Integrated Server"
+        C[FastAPI App]
+        D[MCP Mount Point]
+        E[Webhook Endpoints]
+        F[Shared Slack Client]
+    end
+    
+    subgraph "Transport Options"
+        G[SSE Transport]
+        H[HTTP Streaming]
+    end
+    
+    subgraph "Backend Services"
+        I[Queue Backend]
+        J[Slack API]
+    end
+    
+    A --> D
+    B --> E
+    C --> D
+    C --> E
+    D --> G
+    D --> H
+    E --> I
+    F --> J
+```
+
+## Architecture Components
+
+### **Integrated Application Factory**
+
+The core integration function that creates a unified FastAPI app:
+
+```python
+from slack_mcp.integrated_server import create_integrated_app
+
+def create_integrated_app(
+    token: Optional[str] = None,
+    mcp_transport: str = "sse",
+    mcp_mount_path: Optional[str] = "/mcp",
+    retry: int = 3,
+) -> FastAPI:
+    # Create webhook server as base
+    app = create_slack_app()
+    
+    # Initialize shared Slack client
+    initialize_slack_client(token, retry=retry)
+    
+    # Mount MCP server based on transport type
+    if mcp_transport == "sse":
+        mcp_app = _server_instance.sse_app(mount_path=mcp_mount_path)
+        app.mount(mcp_mount_path or "/mcp", mcp_app)
+    elif mcp_transport == "streamable-http":
+        mcp_app = _server_instance.streamable_http_app()
+        # Merge routes for HTTP streaming
+        for route in mcp_app.routes:
+            app.routes.append(route)
+    
+    return app
+```
+
+### **Unified FastAPI Application**
+
+The integrated server uses FastAPI as the foundation, providing:
+
+- **Webhook Endpoints**: `/slack/events` for Slack event processing
+- **MCP Endpoints**: Mounted at configurable path (default: `/mcp`)
+- **Health Checks**: Unified health monitoring for both components
+- **OpenAPI Documentation**: Combined API documentation
+
+### **Shared Resource Management**
+
+#### **Slack Client Sharing**
+Both MCP tools and webhook processing use the same Slack client instance:
+
+```python
+# Shared client initialization
+from slack_mcp.client.manager import initialize_slack_client
+
+initialize_slack_client(token=slack_token, retry=3)
+```
+
+Benefits:
+- Connection pooling efficiency
+- Consistent token management
+- Unified rate limiting
+- Shared authentication state
+
+#### **Configuration Management**
+Centralized configuration for both components:
+
+```python
+# Environment variables affecting both components
+SLACK_BOT_TOKEN=xoxb-...           # Shared Slack authentication
+SLACK_SIGNING_SECRET=...           # Webhook verification
+MCP_TRANSPORT=sse                  # MCP transport selection
+MCP_MOUNT_PATH=/mcp               # MCP endpoint path
+SLACK_EVENTS_TOPIC=slack.events   # Webhook event publishing
+```
+
+## Transport Configuration
+
+### **Server-Sent Events (SSE) Mode**
+
+Default transport for browser-compatible MCP integration:
+
+```python
+# SSE transport mounted at /mcp
+mcp_app = server.sse_app(mount_path="/mcp")
+app.mount("/mcp", mcp_app)
+```
+
+**Endpoint Structure:**
+- Webhook: `POST /slack/events`
+- MCP SSE: `GET /mcp/sse`
+- Health: `GET /health`
+
+### **HTTP Streaming Mode**
+
+RESTful HTTP transport integration:
+
+```python
+# HTTP streaming routes merged into main app
+mcp_app = server.streamable_http_app()
+for route in mcp_app.routes:
+    app.routes.append(route)
+```
+
+**Endpoint Structure:**
+- Webhook: `POST /slack/events`
+- MCP Tools: `POST /call_tool`, `GET /list_tools`, etc.
+- Health: `GET /health`
+
+## Deployment Patterns
+
+### **Single Container Deployment**
+
+Unified deployment with Docker:
+
+```dockerfile
+FROM python:3.11-slim
+COPY . /app
+WORKDIR /app
+RUN pip install -e .
+EXPOSE 3000
+CMD ["slack-integrated-server", "--transport", "sse", "--port", "3000"]
+```
+
+**Environment Configuration:**
+```yaml
+environment:
+  - SLACK_BOT_TOKEN=xoxb-your-token
+  - SLACK_SIGNING_SECRET=your-signing-secret
+  - MCP_TRANSPORT=sse
+  - MCP_MOUNT_PATH=/mcp
+  - PORT=3000
+```
+
+### **Kubernetes Deployment**
+
+Scalable container orchestration:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-mcp-integrated
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: slack-mcp-integrated
+  template:
+    metadata:
+      labels:
+        app: slack-mcp-integrated
+    spec:
+      containers:
+      - name: server
+        image: slack-mcp-server:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: SLACK_BOT_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: bot-token
+        - name: SLACK_SIGNING_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: slack-secrets
+              key: signing-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: slack-mcp-service
+spec:
+  selector:
+    app: slack-mcp-integrated
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: LoadBalancer
+```
+
+### **Cloud Platform Deployment**
+
+#### **Heroku**
+```bash
+# Deploy to Heroku
+heroku create your-slack-mcp-app
+heroku config:set SLACK_BOT_TOKEN=xoxb-your-token
+heroku config:set SLACK_SIGNING_SECRET=your-secret
+heroku config:set MCP_TRANSPORT=sse
+git push heroku main
+```
+
+#### **Google Cloud Run**
+```yaml
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: slack-mcp-integrated
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: "10"
+    spec:
+      containers:
+      - image: gcr.io/project-id/slack-mcp-server
+        ports:
+        - containerPort: 3000
+        env:
+        - name: SLACK_BOT_TOKEN
+          value: "xoxb-your-token"
+        - name: MCP_TRANSPORT
+          value: "sse"
+```
+
+## Configuration Options
+
+### **CLI Configuration**
+
+```bash
+slack-integrated-server \
+  --transport sse \
+  --mount-path /mcp \
+  --host 0.0.0.0 \
+  --port 3000 \
+  --log-level INFO \
+  --retry 3
+```
+
+### **Environment Variables**
+
+#### **Required**
+- `SLACK_BOT_TOKEN`: Slack bot token for MCP tools
+- `SLACK_SIGNING_SECRET`: Signing secret for webhook verification
+
+#### **Optional**
+- `MCP_TRANSPORT`: Transport mechanism (sse, streamable-http)
+- `MCP_MOUNT_PATH`: Mount path for MCP endpoints
+- `SLACK_EVENTS_TOPIC`: Queue topic for webhook events
+- `QUEUE_BACKEND_TYPE`: Queue backend selection
+- `HOST`: Server bind address
+- `PORT`: Server port
+- `LOG_LEVEL`: Logging verbosity
+
+### **Transport-Specific Configuration**
+
+#### **SSE Transport**
+```python
+# Mount path affects SSE endpoint
+MCP_MOUNT_PATH=/api/mcp  # SSE available at /api/mcp/sse
+```
+
+#### **HTTP Streaming**
+```python
+# Routes merged directly into app
+# No mount path required, routes at root level
+```
+
+## Client Integration
+
+### **MCP Client Connection**
+
+#### **SSE Transport**
+```typescript
+// Browser-based MCP client
+const client = new MCPClient({
+  transport: 'sse',
+  url: 'https://your-server.com/mcp/sse'
+});
+```
+
+#### **HTTP Streaming**
+```python
+# Python MCP client
+from mcp import Client
+from mcp.client.http import HttpTransport
+
+transport = HttpTransport("https://your-server.com")
+client = Client(transport)
+```
+
+### **Webhook Configuration**
+
+Configure Slack app webhook URL:
+```
+https://your-server.com/slack/events
+```
+
+## Monitoring and Observability
+
+### **Health Checks**
+
+Unified health endpoints for both components:
+
+```python
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "components": {
+            "mcp_server": "ready",
+            "webhook_server": "ready",
+            "slack_client": "connected",
+            "queue_backend": "connected"
+        },
+        "timestamp": datetime.utcnow().isoformat()
+    }
+```
+
+### **Metrics Collection**
+
+- **Request Metrics**: HTTP request/response statistics
+- **MCP Metrics**: Tool usage and performance
+- **Webhook Metrics**: Event processing throughput
+- **Error Metrics**: Error rates and types
+
+### **Logging Strategy**
+
+Structured logging with correlation IDs:
+
+```python
+import structlog
+
+logger = structlog.get_logger()
+
+# Webhook request logging
+logger.info("webhook_event_received", 
+           event_type=event_type, 
+           team_id=team_id,
+           correlation_id=correlation_id)
+
+# MCP tool logging
+logger.info("mcp_tool_executed",
+           tool_name=tool_name,
+           execution_time=execution_time,
+           correlation_id=correlation_id)
+```
+
+## Error Handling
+
+### **Unified Error Responses**
+
+Consistent error format across both components:
+
+```python
+{
+  "error": {
+    "code": "COMPONENT_ERROR",
+    "message": "Human-readable error message",
+    "component": "mcp|webhook",
+    "details": {
+      "specific_error_data": "..."
+    },
+    "correlation_id": "uuid-correlation-id"
+  }
+}
+```
+
+### **Circuit Breaker Pattern**
+
+Resilience for external dependencies:
+
+```python
+from circuitbreaker import circuit
+
+@circuit(failure_threshold=5, recovery_timeout=30)
+async def slack_api_call():
+    # Slack API interaction with circuit breaker
+    pass
+```
+
+## Performance Considerations
+
+### **Resource Sharing Benefits**
+
+- **Memory Efficiency**: Single application instance
+- **Connection Pooling**: Shared HTTP connections
+- **Process Management**: Reduced overhead
+- **Monitoring Simplicity**: Single deployment to monitor
+
+### **Scaling Strategies**
+
+- **Horizontal Scaling**: Multiple container instances
+- **Load Balancing**: Distribute requests across instances
+- **Auto-scaling**: Based on CPU/memory/request metrics
+- **Regional Deployment**: Multiple regions for latency
+
+## Security
+
+### **Unified Security Model**
+
+- **Token Management**: Single source of truth for Slack credentials
+- **Request Verification**: Webhook signature validation
+- **HTTPS Enforcement**: TLS termination at load balancer
+- **Secret Management**: Environment-based configuration
+
+### **Network Security**
+
+- **Firewall Rules**: Restrict inbound traffic to HTTPS
+- **API Gateway**: Optional API gateway for additional security
+- **Rate Limiting**: Application-level rate limiting
+- **DDoS Protection**: Cloud provider DDoS mitigation
+
+This integrated server architecture provides a comprehensive, production-ready solution for deploying both MCP and webhook functionality in a unified, maintainable, and scalable manner.
