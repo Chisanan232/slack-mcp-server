@@ -44,6 +44,7 @@ Repository = "https://github.com/Chisanan232/slack-mcp-server"
 [project.scripts]
 slack-mcp-server = "slack_mcp.mcp.entry:main"
 slack-webhook-server = "slack_mcp.webhook.entry:main"
+release-intent = "scripts.ci.release_intent:main"
 
 [project.entry-points."slack_mcp.backends.queue"]
 memory = "slack_mcp.backends.queue.memory:MemoryBackend"
@@ -64,6 +65,10 @@ pre-commit-ci = [
     "pre-commit>=4.2.0,<5",
     "pylint>=3.3.7,<4",
     "mypy>=1.16.1,<2",
+]
+release-ci = [
+    "pyyaml>=6.0.1,<7",
+    "jsonschema>=4.17.0,<5",
 ]
 
 [tool.uv]

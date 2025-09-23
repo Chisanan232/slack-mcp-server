@@ -41,6 +41,7 @@ on:
 
 env:
   TEST_TAG: user/slack-mcp-server:test
+  TEST_CONTAINER_NAME: slack-mcp-server
 
 jobs:
   image-check:
@@ -80,4 +81,7 @@ jobs:
 
       - name: Test
         run: |
-          docker run --rm ${{ env.TEST_TAG }}
+          docker run -e SERVICE_TYPE=mcp -e SLACK_BOT_TOKEN=test_token -e MCP_INTEGRATED=true -e MCP_LOG_LEVEL=DEBUG -d --rm --name ${{ env.TEST_CONTAINER_NAME }} ${{ env.TEST_TAG }}
+          echo "Waiting for the server to start..."
+          sleep 5
+          docker logs ${{ env.TEST_CONTAINER_NAME }}
