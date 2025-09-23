@@ -40,41 +40,13 @@ def sample_api_spec() -> dict[str, any]:
     """Sample API specification structure (simplified version of actual Slack API spec)."""
     return {
         "topics": {
-            "message": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/message"
-                    }
-                }
-            },
-            "reaction.added": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/reaction_added"
-                    }
-                }
-            },
+            "message": {"subscribe": {"externalDocs": {"url": "https://api.slack.com/events/message"}}},
+            "reaction.added": {"subscribe": {"externalDocs": {"url": "https://api.slack.com/events/reaction_added"}}},
             "message.channels": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/message.channels"
-                    }
-                }
+                "subscribe": {"externalDocs": {"url": "https://api.slack.com/events/message.channels"}}
             },
-            "app_mention": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/app_mention"
-                    }
-                }
-            },
-            "user_change": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/user_change"
-                    }
-                }
-            }
+            "app_mention": {"subscribe": {"externalDocs": {"url": "https://api.slack.com/events/app_mention"}}},
+            "user_change": {"subscribe": {"externalDocs": {"url": "https://api.slack.com/events/user_change"}}},
         }
     }
 
@@ -106,12 +78,12 @@ def setup_and_cleanup() -> None:
 
 
 # Tests for the fetch_api_spec function
-@patch('validate_slack_event_types.urllib.request.urlopen')
+@patch("validate_slack_event_types.urllib.request.urlopen")
 def test_fetch_api_spec_success(mock_urlopen: Mock, sample_api_spec: dict[str, any]) -> None:
     """Test successful API specification fetching."""
     # Mock the URL response
     mock_response = MagicMock()
-    mock_response.read.return_value = json.dumps(sample_api_spec).encode('utf-8')
+    mock_response.read.return_value = json.dumps(sample_api_spec).encode("utf-8")
     mock_response.__enter__.return_value = mock_response
     mock_response.__exit__.return_value = None
     mock_urlopen.return_value = mock_response
@@ -122,13 +94,13 @@ def test_fetch_api_spec_success(mock_urlopen: Mock, sample_api_spec: dict[str, a
     mock_urlopen.assert_called_once_with("https://example.com/api.json")
 
 
-@patch('validate_slack_event_types.urllib.request.urlopen')
-@patch('validate_slack_event_types.sys.exit')
+@patch("validate_slack_event_types.urllib.request.urlopen")
+@patch("validate_slack_event_types.sys.exit")
 def test_fetch_api_spec_url_error(mock_exit: Mock, mock_urlopen: Mock) -> None:
     """Test handling of URL errors when fetching API spec."""
     mock_urlopen.side_effect = URLError("Connection failed")
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         script_module.fetch_api_spec("https://invalid-url.com/api.json")
 
     mock_exit.assert_called_once_with(1)
@@ -137,8 +109,8 @@ def test_fetch_api_spec_url_error(mock_exit: Mock, mock_urlopen: Mock) -> None:
     assert "Connection failed" in error_output
 
 
-@patch('validate_slack_event_types.urllib.request.urlopen')
-@patch('validate_slack_event_types.sys.exit')
+@patch("validate_slack_event_types.urllib.request.urlopen")
+@patch("validate_slack_event_types.sys.exit")
 def test_fetch_api_spec_json_decode_error(mock_exit: Mock, mock_urlopen: Mock) -> None:
     """Test handling of JSON decode errors."""
     mock_response = MagicMock()
@@ -147,7 +119,7 @@ def test_fetch_api_spec_json_decode_error(mock_exit: Mock, mock_urlopen: Mock) -
     mock_response.__exit__.return_value = None
     mock_urlopen.return_value = mock_response
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         script_module.fetch_api_spec("https://example.com/api.json")
 
     mock_exit.assert_called_once_with(1)
@@ -175,13 +147,7 @@ def test_extract_event_types_basic(sample_api_spec: dict[str, any]) -> None:
 
 def test_extract_event_types_no_external_docs() -> None:
     """Test event extraction when externalDocs URL is missing."""
-    spec_without_docs = {
-        "topics": {
-            "custom_event": {
-                "subscribe": {}
-            }
-        }
-    }
+    spec_without_docs = {"topics": {"custom_event": {"subscribe": {}}}}
 
     standard_events, subtype_events = script_module.extract_event_types(spec_without_docs)
 
@@ -205,20 +171,8 @@ def test_extract_event_types_subtype_handling() -> None:
     """Test proper handling of events with subtypes."""
     spec_with_subtypes = {
         "topics": {
-            "message.im": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/message.im"
-                    }
-                }
-            },
-            "file.change": {
-                "subscribe": {
-                    "externalDocs": {
-                        "url": "https://api.slack.com/events/file.change"
-                    }
-                }
-            }
+            "message.im": {"subscribe": {"externalDocs": {"url": "https://api.slack.com/events/message.im"}}},
+            "file.change": {"subscribe": {"externalDocs": {"url": "https://api.slack.com/events/file.change"}}},
         }
     }
 
@@ -233,21 +187,22 @@ def test_extract_event_types_subtype_handling() -> None:
 
 
 # Tests for the get_current_enum_events function
-@patch('validate_slack_event_types.importlib.util.spec_from_file_location')
-@patch('validate_slack_event_types.importlib.util.module_from_spec')
+@patch("validate_slack_event_types.importlib.util.spec_from_file_location")
+@patch("validate_slack_event_types.importlib.util.module_from_spec")
 def test_get_current_enum_events_success(mock_module_from_spec: Mock, mock_spec_from_file: Mock) -> None:
     """Test successful loading of SlackEvent enum."""
+
     # Create mock event objects with values
     class MockEventValue:
         def __init__(self, value: str) -> None:
             self.value = value
-    
+
     # Create individual enum instances
     message_event = MockEventValue("message")
     reaction_event = MockEventValue("reaction_added")
     channel_event = MockEventValue("message.channels")
     mention_event = MockEventValue("app_mention")
-    
+
     mock_enum_values = [message_event, reaction_event, channel_event, mention_event]
 
     # Create a mock enum class that properly iterates
@@ -265,14 +220,15 @@ def test_get_current_enum_events_success(mock_module_from_spec: Mock, mock_spec_
     mock_module_from_spec.return_value = mock_module
 
     # Patch isinstance within the module to make our mock objects appear as Enum instances
-    with patch('validate_slack_event_types.isinstance') as mock_isinstance:
+    with patch("validate_slack_event_types.isinstance") as mock_isinstance:
+
         def isinstance_side_effect(obj: any, cls: type) -> bool:
-            if cls == Enum and hasattr(obj, 'value'):
+            if cls == Enum and hasattr(obj, "value"):
                 return True
             return type(obj) == cls or isinstance(type(obj), type(cls))
-        
+
         mock_isinstance.side_effect = isinstance_side_effect
-        
+
         standard_events, subtype_events = script_module.get_current_enum_events()
 
     # Verify results
@@ -282,12 +238,12 @@ def test_get_current_enum_events_success(mock_module_from_spec: Mock, mock_spec_
     assert "message.channels" in subtype_events
 
 
-@patch('validate_slack_event_types.importlib.util.spec_from_file_location')
+@patch("validate_slack_event_types.importlib.util.spec_from_file_location")
 def test_get_current_enum_events_import_error(mock_spec_from_file: Mock) -> None:
     """Test handling of import errors when loading enum."""
     mock_spec_from_file.return_value = None
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         standard_events, subtype_events = script_module.get_current_enum_events()
 
     # Should return empty sets on error
@@ -298,8 +254,8 @@ def test_get_current_enum_events_import_error(mock_spec_from_file: Mock) -> None
     assert "Error importing SlackEvent enum" in error_output
 
 
-@patch('validate_slack_event_types.importlib.util.spec_from_file_location')
-@patch('validate_slack_event_types.importlib.util.module_from_spec')
+@patch("validate_slack_event_types.importlib.util.spec_from_file_location")
+@patch("validate_slack_event_types.importlib.util.module_from_spec")
 def test_get_current_enum_events_attribute_error(mock_module_from_spec: Mock, mock_spec_from_file: Mock) -> None:
     """Test handling when SlackEvent attribute is missing."""
     mock_spec = Mock()
@@ -312,7 +268,7 @@ def test_get_current_enum_events_attribute_error(mock_module_from_spec: Mock, mo
     del mock_module.SlackEvent
     mock_module_from_spec.return_value = mock_module
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         standard_events, subtype_events = script_module.get_current_enum_events()
 
     # Should return empty sets on error
@@ -331,7 +287,7 @@ def test_compare_events_no_differences() -> None:
     enum_standard = {"message", "reaction_added"}
     enum_subtype = {"message.channels"}
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         script_module.compare_events(api_standard, api_subtype, enum_standard, enum_subtype)
 
     output = mock_stdout.getvalue()
@@ -346,7 +302,7 @@ def test_compare_events_missing_in_enum() -> None:
     enum_standard = {"message", "reaction_added"}
     enum_subtype = {"message.channels"}
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         script_module.compare_events(api_standard, api_subtype, enum_standard, enum_subtype)
 
     output = mock_stdout.getvalue()
@@ -362,7 +318,7 @@ def test_compare_events_extra_in_enum() -> None:
     enum_standard = {"message", "reaction_added", "custom_event"}
     enum_subtype = {"message.channels", "message.custom"}
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         script_module.compare_events(api_standard, api_subtype, enum_standard, enum_subtype)
 
     output = mock_stdout.getvalue()
@@ -379,7 +335,7 @@ def test_validate_enum_completeness_success() -> None:
     enum_standard = {"message", "reaction_added", "extra_event"}  # Extra is OK in non-strict
     enum_subtype = {"message.channels"}
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         result = script_module.validate_enum_completeness(
             api_standard, api_subtype, enum_standard, enum_subtype, strict=False
         )
@@ -397,7 +353,7 @@ def test_validate_enum_completeness_missing_events() -> None:
     enum_standard = {"message", "reaction_added"}
     enum_subtype = {"message.channels"}
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         result = script_module.validate_enum_completeness(
             api_standard, api_subtype, enum_standard, enum_subtype, strict=False
         )
@@ -418,7 +374,7 @@ def test_validate_enum_completeness_strict_mode_success() -> None:
     enum_standard = {"message", "reaction_added"}
     enum_subtype = {"message.channels"}
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         result = script_module.validate_enum_completeness(
             api_standard, api_subtype, enum_standard, enum_subtype, strict=True
         )
@@ -435,7 +391,7 @@ def test_validate_enum_completeness_strict_mode_extra_events() -> None:
     enum_standard = {"message", "reaction_added", "extra_event"}
     enum_subtype = {"message.channels", "message.custom"}
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         result = script_module.validate_enum_completeness(
             api_standard, api_subtype, enum_standard, enum_subtype, strict=True
         )
@@ -450,21 +406,27 @@ def test_validate_enum_completeness_strict_mode_extra_events() -> None:
 
 
 # Tests for utility functions
-@pytest.mark.parametrize("event_name,expected", [
-    ("message", "MESSAGE"),
-    ("reaction_added", "REACTION_ADDED"),
-    ("app_mention", "APP_MENTION"),
-])
+@pytest.mark.parametrize(
+    "event_name,expected",
+    [
+        ("message", "MESSAGE"),
+        ("reaction_added", "REACTION_ADDED"),
+        ("app_mention", "APP_MENTION"),
+    ],
+)
 def test_convert_to_enum_name_standard_event(event_name: str, expected: str) -> None:
     """Test conversion of standard event names to enum names."""
     assert script_module.convert_to_enum_name(event_name) == expected
 
 
-@pytest.mark.parametrize("event_name,expected", [
-    ("message.channels", "MESSAGE_CHANNELS"),
-    ("file.change", "FILE_CHANGE"),
-    ("message.im", "MESSAGE_IM"),
-])
+@pytest.mark.parametrize(
+    "event_name,expected",
+    [
+        ("message.channels", "MESSAGE_CHANNELS"),
+        ("file.change", "FILE_CHANGE"),
+        ("message.im", "MESSAGE_IM"),
+    ],
+)
 def test_convert_to_enum_name_subtype_event(event_name: str, expected: str) -> None:
     """Test conversion of subtype event names to enum names."""
     assert script_module.convert_to_enum_name(event_name) == expected
@@ -570,14 +532,11 @@ def test_generate_update_code_missing_events() -> None:
 
 
 # Integration tests for the main function
-@patch('validate_slack_event_types.fetch_api_spec')
-@patch('validate_slack_event_types.extract_event_types')
-@patch('validate_slack_event_types.sys.argv')
+@patch("validate_slack_event_types.fetch_api_spec")
+@patch("validate_slack_event_types.extract_event_types")
+@patch("validate_slack_event_types.sys.argv")
 def test_main_basic_output(
-    mock_argv: Mock, 
-    mock_extract: Mock, 
-    mock_fetch: Mock, 
-    sample_api_spec: dict[str, any]
+    mock_argv: Mock, mock_extract: Mock, mock_fetch: Mock, sample_api_spec: dict[str, any]
 ) -> None:
     """Test main function with basic output formatting."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name"][x]
@@ -585,7 +544,7 @@ def test_main_basic_output(
     mock_fetch.return_value = sample_api_spec
     mock_extract.return_value = ({"message", "reaction_added"}, {"message.channels"})
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         script_module.main()
 
     output = mock_stdout.getvalue()
@@ -595,16 +554,12 @@ def test_main_basic_output(
     assert "Output:" in output
 
 
-@patch('validate_slack_event_types.fetch_api_spec')
-@patch('validate_slack_event_types.extract_event_types')
-@patch('validate_slack_event_types.get_current_enum_events')
-@patch('validate_slack_event_types.sys.argv')
+@patch("validate_slack_event_types.fetch_api_spec")
+@patch("validate_slack_event_types.extract_event_types")
+@patch("validate_slack_event_types.get_current_enum_events")
+@patch("validate_slack_event_types.sys.argv")
 def test_main_with_compare_flag(
-    mock_argv: Mock, 
-    mock_get_current: Mock, 
-    mock_extract: Mock, 
-    mock_fetch: Mock,
-    sample_api_spec: dict[str, any]
+    mock_argv: Mock, mock_get_current: Mock, mock_extract: Mock, mock_fetch: Mock, sample_api_spec: dict[str, any]
 ) -> None:
     """Test main function with --compare flag."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name", "--compare"][x]
@@ -613,27 +568,27 @@ def test_main_with_compare_flag(
     mock_extract.return_value = ({"message", "reaction_added"}, {"message.channels"})
     mock_get_current.return_value = ({"message", "reaction_added"}, {"message.channels"})
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         script_module.main()
 
     output = mock_stdout.getvalue()
     assert "Comparison with current SlackEvent enum" in output
 
 
-@patch('validate_slack_event_types.fetch_api_spec')
-@patch('validate_slack_event_types.extract_event_types')
-@patch('validate_slack_event_types.get_current_enum_events')
-@patch('validate_slack_event_types.validate_enum_completeness')
-@patch('validate_slack_event_types.sys.argv')
-@patch('validate_slack_event_types.sys.exit')
+@patch("validate_slack_event_types.fetch_api_spec")
+@patch("validate_slack_event_types.extract_event_types")
+@patch("validate_slack_event_types.get_current_enum_events")
+@patch("validate_slack_event_types.validate_enum_completeness")
+@patch("validate_slack_event_types.sys.argv")
+@patch("validate_slack_event_types.sys.exit")
 def test_main_with_validate_flag_failure(
-    mock_exit: Mock, 
-    mock_argv: Mock, 
-    mock_validate: Mock, 
-    mock_get_current: Mock, 
-    mock_extract: Mock, 
+    mock_exit: Mock,
+    mock_argv: Mock,
+    mock_validate: Mock,
+    mock_get_current: Mock,
+    mock_extract: Mock,
     mock_fetch: Mock,
-    sample_api_spec: dict[str, any]
+    sample_api_spec: dict[str, any],
 ) -> None:
     """Test main function with --validate flag when validation fails."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name", "--validate"][x]
@@ -643,7 +598,7 @@ def test_main_with_validate_flag_failure(
     mock_get_current.return_value = ({"message"}, set())
     mock_validate.return_value = False  # Validation fails
 
-    with patch('sys.stderr', new_callable=StringIO) as mock_stderr:
+    with patch("sys.stderr", new_callable=StringIO) as mock_stderr:
         script_module.main()
 
     mock_exit.assert_called_once_with(1)
@@ -651,18 +606,18 @@ def test_main_with_validate_flag_failure(
     assert "Validation failed" in error_output
 
 
-@patch('validate_slack_event_types.fetch_api_spec')
-@patch('validate_slack_event_types.extract_event_types')
-@patch('validate_slack_event_types.get_current_enum_events')
-@patch('validate_slack_event_types.generate_update_code')
-@patch('validate_slack_event_types.sys.argv')
+@patch("validate_slack_event_types.fetch_api_spec")
+@patch("validate_slack_event_types.extract_event_types")
+@patch("validate_slack_event_types.get_current_enum_events")
+@patch("validate_slack_event_types.generate_update_code")
+@patch("validate_slack_event_types.sys.argv")
 def test_main_with_generate_update_flag(
-    mock_argv: Mock, 
-    mock_generate: Mock, 
-    mock_get_current: Mock, 
-    mock_extract: Mock, 
+    mock_argv: Mock,
+    mock_generate: Mock,
+    mock_get_current: Mock,
+    mock_extract: Mock,
     mock_fetch: Mock,
-    sample_api_spec: dict[str, any]
+    sample_api_spec: dict[str, any],
 ) -> None:
     """Test main function with --generate-update flag."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name", "--generate-update"][x]
@@ -672,7 +627,7 @@ def test_main_with_generate_update_flag(
     mock_get_current.return_value = ({"message"}, set())
     mock_generate.return_value = 'APP_MENTION = "app_mention"'
 
-    with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+    with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
         script_module.main()
 
     output = mock_stdout.getvalue()
