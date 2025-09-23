@@ -20,6 +20,7 @@ import os
 import sys
 from enum import Enum
 from io import StringIO
+from typing import Any, Generator, Iterator
 from unittest.mock import MagicMock, Mock, patch
 from urllib.error import URLError
 
@@ -36,7 +37,7 @@ import validate_slack_event_types as script_module
 
 # PyTest Fixtures
 @pytest.fixture
-def sample_api_spec() -> dict[str, any]:
+def sample_api_spec() -> dict[str, Any]:
     """Sample API specification structure (simplified version of actual Slack API spec)."""
     return {
         "topics": {
@@ -68,7 +69,7 @@ def sample_enum_events() -> tuple[set[str], set[str]]:
 
 
 @pytest.fixture(autouse=True)
-def setup_and_cleanup() -> None:
+def setup_and_cleanup() -> Generator[None, None, None]:
     """Automatic setup and cleanup for all tests."""
     # Setup is already done by adding to sys.path at module level
     yield
@@ -79,7 +80,7 @@ def setup_and_cleanup() -> None:
 
 # Tests for the fetch_api_spec function
 @patch("validate_slack_event_types.urllib.request.urlopen")
-def test_fetch_api_spec_success(mock_urlopen: Mock, sample_api_spec: dict[str, any]) -> None:
+def test_fetch_api_spec_success(mock_urlopen: Mock, sample_api_spec: dict[str, Any]) -> None:
     """Test successful API specification fetching."""
     # Mock the URL response
     mock_response = MagicMock()
@@ -128,7 +129,7 @@ def test_fetch_api_spec_json_decode_error(mock_exit: Mock, mock_urlopen: Mock) -
 
 
 # Tests for the extract_event_types function
-def test_extract_event_types_basic(sample_api_spec: dict[str, any]) -> None:
+def test_extract_event_types_basic(sample_api_spec: dict[str, Any]) -> None:
     """Test basic event type extraction from API spec."""
     standard_events, subtype_events = script_module.extract_event_types(sample_api_spec)
 
@@ -147,7 +148,7 @@ def test_extract_event_types_basic(sample_api_spec: dict[str, any]) -> None:
 
 def test_extract_event_types_no_external_docs() -> None:
     """Test event extraction when externalDocs URL is missing."""
-    spec_without_docs = {"topics": {"custom_event": {"subscribe": {}}}}
+    spec_without_docs: dict[str, Any] = {"topics": {"custom_event": {"subscribe": {}}}}
 
     standard_events, subtype_events = script_module.extract_event_types(spec_without_docs)
 
@@ -157,7 +158,7 @@ def test_extract_event_types_no_external_docs() -> None:
 
 def test_extract_event_types_empty_spec() -> None:
     """Test event extraction from empty or invalid spec."""
-    empty_spec: dict[str, any] = {}
+    empty_spec: dict[str, Any] = {}
     standard_events, subtype_events = script_module.extract_event_types(empty_spec)
 
     # Should still include known message subtypes
@@ -207,7 +208,7 @@ def test_get_current_enum_events_success(mock_module_from_spec: Mock, mock_spec_
 
     # Create a mock enum class that properly iterates
     class MockSlackEvent:
-        def __iter__(self) -> list[MockEventValue]:
+        def __iter__(self) -> Iterator[MockEventValue]:
             return iter(mock_enum_values)
 
     # Mock the module loading
@@ -222,7 +223,7 @@ def test_get_current_enum_events_success(mock_module_from_spec: Mock, mock_spec_
     # Patch isinstance within the module to make our mock objects appear as Enum instances
     with patch("validate_slack_event_types.isinstance") as mock_isinstance:
 
-        def isinstance_side_effect(obj: any, cls: type) -> bool:
+        def isinstance_side_effect(obj: Any, cls: type) -> bool:
             if cls == Enum and hasattr(obj, "value"):
                 return True
             return type(obj) == cls or isinstance(type(obj), type(cls))
@@ -536,7 +537,7 @@ def test_generate_update_code_missing_events() -> None:
 @patch("validate_slack_event_types.extract_event_types")
 @patch("validate_slack_event_types.sys.argv")
 def test_main_basic_output(
-    mock_argv: Mock, mock_extract: Mock, mock_fetch: Mock, sample_api_spec: dict[str, any]
+    mock_argv: Mock, mock_extract: Mock, mock_fetch: Mock, sample_api_spec: dict[str, Any]
 ) -> None:
     """Test main function with basic output formatting."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name"][x]
@@ -559,7 +560,7 @@ def test_main_basic_output(
 @patch("validate_slack_event_types.get_current_enum_events")
 @patch("validate_slack_event_types.sys.argv")
 def test_main_with_compare_flag(
-    mock_argv: Mock, mock_get_current: Mock, mock_extract: Mock, mock_fetch: Mock, sample_api_spec: dict[str, any]
+    mock_argv: Mock, mock_get_current: Mock, mock_extract: Mock, mock_fetch: Mock, sample_api_spec: dict[str, Any]
 ) -> None:
     """Test main function with --compare flag."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name", "--compare"][x]
@@ -588,7 +589,7 @@ def test_main_with_validate_flag_failure(
     mock_get_current: Mock,
     mock_extract: Mock,
     mock_fetch: Mock,
-    sample_api_spec: dict[str, any],
+    sample_api_spec: dict[str, Any],
 ) -> None:
     """Test main function with --validate flag when validation fails."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name", "--validate"][x]
@@ -617,7 +618,7 @@ def test_main_with_generate_update_flag(
     mock_get_current: Mock,
     mock_extract: Mock,
     mock_fetch: Mock,
-    sample_api_spec: dict[str, any],
+    sample_api_spec: dict[str, Any],
 ) -> None:
     """Test main function with --generate-update flag."""
     mock_argv.__getitem__.side_effect = lambda x: ["script_name", "--generate-update"][x]
