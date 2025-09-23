@@ -1,0 +1,108 @@
+name: Docs-only auto-approve & automerge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+    branches: [master]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  gate:
+    name: Gate & auto-merge docs-only PR
+    runs-on: ubuntu-latest
+
+    # only process the PRs in the same repo and not draft
+    if: >
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Classify changes (docs-only?)
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          filters: |
+            code:
+              - 'slack_mcp/**'
+              - 'examples/**'
+              - 'scripts/**'
+              - 'test/**'
+              - '.github/**'
+              - '.coveragerc'
+              - '.dockerignore'
+              - '.env*'
+              - '.gitignore'
+              - '.pre-commit-config.yaml'
+              - '.pylintrc'
+              - 'Dockerfile'
+              - 'mypy.ini'
+              - 'pyproject.toml'
+              - 'pytest.ini'
+              - 'sonar-project.properties'
+              - '**/*.py'
+              - 'uv.lock'
+              - 'docs/api_spec/**'
+              - 'docs/src/**'
+              - 'docs/docusaurus.config.*'
+              - 'docs/package.json'
+              - 'docs/package-lock.json'
+              - 'docs/*.yaml'
+            docs:
+              - 'docs/**'
+              - '!docs/api_spec/**'
+              - '!docs/src/**'
+              - 'README.md'
+              - '**/*.md'
+              - '**/*.mdx'
+              - 'docs/static/**'
+              - '**/*.png'
+              - '**/*.jpg'
+              - '**/*.jpeg'
+              - '**/*.gif'
+              - '**/*.webp'
+              - '**/*.svg'
+
+      # Define a docs-only condition we can reuse
+      - name: Check if docs-only
+        id: docs_only_check
+        run: |
+          if [[ "${{ steps.changes.outputs.docs }}" == "true" && "${{ steps.changes.outputs.code }}" != "true" ]]; then
+            echo "is_docs_only=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_docs_only=false" >> $GITHUB_OUTPUT
+            echo "Not docs-only changes. Skipping remaining steps."
+          fi
+
+      - name: Add label docs-only
+        if: steps.docs_only_check.outputs.is_docs_only == 'true'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: 📝 docs-only
+
+      # Auto-approve（required setting「Allow GitHub Actions to create and approve pull requests」in repo）
+      - name: Approve PR via REST API
+        if: steps.docs_only_check.outputs.is_docs_only == 'true'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              event: 'APPROVE',              // other valid options: 'REQUEST_CHANGES' or 'COMMENT'
+              body: '✅ Auto-approved: docs-only changes.'
+            });
+
+      # Activate GitHub auto-merge（required setting「Allow auto-merge」in repo）
+      - name: Enable auto-merge (squash)
+        if: steps.docs_only_check.outputs.is_docs_only == 'true'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          pull-request-number: ${{ github.event.pull_request.number }}
+          merge-method: MERGE
