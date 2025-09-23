@@ -12,7 +12,7 @@
 🦾 **A powerful MCP (Model Context Protocol) server for Slack integration**, providing standardized access to Slack's API features through both MCP tools and webhook processing.
 
 **Key Features:**
-- 🤖 **MCP Server**: Provides 6 essential Slack tools for AI assistants and clients  
+- 🤖 **MCP Server**: Provides 6 essential Slack tools for AI assistants and clients
 - 🪝 **Webhook Server**: Processes real-time Slack events with secure verification
 - 🔗 **Integrated Mode**: Combined MCP + webhook server for complete Slack platform integration
 - 🚀 **Multiple Transports**: Supports stdio, SSE, and HTTP streaming protocols
@@ -265,7 +265,7 @@ Comprehensive documentation is available at **[https://chisanan232.github.io/sla
 ## 🌟 Features
 
 - 🤖 **6 Essential MCP Tools**: Complete Slack API integration for AI assistants
-- 🪝 **Webhook Processing**: Real-time event handling with secure HMAC verification  
+- 🪝 **Webhook Processing**: Real-time event handling with secure HMAC verification
 - 🔗 **Integrated Mode**: Combined MCP + webhook server for complete functionality
 - 🚀 **Multiple Transports**: stdio, SSE, and HTTP streaming protocols
 - 📦 **Message Queue Backends**: Memory, Redis, and Kafka support
@@ -279,7 +279,7 @@ Want to contribute? Great! Check out our [GitHub repository](https://github.com/
 ### Development Workflow
 
 ```bash
-# Install development dependencies  
+# Install development dependencies
 uv sync --dev
 
 # Run code quality checks
@@ -292,7 +292,7 @@ uv run pytest
 ## 🏗️ Use Cases
 
 - Building AI assistants with Slack integration
-- Creating custom automation tools for Slack workflows  
+- Creating custom automation tools for Slack workflows
 - Developing real-time Slack applications with event processing
 - Integrating Slack with other tools and platforms
 
