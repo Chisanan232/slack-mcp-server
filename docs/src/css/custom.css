@@ -2,29 +2,359 @@
  * Any CSS included here will be global. The classic template
  * bundles Infima by default. Infima is a CSS framework designed to
  * work well for content-centric websites.
+ * 
+ * Color scheme inspired by Slack branding for comfortable reading experience
  */
 
-/* You can override the default Infima variables here. */
+/* Slack-inspired color palette */
 :root {
-  --ifm-color-primary: #2e8555;
-  --ifm-color-primary-dark: #29784c;
-  --ifm-color-primary-darker: #277148;
-  --ifm-color-primary-darkest: #205d3b;
-  --ifm-color-primary-light: #33925d;
-  --ifm-color-primary-lighter: #359962;
-  --ifm-color-primary-lightest: #3cad6e;
+  /* Primary colors based on Slack's signature purple */
+  --ifm-color-primary: #4a154b;
+  --ifm-color-primary-dark: #3d1139;
+  --ifm-color-primary-darker: #350f32;
+  --ifm-color-primary-darkest: #2a0c28;
+  --ifm-color-primary-light: #5e1a5f;
+  --ifm-color-primary-lighter: #6b1e6c;
+  --ifm-color-primary-lightest: #822583;
+
+  /* Slack accent colors */
+  --slack-green: #2eb67d;
+  --slack-green-dark: #1e7e34;
+  --slack-green-light: #36c5f0;
+  --slack-blue: #36c5f0;
+  --slack-blue-dark: #2a9fd7;
+  --slack-blue-light: #4dd0f5;
+  --slack-yellow: #ecb22e;
+  --slack-yellow-dark: #d4a116;
+  --slack-yellow-light: #f1c349;
+  --slack-red: #e01e5a;
+  --slack-red-dark: #c91847;
+  --slack-red-light: #e54775;
+
+  /* Enhanced UI colors using Slack palette */
+  --ifm-color-success: var(--slack-green);
+  --ifm-color-success-dark: var(--slack-green-dark);
+  --ifm-color-success-darker: #1a6b29;
+  --ifm-color-success-darkest: #145821;
+  --ifm-color-success-light: #40d394;
+  --ifm-color-success-lighter: #4dd8a0;
+  --ifm-color-success-lightest: #6ce2b3;
+
+  --ifm-color-info: var(--slack-blue);
+  --ifm-color-info-dark: var(--slack-blue-dark);
+  --ifm-color-info-darker: #2490c4;
+  --ifm-color-info-darkest: #1e77a1;
+  --ifm-color-info-light: var(--slack-blue-light);
+  --ifm-color-info-lighter: #5dd5f7;
+  --ifm-color-info-lightest: #7ddef9;
+
+  --ifm-color-warning: var(--slack-yellow);
+  --ifm-color-warning-dark: var(--slack-yellow-dark);
+  --ifm-color-warning-darker: #c09014;
+  --ifm-color-warning-darkest: #a17912;
+  --ifm-color-warning-light: var(--slack-yellow-light);
+  --ifm-color-warning-lighter: #f3ca5b;
+  --ifm-color-warning-lightest: #f5d16e;
+
+  --ifm-color-danger: var(--slack-red);
+  --ifm-color-danger-dark: var(--slack-red-dark);
+  --ifm-color-danger-darker: #b31540;
+  --ifm-color-danger-darkest: #951135;
+  --ifm-color-danger-light: var(--slack-red-light);
+  --ifm-color-danger-lighter: #e85f87;
+  --ifm-color-danger-lightest: #eb7799;
+
+  /* Code and syntax highlighting */
   --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+  --docusaurus-highlighted-code-line-bg: rgba(74, 21, 75, 0.1);
+  --ifm-code-background: #f8f9fa;
+  
+  /* Links and interactive elements */
+  --ifm-link-color: var(--ifm-color-primary);
+  --ifm-link-hover-color: var(--ifm-color-primary-dark);
+  
+  /* Background gradients for hero sections */
+  --slack-gradient: linear-gradient(135deg, var(--ifm-color-primary) 0%, var(--slack-blue) 50%, var(--slack-green) 100%);
+  --slack-gradient-subtle: linear-gradient(135deg, rgba(74, 21, 75, 0.05) 0%, rgba(54, 197, 240, 0.05) 50%, rgba(46, 182, 125, 0.05) 100%);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
+/* Dark mode with enhanced readability and Slack-inspired colors */
 [data-theme='dark'] {
-  --ifm-color-primary: #25c2a0;
-  --ifm-color-primary-dark: #21af90;
-  --ifm-color-primary-darker: #1fa588;
-  --ifm-color-primary-darkest: #1a8870;
-  --ifm-color-primary-light: #29d5b0;
-  --ifm-color-primary-lighter: #32d8b4;
-  --ifm-color-primary-lightest: #4fddbf;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+  /* Lighter purple for better contrast in dark mode */
+  --ifm-color-primary: #d1a7d3;
+  --ifm-color-primary-dark: #c494c7;
+  --ifm-color-primary-darker: #bc88c0;
+  --ifm-color-primary-darkest: #a870ac;
+  --ifm-color-primary-light: #debe0;
+  --ifm-color-primary-lighter: #e6cbea;
+  --ifm-color-primary-lightest: #f0def3;
+
+  /* Adjusted Slack colors for dark mode */
+  --slack-green: #4dd394;
+  --slack-green-dark: #2eb67d;
+  --slack-green-light: #6ce2b3;
+  --slack-blue: #58d5f7;
+  --slack-blue-dark: #36c5f0;
+  --slack-blue-light: #7ddef9;
+  --slack-yellow: #f5d16e;
+  --slack-yellow-dark: #ecb22e;
+  --slack-yellow-light: #f7d984;
+  --slack-red: #eb7799;
+  --slack-red-dark: #e01e5a;
+  --slack-red-light: #efaab6;
+
+  /* Enhanced dark mode colors */
+  --ifm-color-success: var(--slack-green);
+  --ifm-color-success-dark: var(--slack-green-dark);
+  --ifm-color-success-darker: #26a269;
+  --ifm-color-success-darkest: #1e7e52;
+  --ifm-color-success-light: var(--slack-green-light);
+  --ifm-color-success-lighter: #7ee7c0;
+  --ifm-color-success-lightest: #90eccc;
+
+  --ifm-color-info: var(--slack-blue);
+  --ifm-color-info-dark: var(--slack-blue-dark);
+  --ifm-color-info-darker: #2bb0e6;
+  --ifm-color-info-darkest: #2090c4;
+  --ifm-color-info-light: var(--slack-blue-light);
+  --ifm-color-info-lighter: #8ee3fa;
+  --ifm-color-info-lightest: #a0e8fb;
+
+  --ifm-color-warning: var(--slack-yellow);
+  --ifm-color-warning-dark: var(--slack-yellow-dark);
+  --ifm-color-warning-darker: #d4a116;
+  --ifm-color-warning-darkest: #b8901a;
+  --ifm-color-warning-light: var(--slack-yellow-light);
+  --ifm-color-warning-lighter: #f8dd95;
+  --ifm-color-warning-lightest: #fae3a7;
+
+  --ifm-color-danger: var(--slack-red);
+  --ifm-color-danger-dark: var(--slack-red-dark);
+  --ifm-color-danger-darker: #cc1a52;
+  --ifm-color-danger-darkest: #b01745;
+  --ifm-color-danger-light: var(--slack-red-light);
+  --ifm-color-danger-lighter: #f0b8c8;
+  --ifm-color-danger-lightest: #f3c5d1;
+
+  /* Dark mode code highlighting */
+  --docusaurus-highlighted-code-line-bg: rgba(209, 167, 211, 0.15);
+  --ifm-code-background: #2d2d2d;
+  
+  /* Dark mode gradients */
+  --slack-gradient: linear-gradient(135deg, var(--ifm-color-primary-dark) 0%, var(--slack-blue-dark) 50%, var(--slack-green-dark) 100%);
+  --slack-gradient-subtle: linear-gradient(135deg, rgba(209, 167, 211, 0.1) 0%, rgba(54, 197, 240, 0.1) 50%, rgba(46, 182, 125, 0.1) 100%);
+}
+
+/* Custom enhancements for Slack branding */
+.hero {
+  background: var(--slack-gradient-subtle);
+}
+
+.navbar__brand:hover {
+  color: var(--slack-blue) !important;
+}
+
+/* Enhanced button styles with Slack colors */
+.button--primary {
+  background: var(--ifm-color-primary);
+  border-color: var(--ifm-color-primary);
+}
+
+.button--primary:hover {
+  background: var(--ifm-color-primary-dark);
+  border-color: var(--ifm-color-primary-dark);
+}
+
+.button--secondary {
+  background: transparent;
+  border: 2px solid var(--slack-blue);
+  color: var(--slack-blue);
+}
+
+.button--secondary:hover {
+  background: var(--slack-blue);
+  color: white;
+}
+
+/* Admonition enhancements with Slack colors */
+.admonition-icon svg {
+  fill: currentColor;
+}
+
+.alert--success {
+  --ifm-alert-color: var(--slack-green-dark);
+  --ifm-alert-background-color: rgba(46, 182, 125, 0.1);
+  --ifm-alert-border-color: var(--slack-green);
+}
+
+.alert--info {
+  --ifm-alert-color: var(--slack-blue-dark);
+  --ifm-alert-background-color: rgba(54, 197, 240, 0.1);
+  --ifm-alert-border-color: var(--slack-blue);
+}
+
+.alert--warning {
+  --ifm-alert-color: var(--slack-yellow-dark);
+  --ifm-alert-background-color: rgba(236, 178, 46, 0.1);
+  --ifm-alert-border-color: var(--slack-yellow);
+}
+
+.alert--danger {
+  --ifm-alert-color: var(--slack-red-dark);
+  --ifm-alert-background-color: rgba(224, 30, 90, 0.1);
+  --ifm-alert-border-color: var(--slack-red);
+}
+
+/* Tab enhancements */
+.tabs__item--active {
+  border-bottom-color: var(--slack-blue);
+  color: var(--slack-blue);
+}
+
+.tabs__item:hover {
+  color: var(--ifm-color-primary);
+}
+
+/* Code block enhancements */
+.prism-code {
+  border: 1px solid rgba(74, 21, 75, 0.1);
+}
+
+[data-theme='dark'] .prism-code {
+  border: 1px solid rgba(209, 167, 211, 0.2);
+}
+
+/* Table enhancements */
+.table-wrapper table {
+  border: 1px solid rgba(74, 21, 75, 0.1);
+}
+
+[data-theme='dark'] .table-wrapper table {
+  border: 1px solid rgba(209, 167, 211, 0.2);
+}
+
+.table-wrapper th {
+  background: var(--slack-gradient-subtle);
+  color: var(--ifm-color-primary-dark);
+  font-weight: 600;
+}
+
+/* Footer enhancements */
+.footer--dark {
+  background: linear-gradient(135deg, #2d2d2d 0%, rgba(74, 21, 75, 0.1) 100%);
+}
+
+/* Improved readability for long content */
+.markdown {
+  line-height: 1.7;
+}
+
+.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 {
+  color: var(--ifm-color-primary);
+  margin-bottom: 1rem;
+}
+
+/* Sidebar enhancements */
+.theme-doc-sidebar-menu .theme-doc-sidebar-item-link--active {
+  background: var(--slack-gradient-subtle);
+  border-radius: 6px;
+  color: var(--ifm-color-primary);
+}
+
+/* Enhanced focus states for accessibility */
+*:focus-visible {
+  outline: 2px solid var(--slack-blue);
+  outline-offset: 2px;
+}
+
+/* Force white text color for version dropdown badges with high specificity */
+.navbar__item .dropdown__menu [class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Target badges in dropdown links specifically */
+.navbar__item .dropdown__menu .dropdown__link [class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Target badges in active dropdown items */
+.navbar__item .dropdown__menu [class*="dropdown"][class*="Active"] [class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Global targeting for any element with badge class pattern in navbar dropdown */
+.navbar .dropdown__menu span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Additional targeting with CSS attribute selectors */
+.navbar .dropdown__menu span[class^="badge"],
+.navbar .dropdown__menu span[class*="_badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Ultra-specific targeting for CSS modules hashed badge classes */
+.navbar__item .dropdown__menu li.dropdown__link--active span[class*="badge"],
+.navbar__item .dropdown__menu li[class*="dropdownItemActive"] span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Target any span element in dropdown that contains "Next" text */
+.navbar .dropdown__menu span:not([class=""]):not([class*="group"]):not([class*="header"]) {
+  color: white !important;
+}
+
+/* Specifically target version badge spans with maximum specificity */
+html .navbar__item .dropdown__menu .dropdown__link span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+  text-fill-color: white !important;
+}
+
+/* Nuclear option - target all spans in dropdown that might be badges */
+body .navbar .dropdown__menu a.dropdown__link span {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Target the exact pattern from developer tools */
+.navbar .dropdown__menu .dropdown__link--active span[class^="badge_"],
+.navbar .dropdown__menu [class*="dropdownItemActive"] span[class^="badge_"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Super specific - target any span that contains "Next" text */
+.navbar .dropdown__menu span:contains("Next") {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Ultimate fallback - style all small spans in dropdown menu */
+html body .navbar__item .dropdown__menu span[class] {
+  color: white !important;
+}
+
+/* Maximum specificity CSS - target exact structure from developer tools */
+html body div.navbar__item div.dropdown__menu ul li.dropdown__link--active a.dropdown__link span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Try targeting by the exact hash pattern */
+html body .navbar__item .dropdown__menu span[class*="badge_"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
 }
