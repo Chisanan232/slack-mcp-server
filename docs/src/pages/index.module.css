@@ -32,11 +32,12 @@
     rgba(224, 30, 90, 0.6) 100%
   );
   z-index: 1;
+  pointer-events: none; /* Allow clicks to pass through */
 }
 
 .heroBanner .container {
   position: relative;
-  z-index: 2;
+  z-index: 3; /* Higher z-index to ensure content is above pseudo-elements */
 }
 
 .heroBanner h1 {
@@ -121,6 +122,8 @@
   height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   transition: left 0.5s;
+  pointer-events: none; /* Ensure shimmer effect doesn't block clicks */
+  z-index: -1; /* Place shimmer behind button text */
 }
 
 .buttons .button--secondary:hover::before {
@@ -153,6 +156,7 @@
   background-size: 50px 50px;
   animation: float 20s linear infinite;
   z-index: 1;
+  pointer-events: none; /* Allow clicks to pass through */
 }
 
 @keyframes float {
