@@ -5,34 +5,98 @@ import type {SidebarsConfig} from '@docusaurus/plugin-content-docs';
  */
 const sidebars: SidebarsConfig = {
   dev: [
-    'development', // This matches the explicit ID in the frontmatter
-    'requirements',
-    'workflow',
-    'coding-style',
+    {
+      type: 'doc',
+      id: 'development',
+      label: '🚀 Development',
+    },
+    {
+      type: 'doc',
+      id: 'requirements',
+      label: '📋 Requirements',
+    },
+    {
+      type: 'doc',
+      id: 'workflow',
+      label: '🔄 Development Workflow',
+    },
+    {
+      type: 'doc',
+      id: 'coding-style',
+      label: '🎨 Coding Styles and Rules',
+    },
     {
       type: 'category',
-      label: 'Architecture',
+      label: '🏗️ Architecture',
       collapsed: false,
       items: [
-        'architecture/architecture',
-        'architecture/project-structure',
-        'architecture/mcp-server-architecture',
-        'architecture/webhook-server-architecture',
-        'architecture/integrated-server-architecture',
+        {
+          type: 'doc',
+          id: 'architecture/architecture',
+          label: '🏛️ Architecture Overview',
+        },
+        {
+          type: 'doc',
+          id: 'architecture/project-structure',
+          label: '📁 Project Structure',
+        },
+        {
+          type: 'doc',
+          id: 'architecture/mcp-server-architecture',
+          label: '🤖 MCP Server Architecture',
+        },
+        {
+          type: 'doc',
+          id: 'architecture/webhook-server-architecture',
+          label: '🪝 Webhook Server Architecture',
+        },
+        {
+          type: 'doc',
+          id: 'architecture/integrated-server-architecture',
+          label: '🔗 Integrated Server Architecture',
+        },
       ],
     },
     {
       type: 'category',
-      label: 'CI/CD Workflows',
+      label: '⚙️ CI/CD Workflows',
       collapsed: false,
       items: [
-        'ci-cd/index',
-        'ci-cd/continuous-integration',
-        'ci-cd/release-system',
-        'ci-cd/documentation-deployment',
-        'ci-cd/reusable-workflows',
-        'ci-cd/additional-ci-workflows',
-        'ci-cd/developer-guide',
+        {
+          type: 'doc',
+          id: 'ci-cd/index',
+          label: '🎯 CI/CD Overview',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/continuous-integration',
+          label: '🔄 Continuous Integration',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/release-system',
+          label: '🚀 Release System',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/documentation-deployment',
+          label: '📚 Documentation Deployment',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/reusable-workflows',
+          label: '♻️ Reusable Workflows',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/additional-ci-workflows',
+          label: '🛠️ Additional CI Workflows',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/developer-guide',
+          label: '👨‍💻 Developer Guide',
+        },
       ],
     },
   ],
