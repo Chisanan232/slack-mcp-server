@@ -266,3 +266,95 @@
   outline: 2px solid var(--slack-blue);
   outline-offset: 2px;
 }
+
+/* Force white text color for version dropdown badges with high specificity */
+.navbar__item .dropdown__menu [class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Target badges in dropdown links specifically */
+.navbar__item .dropdown__menu .dropdown__link [class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Target badges in active dropdown items */
+.navbar__item .dropdown__menu [class*="dropdown"][class*="Active"] [class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Global targeting for any element with badge class pattern in navbar dropdown */
+.navbar .dropdown__menu span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Additional targeting with CSS attribute selectors */
+.navbar .dropdown__menu span[class^="badge"],
+.navbar .dropdown__menu span[class*="_badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Ultra-specific targeting for CSS modules hashed badge classes */
+.navbar__item .dropdown__menu li.dropdown__link--active span[class*="badge"],
+.navbar__item .dropdown__menu li[class*="dropdownItemActive"] span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Target any span element in dropdown that contains "Next" text */
+.navbar .dropdown__menu span:not([class=""]):not([class*="group"]):not([class*="header"]) {
+  color: white !important;
+}
+
+/* Specifically target version badge spans with maximum specificity */
+html .navbar__item .dropdown__menu .dropdown__link span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+  text-fill-color: white !important;
+}
+
+/* Nuclear option - target all spans in dropdown that might be badges */
+body .navbar .dropdown__menu a.dropdown__link span {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Target the exact pattern from developer tools */
+.navbar .dropdown__menu .dropdown__link--active span[class^="badge_"],
+.navbar .dropdown__menu [class*="dropdownItemActive"] span[class^="badge_"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Super specific - target any span that contains "Next" text */
+.navbar .dropdown__menu span:contains("Next") {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+}
+
+/* Ultimate fallback - style all small spans in dropdown menu */
+html body .navbar__item .dropdown__menu span[class] {
+  color: white !important;
+}
+
+/* Maximum specificity CSS - target exact structure from developer tools */
+html body div.navbar__item div.dropdown__menu ul li.dropdown__link--active a.dropdown__link span[class*="badge"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
+
+/* Try targeting by the exact hash pattern */
+html body .navbar__item .dropdown__menu span[class*="badge_"] {
+  color: white !important;
+  background-color: var(--ifm-color-primary) !important;
+  -webkit-text-fill-color: white !important;
+}
