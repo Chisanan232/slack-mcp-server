@@ -21,7 +21,7 @@ env:
 jobs:
   run_unit-test:
 #    name: Run all unit test items
-    uses: ./.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
     with:
       test_type: unit-test
       test_folder: './test/unit_test'
@@ -31,7 +31,7 @@ jobs:
 
   run_integration-test:
 #    name: Run all integration test items
-    uses: ./.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
     with:
       test_type: integration-test
       test_folder: './test/integration_test'
@@ -42,7 +42,7 @@ jobs:
   run_e2e-test:
 #    name: Run all end-to-end test items
     if: ${{ inputs.run_e2e == true }}
-    uses: ./.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
     with:
       test_type: e2e-test
       test_folder: './test/e2e_test'
@@ -55,7 +55,7 @@ jobs:
 
   run_contract-test:
 #    name: Run all contract test items
-    uses: ./.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
     with:
       test_type: contract-test
       test_folder: './test/contract_test'
@@ -65,7 +65,7 @@ jobs:
 
   run_script-test:
 #    name: Run all contract test items
-    uses: ./.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
     with:
       test_type: ci-script-test
       test_folder: './test/ci_script_test'
