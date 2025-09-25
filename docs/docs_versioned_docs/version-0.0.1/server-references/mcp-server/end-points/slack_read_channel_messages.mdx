@@ -1,0 +1,205 @@
+---
+id: slack-read-channel-messages-mcp-api
+title: Read Channel Messages
+sidebar_position: 2
+---
+
+# Slack Read Channel Messages MCP API
+
+The Slack Read Channel Messages MCP API allows you to retrieve message history from Slack channels using the Model Context Protocol interface. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Tool Information
+
+### slack_read_channel_messages
+
+* **Tool name**: `slack_read_channel_messages`
+* **Function**: `read_slack_channel_messages`
+* **Description**: Read messages from the given Slack channel. This tool retrieves conversation history for analysis, monitoring, or context gathering.
+
+## Input Parameters
+
+The tool accepts a `SlackReadChannelMessagesInput` object with the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `channel` | `string` | Yes | Slack channel ID (e.g., `C12345678`) or name with `#` (e.g., `#general`) |
+| `limit` | `integer` | No | Maximum number of messages to return (default: 100, max: 1000) |
+| `oldest` | `string` | No | Start of time range; Unix timestamp (e.g., `1234567890.123456`) |
+| `latest` | `string` | No | End of time range; Unix timestamp (e.g., `1234567890.123456`) |
+| `inclusive` | `boolean` | No | Include messages with timestamps exactly matching oldest/latest |
+
+## Usage Examples
+
+### Basic Channel History
+```json
+{
+  "channel": "#general",
+  "limit": 50
+}
+```
+
+### Channel ID with Time Range
+```json
+{
+  "channel": "C1234567890",
+  "oldest": "1234567890.123456",
+  "latest": "1234567891.654321",
+  "limit": 100,
+  "inclusive": true
+}
+```
+
+### Recent Messages Only
+```json
+{
+  "channel": "#notifications",
+  "limit": 25
+}
+```
+
+### Messages from Specific Time Period
+```json
+{
+  "channel": "C9876543210",
+  "oldest": "1640995200.000000",
+  "latest": "1641081600.000000",
+  "limit": 200
+}
+```
+
+## Response Format
+
+The tool returns the raw JSON response from Slack's `conversations.history` API:
+
+```json
+{
+  "ok": true,
+  "messages": [
+    {
+      "type": "message",
+      "user": "U12345678",
+      "text": "Hello everyone!",
+      "ts": "1234567890.123456",
+      "team": "T1234567890",
+      "blocks": [...],
+      "reactions": [
+        {
+          "name": "thumbsup",
+          "users": ["U87654321"],
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "message",
+      "user": "U87654321", 
+      "text": "Good morning! How is everyone doing?",
+      "ts": "1234567889.654321",
+      "team": "T1234567890"
+    }
+  ],
+  "has_more": false,
+  "pin_count": 0,
+  "channel_actions_ts": null,
+  "channel_actions_count": 0
+}
+```
+
+### Key Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `ok` | Boolean indicating if the operation was successful |
+| `messages` | Array of message objects, ordered from newest to oldest |
+| `has_more` | Boolean indicating if there are more messages beyond the limit |
+| `pin_count` | Number of pinned messages in the channel |
+
+### Message Object Fields
+
+| Field | Description |
+|-------|-------------|
+| `type` | Message type (usually "message") |
+| `user` | User ID of the message sender |
+| `text` | The message text content |
+| `ts` | Message timestamp (also serves as unique message ID) |
+| `thread_ts` | If part of a thread, timestamp of the parent message |
+| `reactions` | Array of emoji reactions on the message |
+| `files` | Array of attached files (if any) |
+| `blocks` | Rich text blocks (for formatted messages) |
+
+## Error Handling
+
+This function may raise errors in the following situations:
+- Missing or invalid Slack API token
+- Invalid channel name or ID
+- Insufficient permissions to read the channel
+- Network connectivity issues
+- API rate limiting
+- Invalid timestamp format
+
+Error responses will have `"ok": false` and include an error message:
+
+```json
+{
+  "ok": false,
+  "error": "channel_not_found",
+  "detail": "Value passed for channel was invalid."
+}
+```
+
+### Common Error Codes
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `channel_not_found` | Channel doesn't exist or bot lacks access | Verify channel name/ID and bot permissions |
+| `not_in_channel` | Bot is not a member of the channel | Invite the bot to the channel |
+| `invalid_auth` | Invalid or missing API token | Check SLACK_BOT_TOKEN environment variable |
+| `invalid_ts_oldest` | Invalid oldest timestamp format | Use proper Unix timestamp format |
+| `invalid_ts_latest` | Invalid latest timestamp format | Use proper Unix timestamp format |
+| `rate_limited` | Too many requests sent | Implement rate limiting in your application |
+
+## Use Cases
+
+Typical scenarios for using `slack_read_channel_messages`:
+- **Conversation Analysis**: Analyze discussion patterns and sentiment in team channels
+- **Context Gathering**: Retrieve recent conversation context before posting responses
+- **Message Monitoring**: Monitor channel activity for specific keywords or patterns  
+- **Data Export**: Export channel history for compliance or archival purposes
+- **Search and Retrieval**: Find specific information that was previously shared
+- **Bot Training**: Collect conversation data for AI model training
+- **Activity Reports**: Generate summaries of channel activity over time periods
+
+## Authentication
+
+This tool requires a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+The bot must have the following OAuth scopes:
+- `channels:history` - Required to read public channel history
+- `groups:history` - Required to read private channel history (if needed)
+- `channels:read` - Required to access channel information
+- `groups:read` - Required to access private channel information (if needed)
+
+## Rate Limiting
+
+Slack enforces rate limits on the `conversations.history` API:
+- **Tier 2**: 20+ requests per minute
+- **Tier 3**: 50+ requests per minute  
+- **Tier 4**: 100+ requests per minute
+
+The server will automatically handle retries according to Slack's rate limiting headers.
+
+## Performance Considerations
+
+- **Message Limits**: Maximum 1000 messages per request
+- **Response Size**: Large channels may return significant data; consider using pagination
+- **Timestamp Precision**: Use precise timestamps (including microseconds) for accurate filtering
+- **Memory Usage**: Be mindful when processing large message histories in your application
+
+## Timestamp Format
+
+Slack timestamps are in Unix format with microseconds:
+- Format: `{seconds}.{microseconds}`
+- Example: `1234567890.123456`
+- You can obtain timestamps from previous API responses or convert from standard date formats
