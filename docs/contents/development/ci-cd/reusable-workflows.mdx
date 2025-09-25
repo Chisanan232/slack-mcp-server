@@ -13,6 +13,17 @@ import TOCInline from '@theme/TOCInline';
 
 The slack-mcp-server CI/CD system leverages a **template repository architecture** using reusable workflows from [`Chisanan232/Template-Python-UV-Project`](https://github.com/Chisanan232/Template-Python-UV-Project). This approach provides standardized, centrally-maintained workflows while promoting consistency, maintainability, and the DRY (Don't Repeat Yourself) principle across all template-based projects.
 
+:::info Template Project Resources
+
+**🏛️ Repository**: [`Chisanan232/Template-Python-UV-Project`](https://github.com/Chisanan232/Template-Python-UV-Project)  
+**📖 Documentation**: [Template Project CI/CD Guide](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd)  
+**⚙️ Workflows**: [`/.github/workflows/`](https://github.com/Chisanan232/Template-Python-UV-Project/tree/master/.github/workflows)  
+**🔄 Reusable Workflows**: [Template Workflow Reference](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd/reusable-workflows)
+
+**💡 About the Template**: A comprehensive collection of GitHub Actions workflows designed for Python UV projects, featuring standardized testing, coverage reporting, release management, and documentation deployment patterns.
+
+:::
+
 <TOCInline toc={toc} />
 
 ## Template Repository Architecture
@@ -25,8 +36,12 @@ The project now uses a **hybrid architecture** combining local project-specific 
 - **[`ci.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/ci.yaml)** & **[`ci_includes_e2e_test.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/ci_includes_e2e_test.yaml)** - Main CI workflows
 
 ### **☁️ Template Repository Workflows** (Centralized & Maintained)
-- **Multi-Python Testing**: `Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master`
-- **Coverage Reporting**: `Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master`
+- **Multi-Python Testing**: [`rw_uv_run_test_with_multi_py_versions.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml) - Comprehensive testing across multiple Python versions and operating systems
+- **Coverage Reporting**: [`rw_organize_test_cov_reports.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_organize_test_cov_reports.yaml) - Standardized test coverage reporting and artifact organization
+
+:::tip Explore More Workflows
+The template repository provides additional workflows for release management, Docker operations, and documentation deployment. See the [complete workflow catalog](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd/reusable-workflows)
+:::
 
 ### **Architecture Benefits:**
 - **✅ Centralized Maintenance**: Core testing workflows maintained in template repository
@@ -34,6 +49,8 @@ The project now uses a **hybrid architecture** combining local project-specific 
 - **✅ Local Customization**: Project-specific orchestration and configuration
 - **✅ Consistency**: Standardized testing patterns across template ecosystem
 - **✅ Reduced Duplication**: Common workflows shared, not duplicated
+- **✅ Community Driven**: Open-source template with active development and contributions
+- **✅ Comprehensive Documentation**: Detailed guides and examples at [Template Docs](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd)
 
 ## Core Reusable Workflows
 
@@ -54,6 +71,8 @@ jobs:
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 ```
 
+> 📋 **Template Workflow**: [`rw_uv_run_test_with_multi_py_versions.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml)
+
 **Key Features**:
 - **Template Integration**: Uses centralized workflows from template repository
 - **Test Orchestration**: Coordinates unit, integration, contract, E2E, and CI script tests
@@ -62,7 +81,7 @@ jobs:
 
 ### 2. External Multi-Python Testing (Template Repository)
 
-**Source**: `Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master`
+**Source**: [`Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml)
 
 **Purpose**: Comprehensive testing across multiple Python versions and operating systems with UV toolchain.
 
@@ -82,7 +101,7 @@ with:
 
 ### 3. External Coverage Organization (Template Repository)
 
-**Source**: `Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master`
+**Source**: [`Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_organize_test_cov_reports.yaml)
 
 **Purpose**: Standardized test coverage reporting and organization from template repository.
 
@@ -94,6 +113,8 @@ jobs:
     with:
       test_type: unit-test
 ```
+
+> 📋 **Template Workflow**: [`rw_organize_test_cov_reports.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_organize_test_cov_reports.yaml)
 
 **Key Features** (Template Repository Provided):
 - **Multi-Format Support**: Generates coverage in XML, HTML, and JSON formats
@@ -160,6 +181,10 @@ jobs:
     with:
       test_type: unit-test
 ```
+
+:::note Template Workflows Used
+[`rw_uv_run_test_with_multi_py_versions.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml) • [`rw_organize_test_cov_reports.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_organize_test_cov_reports.yaml)
+:::
 
 ### Multi-Python Testing Pattern
 
