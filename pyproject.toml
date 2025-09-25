@@ -40,6 +40,9 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/Chisanan232/slack-mcp-server"
 Repository = "https://github.com/Chisanan232/slack-mcp-server"
+Documentation = "https://chisanan232.github.io/slack-mcp-server/"
+Changelog = "https://chisanan232.github.io/slack-mcp-server/docs/next/changelog"
+"Project Management" = "https://app.clickup.com/9018752317/v/f/90185744047/90184991515"
 
 [project.scripts]
 slack-mcp-server = "slack_mcp.mcp.entry:main"
