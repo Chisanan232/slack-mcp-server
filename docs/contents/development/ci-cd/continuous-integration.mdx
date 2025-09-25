@@ -26,37 +26,89 @@ Our CI workflow ([`ci.yaml`](https://github.com/Chisanan232/slack-mcp-server/blo
   - Test configuration files ([`.coveragerc`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.coveragerc), [`pytest.ini`](https://github.com/Chisanan232/slack-mcp-server/blob/master/pytest.ini), etc.)
   - Project configuration ([`pyproject.toml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/pyproject.toml), [`uv.lock`](https://github.com/Chisanan232/slack-mcp-server/blob/master/uv.lock))
 
-## CI Workflow Structure
+## Template Repository Architecture
+
+The CI system now leverages a **template repository architecture** using workflows from [`Chisanan232/Template-Python-UV-Project`](https://github.com/Chisanan232/Template-Python-UV-Project):
 
 ```mermaid
 graph TD
     A[Push or PR] --> B[build-and-test_all]
-    B --> C[unit-test_codecov_finish]
-    B --> D[integration-test_codecov_finish]
-    B --> E[e2e-test_codecov_finish]
-    B --> F[contract-test_codecov_finish]
-    C & D & E & F --> G[Test Coverage Reports]
+    B --> C[Local: rw_build_and_test.yaml]
+    C --> D[Template: rw_uv_run_test_with_multi_py_versions.yaml@master]
+    C --> E[Template: rw_organize_test_cov_reports.yaml@master]
+    D --> F[Test Execution: Python 3.13, 4 OS variants]
+    E --> G[Coverage Reports: Unit, Integration, Contract, E2E]
+    F & G --> H[Codecov Upload & SonarCloud Analysis]
 ```
+
+## Current CI Architecture
+
+### **🏠 Local Orchestration Workflows**
+- **[`ci.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/ci.yaml)** - Main CI pipeline
+- **[`rw_run_all_test_and_record.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/rw_run_all_test_and_record.yaml)** - Test coordination
+- **[`rw_build_and_test.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/rw_build_and_test.yaml)** - Test orchestration
+
+### **☁️ Template Repository Workflows**
+- **Multi-Python Testing**: `Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master`
+- **Coverage Organization**: `Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master`
 
 ## Main CI Workflow Steps
 
-The CI process uses several reusable workflows to streamline the execution:
+### 1. Local Build and Test Orchestration ([`rw_build_and_test.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/rw_build_and_test.yaml))
 
-### 1. Build and Test ([`rw_build_and_test.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/rw_build_and_test.yaml))
+**Architecture**: Local orchestrator using template repository workflows
 
-- Sets up Python environment (Python 3.13)
-- Installs dependencies via Poetry
-- Runs unit tests, integration tests, and optionally E2E tests
-- Generates test coverage reports
+**Configuration**:
+- **Python Version**: 3.13 (hardcoded for consistency)
+- **Operating Systems**: `["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]`
+- **Test Types**: Unit, Integration, Contract, E2E (conditional), CI Scripts
 
-### 2. Test Coverage Reporting
+**Template Integration**:
+```yaml
+jobs:
+  run_unit-test:
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    with:
+      test_type: unit-test
+      python-versions: '["3.13"]'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+```
 
-For each test type (unit, integration, E2E, contract), the workflow:
-- Organizes and processes test coverage data
-- Uploads reports to Codecov with specific flags
-- Labels reports with the package name (`slack_mcp`)
+### 2. Template Repository Coverage Organization
 
-### 3. Code Quality Checks
+Each test type uses the template repository's standardized coverage workflow:
+
+```yaml
+unit-test_codecov:
+  uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master
+  with:
+    test_type: unit-test
+```
+
+**Template Repository Benefits**:
+- ✅ **Standardized Processing**: Consistent coverage report generation across all template-based projects
+- ✅ **Automatic Updates**: Bug fixes and improvements flow automatically from template repository
+- ✅ **Multi-Format Support**: Generates XML, HTML, and JSON coverage reports
+- ✅ **Artifact Management**: Organizes coverage files with consistent naming patterns
+
+### 3. Configuration Strategy
+
+**Hardcoded Configuration Rationale**:
+The project uses **hardcoded configuration** for consistency and reliability:
+
+```yaml
+# Consistent across all test jobs
+python-versions: '["3.13"]'
+operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+```
+
+**Benefits of Hardcoded Configuration**:
+- 🎯 **Predictable Testing**: Consistent test matrix across all CI runs
+- 🔧 **Simplified Maintenance**: No parameter passing complexity
+- 🚀 **Reliable Results**: Same environment combinations every time
+- 📊 **Matrix Coverage**: Tests across 4 OS variants with latest Python
+
+### 4. Code Quality Checks
 
 As part of the test process, the following checks are performed:
 - **MyPy**: Type checking
