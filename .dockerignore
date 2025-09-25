@@ -26,7 +26,6 @@ dist/
 
 ## Script
 scripts/ci/**
-scripts/run_all_tests.sh
 
 ## Some usage of this project
 study/
