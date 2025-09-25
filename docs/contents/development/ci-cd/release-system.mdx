@@ -28,7 +28,7 @@ The release system follows modern DevOps practices with:
 
 ## Release Workflows
 
-### 1. Production Release Workflow (`release.yml`)
+### 1. Production Release Workflow ([`release.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/release.yml))
 
 [![Release](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release.yml/badge.svg)](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release.yml)
 
@@ -77,9 +77,9 @@ config:
   name: Parse Configuration
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_config.yaml@master
 ```
-- Parses enhanced `intent.yaml` with project, docker, git, validation, and docs configuration
+- Parses enhanced [`intent.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/tag_and_release/intent.yaml) with project, docker, git, validation, and docs configuration
 - Provides structured outputs for all downstream jobs
-- Auto-detects project name and package name from repository and `pyproject.toml`
+- Auto-detects project name and package name from repository and [`pyproject.toml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/pyproject.toml)
 - Applies smart defaults for missing configuration sections
 
 **Step 2: Release Intent Analysis** 
@@ -207,7 +207,7 @@ intent-parse:
 - **Fallback SBOM**: Workspace scanning if Docker image scan fails
 - **Supply Chain Security**: Full SBOM, signing, and attestation testing
 
-### 3. Staging Release Workflow (`release-staging.yml`)
+### 3. Staging Release Workflow ([`release-staging.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/release-staging.yml))
 
 [![Release Staging](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release-staging.yml/badge.svg)](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release-staging.yml)
 

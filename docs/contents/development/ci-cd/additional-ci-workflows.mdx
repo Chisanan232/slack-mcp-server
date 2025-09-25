@@ -22,7 +22,7 @@ The project includes several specialized CI workflows that handle specific opera
 
 [![Validate Slack Event Types](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/validate_slack_event_types.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/validate_slack_event_types.yml)
 
-The `validate_slack_event_types.yml` workflow automatically validates that our SlackEvent enum stays synchronized with the official Slack Events API specification.
+The [`validate_slack_event_types.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/validate_slack_event_types.yml) workflow automatically validates that our SlackEvent enum stays synchronized with the official Slack Events API specification.
 
 **Triggers:**
 - **Scheduled**: Every Tuesday at 19:33 UTC (Wednesday 03:33 Taipei time)
@@ -56,7 +56,7 @@ The `validate_slack_event_types.yml` workflow automatically validates that our S
 
 [![docker-ci](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docker-ci.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docker-ci.yml)
 
-The `docker-ci.yml` workflow tests Docker image building and functionality.
+The [`docker-ci.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/docker-ci.yml) workflow tests Docker image building and functionality.
 
 **Triggers:**
 - **Push to master**: When Docker-related files change
@@ -78,10 +78,10 @@ The `docker-ci.yml` workflow tests Docker image building and functionality.
 
 [![dockerhub-readme-ci](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/dockerhub-readme-ci.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/dockerhub-readme-ci.yml)
 
-The `dockerhub-readme-ci.yml` workflow updates the Docker Hub repository description.
+The [`dockerhub-readme-ci.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/dockerhub-readme-ci.yml) workflow updates the Docker Hub repository description.
 
 **Triggers:**
-- **Push to master**: When `README_DOCKERHUB.md` is modified
+- **Push to master**: When [`README_DOCKERHUB.md`](https://github.com/Chisanan232/slack-mcp-server/blob/master/README_DOCKERHUB.md) is modified
 - **Workflow file changes**: When the DockerHub README workflow itself is updated
 
 **Purpose**: Keeps Docker Hub repository description synchronized with the documentation.
@@ -97,7 +97,7 @@ The `dockerhub-readme-ci.yml` workflow updates the Docker Hub repository descrip
 
 [![Docs-only auto-approve & automerge](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docs-automerge.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docs-automerge.yml)
 
-The `docs-automerge.yml` workflow automatically approves and merges pull requests that only contain documentation changes. This streamlines the process for documentation updates.
+The [`docs-automerge.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/docs-automerge.yml) workflow automatically approves and merges pull requests that only contain documentation changes. This streamlines the process for documentation updates.
 
 **Triggers:**
 - **Pull requests to master**: For PRs containing only documentation changes
