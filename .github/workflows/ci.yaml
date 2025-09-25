@@ -17,8 +17,6 @@ on:
       - "slack_mcp/**/*.py"
       - "!**/__pkg_info__.py"
       - "test/**/*.py"
-#     For shell script for CI
-      - "scripts/run_all_tests.sh"
 #     For configurations for test or CI
       - ".coveragerc"
       - "codecov.yml"
@@ -44,8 +42,6 @@ on:
       - "slack_mcp/**/*.py"
       - "!**/__pkg_info__.py"
       - "test/**/*.py"
-#     For shell script for CI
-      - "scripts/run_all_tests.sh"
 #     For configurations for test or CI
       - ".coveragerc"
       - "codecov.yml"

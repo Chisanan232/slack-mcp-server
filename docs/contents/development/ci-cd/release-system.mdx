@@ -77,6 +77,9 @@ config:
   name: Parse Configuration
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_config.yaml@master
 ```
+
+> 📋 **Template Workflow**: [`rw_parse_project_config.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_project_config.yaml)
+
 - Parses enhanced [`intent.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/tag_and_release/intent.yaml) with project, docker, git, validation, and docs configuration
 - Provides structured outputs for all downstream jobs
 - Auto-detects project name and package name from repository and [`pyproject.toml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/pyproject.toml)
@@ -88,6 +91,9 @@ intent:
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_release_intent.yaml@master
   needs: config
 ```
+
+> 📋 **Template Workflow**: [`rw_parse_release_intent.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_release_intent.yaml)
+
 - Validates release intent against enhanced JSON schema
 - Compatible with both legacy and enhanced configuration formats
 - Determines release artifacts (python, docker, docs) based on configuration
@@ -184,6 +190,9 @@ config:
   name: Parse Configuration
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_config.yaml@master
 ```
+
+> 📋 **Template Workflow**: [`rw_parse_project_config.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_project_config.yaml)
+
 - Validates enhanced `intent.yaml` structure and syntax
 - Tests config output generation for all sections (project, docker, git, validation, docs)
 - Verifies auto-detection logic for project and package names
@@ -196,6 +205,9 @@ intent-parse:
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_release_intent.yaml@master
   needs: config
 ```
+
+> 📋 **Template Workflow**: [`rw_parse_release_intent.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_release_intent.yaml)
+
 - Enhanced JSON schema validation supporting both legacy and new config formats
 - Validates release intent against config-provided defaults
 - Tests artifact configuration (python, docker, docs) with enhanced format support
@@ -246,6 +258,9 @@ config:
   name: Parse Configuration
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_config.yaml@master
 ```
+
+> 📋 **Template Workflow**: [`rw_parse_project_config.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_project_config.yaml)
+
 - Loads staging-specific configuration from enhanced `intent.yaml`
 - Provides validation version settings: `${{ needs.config.outputs.validation_version }}` and `${{ needs.config.outputs.validation_test_version }}`
 - Configures preview documentation branch: `${{ needs.config.outputs.docs_preview_branch }}`
@@ -416,6 +431,19 @@ docs:
 
 ### Configuration Parser Workflow
 
+:::info Template Project Resources
+
+**🏛️ Repository**: [`Chisanan232/Template-Python-UV-Project`](https://github.com/Chisanan232/Template-Python-UV-Project)  
+**📖 Documentation**: [Template Project CI/CD Guide](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd)  
+**🔄 Release Workflows**: [Template Release System Docs](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd/release-system)  
+**⚙️ Workflow Directory**: [`/.github/workflows/`](https://github.com/Chisanan232/Template-Python-UV-Project/tree/master/.github/workflows)
+
+**💡 About Template Release Workflows**: The Template-Python-UV-Project provides production-ready release workflows including configuration parsing, release intent validation, multi-target deployments, and comprehensive supply chain security features.
+
+:::
+
+### Configuration Parser Workflow
+
 The new `rw_parse_project_config.yaml` reusable workflow centralizes configuration parsing:
 
 ```yaml
@@ -475,6 +503,7 @@ The parser provides structured outputs for all workflows:
 ✅ **Easy Customization**: Child projects edit one file  
 ✅ **Type Safety**: JSON schema validation for all configuration  
 ✅ **External References**: Uses template repository for reusable workflows
+✅ **Template Integration**: Leverages battle-tested workflows from [Template Project](https://github.com/Chisanan232/Template-Python-UV-Project)
 
 ### Migration from Environment Variables
 
@@ -625,6 +654,8 @@ uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_
 uses: ./.github/workflows/rw_parse_project_config.yaml
 ```
 
+> 📋 **Template Workflow**: [`rw_parse_project_config.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_project_config.yaml)
+
 #### Step 3: Update Custom Workflows (If Any)
 
 If you have custom workflows that need config values:
@@ -693,6 +724,8 @@ jobs:
     needs: config  # Always depend on config
 ```
 
+> 📋 **Template Workflow**: [`rw_parse_project_config.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_parse_project_config.yaml)
+
 #### 3. External References
 
 **✅ Pin to Stable Versions:**
@@ -703,6 +736,10 @@ uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_
 # Development - can use master  
 uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_project_config.yaml@master
 ```
+
+:::tip Template Repository Reference
+[`Chisanan232/Template-Python-UV-Project`](https://github.com/Chisanan232/Template-Python-UV-Project) | [📖 Documentation](https://chisanan232.github.io/Template-Python-UV-Project/dev/next/ci-cd)
+:::
 
 #### 4. Testing Configuration Changes
 
