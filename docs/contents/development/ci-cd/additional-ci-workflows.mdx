@@ -36,7 +36,7 @@ The `validate_slack_event_types.yml` workflow automatically validates that our S
 - **Event Type Extraction** - Parses the API spec to extract all defined event types
 - **Enum Validation** - Compares extracted events with the current SlackEvent enum implementation
 - **Weekly Monitoring** - Scheduled runs ensure timely detection of API changes
-- **Validation Script** - Uses `scripts/ci/validate_slack_event_types.py` for comprehensive checking
+- **Validation Script** - Uses [`scripts/ci/validate_slack_event_types.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/scripts/ci/validate_slack_event_types.py) for comprehensive checking
 
 **Validation Process:**
 1. **Fetch API Spec**: Downloads `slack_events_api_async_v1.json` from official Slack API specs repository
