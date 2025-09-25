@@ -1,0 +1,542 @@
+---
+id: how-to-run
+title: How to Run
+sidebar_position: 3
+---
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+# How to Run Slack MCP Server
+
+This guide explains how to run and configure the Slack MCP Server after installation.
+
+## Configuration
+
+Before running the server, you need to set up your Slack API token. You have several options:
+
+### Using a .env File (Recommended)
+
+1. Create a `.env` file in your project directory:
+   ```
+   SLACK_API_TOKEN=your_slack_api_token
+   ```
+
+2. Specify the path to your `.env` file when starting the server:
+   
+   <Tabs>
+     <TabItem value="pip" label="pip" default>
+     ```bash
+     slack-mcp-server --env /path/to/.env
+     ```
+
+     </TabItem>
+     <TabItem value="poetry" label="poetry">
+     ```bash
+     poetry run slack-mcp-server --env /path/to/.env
+     ```
+
+     </TabItem>
+     <TabItem value="uv" label="uv">
+     ```bash
+     uv run slack-mcp-server --env /path/to/.env
+     ```
+
+     </TabItem>
+   </Tabs>
+
+### Using Command-line Arguments
+
+You can provide your API token directly as a command-line argument:
+   
+<Tabs>
+  <TabItem value="pip" label="pip" default>
+  ```bash
+  slack-mcp-server --token your_slack_api_token
+  ```
+
+  </TabItem>
+  <TabItem value="poetry" label="poetry">
+  ```bash
+  poetry run slack-mcp-server --token your_slack_api_token
+  ```
+
+  </TabItem>
+  <TabItem value="uv" label="uv">
+  ```bash
+  uv run slack-mcp-server --token your_slack_api_token
+  ```
+
+  </TabItem>
+</Tabs>
+
+## Running the Server
+
+:::info Alternative Deployment Options
+This section covers running the server with Python. For containerized deployments, see [🐳 Docker Usage](#-docker-usage) section below, which provides multiple server modes and production-ready configurations.
+:::
+
+### Basic Usage
+
+Start the server with default settings using Python:
+
+<Tabs>
+  <TabItem value="pip" label="pip" default>
+  ```bash
+  slack-mcp-server
+  ```
+
+  </TabItem>
+  <TabItem value="poetry" label="poetry">
+  ```bash
+  poetry run slack-mcp-server
+  ```
+
+  </TabItem>
+  <TabItem value="uv" label="uv">
+  ```bash
+  uv run slack-mcp-server
+  ```
+
+  </TabItem>
+</Tabs>
+
+This will start the server with HTTP streaming transport on port 8000.
+
+### Specifying Transport Type
+
+You can choose between HTTP streaming and Server-Sent Events (SSE) transport:
+   
+<Tabs>
+  <TabItem value="pip" label="pip" default>
+  For HTTP streaming (default)
+  ```bash
+  slack-mcp-server --transport streamable-http
+  ```
+
+  For SSE 
+  ```bash
+  slack-mcp-server --transport sse
+  ```
+
+  </TabItem>
+  <TabItem value="poetry" label="poetry">
+  For HTTP streaming (default)
+  ```bash
+  poetry run slack-mcp-server --transport streamable-http
+  ```
+
+  For SSE 
+  ```bash
+  poetry run slack-mcp-server --transport sse
+  ```
+
+  </TabItem>
+  <TabItem value="uv" label="uv">
+  For HTTP streaming (default)
+  ```bash
+  uv run slack-mcp-server --transport streamable-http
+  ```
+
+  For SSE 
+  ```bash
+  uv run slack-mcp-server --transport sse
+  ```
+
+  </TabItem>
+</Tabs>
+
+### Custom Port
+
+Run the server on a specific port:
+
+<Tabs>
+  <TabItem value="pip" label="pip" default>
+  ```bash
+  slack-mcp-server --port 8080
+  ```
+
+  </TabItem>
+  <TabItem value="poetry" label="poetry">
+  ```bash
+  poetry run slack-mcp-server --port 8080
+  ```
+
+  </TabItem>
+  <TabItem value="uv" label="uv">
+  ```bash
+  uv run slack-mcp-server --port 8080
+  ```
+
+  </TabItem>
+</Tabs>
+
+### Full Example
+
+<Tabs>
+  <TabItem value="pip" label="pip" default>
+  ```bash
+  slack-mcp-server --env /path/to/.env --transport sse --port 8080
+  ```
+
+  </TabItem>
+  <TabItem value="poetry" label="poetry">
+  ```bash
+  poetry run slack-mcp-server --env /path/to/.env --transport sse --port 8080
+  ```
+
+  </TabItem>
+  <TabItem value="uv" label="uv">
+  ```bash
+  uv run slack-mcp-server --env /path/to/.env --transport sse --port 8080
+  ```
+
+  </TabItem>
+</Tabs>
+
+## 🐳 Docker Usage
+
+The Slack MCP Server provides a Docker image for easy deployment and containerized environments. The Docker container supports **multiple server modes** controlled by environment variables.
+
+### Quick Start with Docker
+
+Pull and run the Docker image:
+
+```bash
+# Pull the latest image
+docker pull chisanan232/slack-mcp-server:latest
+
+# Run with minimal configuration (defaults to MCP server)
+docker run -d -p 8000:8000 \
+  -e SLACK_BOT_TOKEN=xoxb-your-bot-token-here \
+  chisanan232/slack-mcp-server
+```
+
+### Docker Server Modes
+
+The Docker container uses the `SERVICE_TYPE` environment variable to determine which server to run:
+
+| SERVICE_TYPE | Description | Entry Point |
+|--------------|-------------|-------------|
+| `mcp` (default) | MCP server only | `slack-mcp-server` |
+| `webhook` | Webhook server only | `slack-events-server` |
+| `integrated` | Combined MCP + webhook via MCP entry | `slack-mcp-server --integrated` |
+| `integrated-webhook` | Combined MCP + webhook via webhook entry | `slack-events-server --integrated` |
+
+### Environment Variables by Mode
+
+#### 🎯 Main Control Variable
+
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `SERVICE_TYPE` | Server mode: `mcp`, `webhook`, `integrated`, `integrated-webhook` | `mcp` |
+
+#### 🤖 MCP Server Variables (SERVICE_TYPE=mcp or integrated)
+
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `SLACK_BOT_TOKEN` | Slack bot token (required) - format: xoxb-... | - |
+| `MCP_TRANSPORT` | Transport mode: `stdio`, `sse`, `streamable-http` | `stdio` |
+| `MCP_HOST` | Host for HTTP transports | - |
+| `MCP_PORT` | Port for HTTP transports | - |
+| `MCP_MOUNT_PATH` | Mount path for HTTP transports | - |
+| `MCP_LOG_LEVEL` | Logging level: `debug`, `info`, `warning`, `error` | - |
+| `MCP_ENV_FILE` | Path to custom .env file | - |
+| `MCP_NO_ENV_FILE` | Disable .env file loading (set to `true`) | - |
+| `MCP_INTEGRATED` | Enable integrated mode (set to `true`) | - |
+| `MCP_RETRY` | Number of retry attempts for network operations | - |
+
+#### 🪝 Webhook Server Variables (SERVICE_TYPE=webhook or integrated-webhook)
+
+| Environment Variable | Description | Default |
+|---------------------|-------------|---------|
+| `SLACK_BOT_TOKEN` | Slack bot token (required) - format: xoxb-... | - |
+| `SLACK_WEBHOOK_HOST` | Host to listen on | - |
+| `SLACK_WEBHOOK_PORT` | Port to listen on | - |
+| `SLACK_WEBHOOK_LOG_LEVEL` | Logging level: `debug`, `info`, `warning`, `error` | - |
+| `SLACK_WEBHOOK_ENV_FILE` | Path to custom .env file | - |
+| `SLACK_WEBHOOK_NO_ENV_FILE` | Disable .env file loading (set to `true`) | - |
+| `SLACK_WEBHOOK_INTEGRATED` | Enable integrated mode (set to `true`) | - |
+| `SLACK_WEBHOOK_MCP_TRANSPORT` | MCP transport for integrated mode | - |
+| `SLACK_WEBHOOK_MCP_MOUNT_PATH` | MCP mount path for integrated mode | - |
+| `SLACK_WEBHOOK_RETRY` | Number of retry attempts | - |
+
+### Docker Examples by Mode
+
+#### 🤖 MCP Server Mode
+
+<Tabs>
+  <TabItem value="stdio" label="stdio (default)" default>
+  ```bash
+  # MCP server with stdio transport (no HTTP port needed)
+  docker run -d \
+    -e SERVICE_TYPE=mcp \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+  
+  <TabItem value="sse" label="SSE">
+  ```bash
+  # MCP server with SSE transport
+  docker run -d -p 8000:8000 \
+    -e SERVICE_TYPE=mcp \
+    -e MCP_TRANSPORT=sse \
+    -e MCP_HOST=0.0.0.0 \
+    -e MCP_PORT=8000 \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+  
+  <TabItem value="streamable-http" label="Streamable HTTP">
+  ```bash
+  # MCP server with streamable HTTP transport
+  docker run -d -p 8000:8000 \
+    -e SERVICE_TYPE=mcp \
+    -e MCP_TRANSPORT=streamable-http \
+    -e MCP_HOST=0.0.0.0 \
+    -e MCP_PORT=8000 \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+</Tabs>
+
+#### 🪝 Webhook Server Mode
+
+```bash
+# Standalone webhook server
+docker run -d -p 3000:3000 \
+  -e SERVICE_TYPE=webhook \
+  -e SLACK_WEBHOOK_HOST=0.0.0.0 \
+  -e SLACK_WEBHOOK_PORT=3000 \
+  -e SLACK_BOT_TOKEN=xoxb-your-token \
+  chisanan232/slack-mcp-server
+```
+
+#### 🔗 Integrated Server Mode
+
+<Tabs>
+  <TabItem value="mcp-entry" label="Via MCP Entry" default>
+  ```bash
+  # Integrated server via MCP entry point
+  docker run -d -p 8000:8000 \
+    -e SERVICE_TYPE=integrated \
+    -e MCP_TRANSPORT=sse \
+    -e MCP_HOST=0.0.0.0 \
+    -e MCP_PORT=8000 \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+  
+  <TabItem value="webhook-entry" label="Via Webhook Entry">
+  ```bash
+  # Integrated server via webhook entry point
+  docker run -d -p 3000:3000 \
+    -e SERVICE_TYPE=integrated-webhook \
+    -e SLACK_WEBHOOK_HOST=0.0.0.0 \
+    -e SLACK_WEBHOOK_PORT=3000 \
+    -e SLACK_WEBHOOK_MCP_TRANSPORT=sse \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+</Tabs>
+
+### Using Environment Files with Docker
+
+Create a `.env` file for your configuration:
+
+```bash
+# Required Slack tokens
+SLACK_BOT_TOKEN=xoxb-your-slack-bot-token-here
+SLACK_SIGNING_SECRET=your-slack-signing-secret
+
+# Optional Slack configuration
+SLACK_BOT_ID=your-slack-bot-id
+SLACK_USER_TOKEN=xoxp-your-user-token
+SLACK_TEST_CHANNEL=#your-test-channel
+SLACK_TEST_CHANNEL_ID=C1234567890
+
+# Message queue backend (memory, redis, kafka)
+QUEUE_BACKEND=memory
+REDIS_URL=redis://localhost:6379/0
+KAFKA_BOOTSTRAP=broker:9092
+```
+
+Mount the `.env` file when running the container:
+
+```bash
+docker run -d -p 8000:8000 \
+  -v $(pwd)/.env:/app/.env \
+  -e SERVICE_TYPE=mcp \
+  -e MCP_TRANSPORT=sse \
+  -e MCP_HOST=0.0.0.0 \
+  -e MCP_PORT=8000 \
+  chisanan232/slack-mcp-server
+```
+
+### Docker Compose Example
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+
+services:
+  slack-mcp-server:
+    image: chisanan232/slack-mcp-server:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_TYPE=integrated
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Example with Redis backend
+  slack-mcp-redis:
+    image: chisanan232/slack-mcp-server:latest
+    ports:
+      - "8001:8000"
+    environment:
+      - SERVICE_TYPE=integrated
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - QUEUE_BACKEND=redis
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+```
+
+Run with Docker Compose:
+
+```bash
+# Start services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f slack-mcp-server
+
+# Stop services
+docker-compose down
+```
+
+### Production Deployment Tips
+
+#### 🔒 Security Best Practices
+
+1. **Use Docker Secrets** for sensitive data:
+   ```bash
+   # Create secret
+   echo "xoxb-your-token" | docker secret create slack_bot_token -
+   
+   # Use in container
+   docker service create \
+     --name slack-mcp \
+     --secret slack_bot_token \
+     -e SLACK_BOT_TOKEN_FILE=/run/secrets/slack_bot_token \
+     chisanan232/slack-mcp-server
+   ```
+
+2. **Use multi-stage builds** for smaller images:
+   ```dockerfile
+   FROM chisanan232/slack-mcp-server:latest
+   # Add your custom configuration
+   ```
+
+3. **Run as non-root user**:
+   ```bash
+   docker run --user 1000:1000 \
+     -e SLACK_BOT_TOKEN=xoxb-your-token \
+     chisanan232/slack-mcp-server
+   ```
+
+#### 📊 Monitoring and Logging
+
+1. **Health Check Configuration**:
+   ```bash
+   docker run -d \
+     --health-cmd="curl -f http://localhost:8000/health || exit 1" \
+     --health-interval=30s \
+     --health-timeout=10s \
+     --health-retries=3 \
+     chisanan232/slack-mcp-server
+   ```
+
+2. **Log Management**:
+   ```bash
+   # Configure log driver
+   docker run -d \
+     --log-driver=json-file \
+     --log-opt max-size=10m \
+     --log-opt max-file=3 \
+     chisanan232/slack-mcp-server
+   ```
+
+#### 🚀 Scaling and Load Balancing
+
+For high-availability deployments:
+
+```yaml
+# docker-compose.yml for load balancing
+version: '3.8'
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - slack-mcp-1
+      - slack-mcp-2
+
+  slack-mcp-1:
+    image: chisanan232/slack-mcp-server:latest
+    environment:
+      - SERVICE_TYPE=integrated
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+
+  slack-mcp-2:
+    image: chisanan232/slack-mcp-server:latest
+    environment:
+      - SERVICE_TYPE=integrated
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+```
+
+## Verifying Server Operation
+
+Once the server is running, you can verify it's working by accessing:
+
+```
+curl http://localhost:8000/health
+```
+
+You should receive a JSON response confirming the server is operational.

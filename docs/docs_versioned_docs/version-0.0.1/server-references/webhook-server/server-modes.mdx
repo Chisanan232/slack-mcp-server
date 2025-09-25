@@ -1,0 +1,307 @@
+---
+id: server-modes
+title: Webhook Server Modes
+sidebar_position: 5
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+# Webhook Server Modes
+
+The webhook server supports two operational modes to accommodate different deployment scenarios and architectural requirements.
+
+## Mode Overview
+
+| Feature | Standalone Mode | Integrated Mode |
+|---------|----------------|-----------------|
+| **Purpose** | Webhook-only server | Webhook + MCP combined |
+| **Endpoints** | `/slack/events` | `/slack/events` + MCP endpoints |
+| **Use Case** | Microservices, webhook-only | Full Slack integration |
+| **MCP Tools** | ❌ None | ✅ 6 Slack tools available |
+| **Port Usage** | Single port | Single port (both services) |
+| **Deployment** | Lightweight | Feature-complete |
+
+## Standalone Mode
+
+The standalone server mode provides a dedicated webhook server focused solely on receiving and processing Slack events. This lightweight deployment option is ideal for microservices architectures and scenarios where you only need webhook functionality.
+
+### Endpoints
+- **Base URL**: `http://your-server:port`
+- **Primary Endpoint**: `POST /slack/events`
+
+### Command Line Usage
+
+<Tabs>
+  <TabItem value="basic" label="Basic Usage">
+  ```bash
+  # Start standalone webhook server with defaults
+  python -m slack_mcp.webhook
+  
+  # Explicit configuration
+  python -m slack_mcp.webhook \
+    --host 0.0.0.0 \
+    --port 3000 \
+    --log-level INFO \
+    --retry 3
+  ```
+  </TabItem>
+  <TabItem value="development" label="Development">
+  ```bash
+  # Development environment
+  python -m slack_mcp.webhook \
+    --host 127.0.0.1 \
+    --port 3000 \
+    --log-level DEBUG \
+    --env-file .env.development
+  ```
+  </TabItem>
+  <TabItem value="production" label="Production">
+  ```bash
+  # Production environment
+  python -m slack_mcp.webhook \
+    --host 0.0.0.0 \
+    --port 8080 \
+    --log-level INFO \
+    --env-file .env.production \
+    --retry 5
+  ```
+  </TabItem>
+</Tabs>
+
+### CLI Arguments (Standalone Only)
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--host` | `string` | `"0.0.0.0"` | Server bind address |
+| `--port` | `int` | `3000` | Server port |
+| `--log-level` | `string` | `"INFO"` | Logging verbosity |
+| `--slack-token` | `string` | `None` | Override bot token |
+| `--env-file` | `string` | `".env"` | Environment file path |
+| `--no-env-file` | `flag` | `False` | Disable env file loading |
+| `--retry` | `int` | `3` | Network retry attempts |
+
+:::note
+The `--integrated`, `--mcp-transport`, and `--mcp-mount-path` options are **not available** in standalone mode.
+:::
+
+## Integrated Mode
+
+The integrated server mode combines both MCP (Model Context Protocol) and webhook functionalities in a single FastAPI application. This unified deployment approach provides complete Slack integration capabilities.
+
+### Endpoints
+- **Base URL**: `http://your-server:port`
+- **MCP Endpoints**: `/mcp` (SSE) or `/` (streamable-http)
+- **Webhook Endpoint**: `POST /slack/events`
+
+### Command Line Usage
+
+<Tabs>
+  <TabItem value="basic" label="Basic Usage">
+  ```bash
+  # Start integrated server with default SSE transport
+  python -m slack_mcp.webhook --integrated
+  
+  # Explicit configuration
+  python -m slack_mcp.webhook \
+    --integrated \
+    --mcp-transport sse \
+    --mcp-mount-path /mcp \
+    --host 0.0.0.0 \
+    --port 3000
+  ```
+  </TabItem>
+  <TabItem value="development" label="Development">
+  ```bash
+  # Development environment
+  python -m slack_mcp.webhook \
+    --integrated \
+    --host 127.0.0.1 \
+    --port 3000 \
+    --log-level DEBUG \
+    --mcp-transport sse \
+    --env-file .env.development
+  ```
+  </TabItem>
+  <TabItem value="production" label="Production">
+  ```bash
+  # Production with HTTP streaming
+  python -m slack_mcp.webhook \
+    --integrated \
+    --host 0.0.0.0 \
+    --port 8080 \
+    --log-level INFO \
+    --mcp-transport streamable-http \
+    --env-file .env.production \
+    --retry 5
+  ```
+  </TabItem>
+</Tabs>
+
+### CLI Arguments (Integrated Mode)
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `--integrated` | `flag` | `False` | **Enable integrated mode** |
+| `--mcp-transport` | `choice` | `"sse"` | MCP transport: `sse` or `streamable-http` |
+| `--mcp-mount-path` | `string` | `"/mcp"` | MCP mount path (SSE transport only) |
+| `--host` | `string` | `"0.0.0.0"` | Server bind address |
+| `--port` | `int` | `3000` | Server port |
+| `--log-level` | `string` | `"INFO"` | Logging verbosity |
+| `--slack-token` | `string` | `None` | Override bot token |
+| `--env-file` | `string` | `".env"` | Environment file path |
+| `--no-env-file` | `flag` | `False` | Disable env file loading |
+| `--retry` | `int` | `3` | Network retry attempts |
+
+### MCP Transport Options
+
+<Tabs>
+  <TabItem value="sse" label="SSE Transport">
+  ```bash
+  # Server-Sent Events (default for integrated mode)
+  python -m slack_mcp.webhook \
+    --integrated \
+    --mcp-transport sse \
+    --mcp-mount-path /api/mcp
+  
+  # Endpoints created:
+  # GET  /api/mcp - MCP Server-Sent Events endpoint
+  # POST /api/mcp - MCP HTTP requests (optional)
+  ```
+  </TabItem>
+  <TabItem value="http" label="HTTP Streaming">
+  ```bash
+  # HTTP streaming for load balancer compatibility
+  python -m slack_mcp.webhook \
+    --integrated \
+    --mcp-transport streamable-http
+  
+  # Endpoints created:
+  # POST / - MCP HTTP streaming endpoint
+  ```
+  </TabItem>
+</Tabs>
+
+### Available MCP Tools
+
+The integrated server provides 6 MCP tools for Slack integration:
+
+1. **post_slack_message** - Send messages to channels
+2. **read_slack_channels** - List and read channel information  
+3. **reply_to_slack_thread** - Reply to message threads
+4. **add_slack_reaction** - Add emoji reactions to messages
+5. **read_slack_emojis** - Get workspace emoji information
+6. **read_slack_threads** - Read message thread contents
+
+## Common Configuration
+
+Both modes share the same environment variables and webhook endpoint behavior.
+
+### Required Environment Variables
+
+```bash
+export SLACK_SIGNING_SECRET="your_signing_secret_here"
+export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
+```
+
+### Optional Environment Variables
+
+<Tabs>
+  <TabItem value="standalone" label="Standalone Mode">
+  ```bash
+  # Webhook-specific configuration
+  export SLACK_EVENTS_TOPIC="slack_events_production"
+  export QUEUE_BACKEND_TYPE="redis"
+  export REDIS_URL="redis://localhost:6379/0"
+  export HOST="0.0.0.0"
+  export PORT="8080"
+  export LOG_LEVEL="INFO"
+  ```
+  </TabItem>
+  <TabItem value="integrated" label="Integrated Mode">
+  ```bash
+  # Webhook + MCP configuration
+  export SLACK_EVENTS_TOPIC="integrated_slack_events"
+  export QUEUE_BACKEND_TYPE="redis"
+  export REDIS_URL="redis://localhost:6379/0"
+  export HOST="0.0.0.0"
+  export PORT="8080"
+  export LOG_LEVEL="INFO"
+  export MCP_TRANSPORT="sse"
+  export MCP_MOUNT_PATH="/mcp"
+  ```
+  </TabItem>
+</Tabs>
+
+## Webhook Endpoint Behavior
+
+Both modes handle the same webhook endpoint with identical behavior:
+
+### POST /slack/events
+
+**Request Headers:**
+```http
+Content-Type: application/json
+X-Slack-Signature: v0=<signature>
+X-Slack-Request-Timestamp: <timestamp>
+```
+
+**Response:**
+```http
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{"status": "ok"}
+```
+
+### Response Codes
+
+| Status | Description |
+|--------|-------------|
+| `200 OK` | Event processed successfully |
+| `400 Bad Request` | Invalid request format or headers |
+| `401 Unauthorized` | Authentication failed |
+| `500 Internal Server Error` | Server processing error |
+
+## Queue Backend Support
+
+Both modes support configurable queue backends for event processing:
+
+<Tabs>
+  <TabItem value="redis" label="Redis">
+  ```bash
+  export QUEUE_BACKEND_TYPE="redis"
+  export REDIS_URL="redis://localhost:6379/0"
+  ```
+  </TabItem>
+  <TabItem value="memory" label="In-Memory (Development)">
+  ```bash
+  export QUEUE_BACKEND_TYPE="memory"
+  ```
+  </TabItem>
+</Tabs>
+
+## Choosing the Right Mode
+
+### Use Standalone Mode When:
+- You only need webhook event processing
+- Building a microservices architecture
+- Deploying webhook handling separately from MCP functionality
+- Minimizing resource usage and dependencies
+
+### Use Integrated Mode When:
+- You need both webhook events and MCP tool capabilities
+- Building a unified Slack integration service
+- Simplifying deployment with a single server process
+- Leveraging MCP tools for programmatic Slack interactions
+
+## Related Documentation
+
+For deployment and configuration details:
+- [Environment Configuration](../environment-configuration.mdx) - Authentication and environment setup
+- [CLI Execution Methods](../cli-execution-methods.mdx) - Different ways to run the servers
+- [Deployment Guide](../deployment-guide.mdx) - Production deployment patterns
+
+For architecture details:
+- [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture) - Standalone mode architecture
+- [Integrated Server Architecture](/dev/next/architecture/integrated-server-architecture) - Integrated mode architecture
