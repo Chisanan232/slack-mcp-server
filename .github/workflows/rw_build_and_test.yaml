@@ -13,11 +13,6 @@ on:
         description: "Set the Slack bot token for end-to-end test."
         required: false
 
-# Common configuration for all test jobs
-env:
-  PYTHON_VERSIONS: '["3.13"]'
-  OPERATING_SYSTEMS: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
-
 jobs:
   run_unit-test:
 #    name: Run all unit test items
@@ -26,8 +21,8 @@ jobs:
       test_type: unit-test
       test_folder: './test/unit_test'
       install_dependency_with_group: 'dev'
-      python-versions: ${{ env.PYTHON_VERSIONS }}
-      operating-systems: ${{ env.OPERATING_SYSTEMS }}
+      python-versions: '["3.13"]'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
   run_integration-test:
 #    name: Run all integration test items
@@ -36,8 +31,8 @@ jobs:
       test_type: integration-test
       test_folder: './test/integration_test'
       install_dependency_with_group: 'dev'
-      python-versions: ${{ env.PYTHON_VERSIONS }}
-      operating-systems: ${{ env.OPERATING_SYSTEMS }}
+      python-versions: '["3.13"]'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
   run_e2e-test:
 #    name: Run all end-to-end test items
@@ -48,8 +43,8 @@ jobs:
       test_folder: './test/e2e_test'
       install_dependency_with_group: 'dev'
       max-parallel: 1
-      python-versions: ${{ env.PYTHON_VERSIONS }}
-      operating-systems: ${{ env.OPERATING_SYSTEMS }}
+      python-versions: '["3.13"]'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
     secrets:
       e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
 
@@ -60,8 +55,8 @@ jobs:
       test_type: contract-test
       test_folder: './test/contract_test'
       install_dependency_with_group: 'dev'
-      python-versions: ${{ env.PYTHON_VERSIONS }}
-      operating-systems: ${{ env.OPERATING_SYSTEMS }}
+      python-versions: '["3.13"]'
+      operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
   run_script-test:
 #    name: Run all contract test items
