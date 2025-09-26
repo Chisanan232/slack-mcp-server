@@ -92,7 +92,7 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
 
 
 def test_entry_default_args(_patch_entry):
-    """Running with no CLI flags should default to *stdio* transport."""
+    """Running with no CLI flags should default to *sse* transport."""
 
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
@@ -105,6 +105,28 @@ def test_entry_default_args(_patch_entry):
     thread.start()
     thread.join(timeout=1)
 
+    # For SSE transport (the default), verify sse_app method was called
+    assert len(dummy.sse_app_calls) == 1
+    assert dummy.sse_app_calls[0]["mount_path"] is None  # No mount path specified
+
+
+def test_entry_stdio_transport(_patch_entry):
+    """Test explicit stdio transport calls the run method."""
+
+    entry = _patch_entry.entry
+    dummy: _DummyServer = _patch_entry.dummy
+
+    argv = ["--transport", "stdio"]
+
+    # Run with a timeout guard in case something blocks unexpectedly.
+    def run_with_timeout():
+        entry.main(argv)
+
+    thread = threading.Thread(target=run_with_timeout)
+    thread.start()
+    thread.join(timeout=1)
+
+    # For stdio transport, verify run method was called with correct parameters
     assert dummy.called
     assert dummy.called_kwargs["transport"] == "stdio"
 

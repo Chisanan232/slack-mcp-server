@@ -110,10 +110,10 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Use simple transport args with explicit log level
+    # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry", "--transport", "stdio"],
         env=custom_env,
     )
 
@@ -297,10 +297,10 @@ async def test_slack_read_channel_messages_e2e() -> None:
         custom_env = {**os.environ}
         custom_env["SLACK_BOT_TOKEN"] = bot_token
 
-        # Use simple transport args with explicit log level
+        # Use simple transport args with explicit log level and stdio transport
         server_params = StdioServerParameters(
             command=sys.executable,
-            args=["-m", "slack_mcp.mcp.entry"],
+            args=["-m", "slack_mcp.mcp.entry", "--transport", "stdio"],
             env=custom_env,
         )
 
@@ -471,10 +471,10 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Use simple transport args with explicit log level
+    # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry", "--transport", "stdio"],
         env=custom_env,
     )
 
@@ -643,10 +643,10 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Use simple transport args
+    # Use simple transport args with stdio transport
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry", "--transport", "stdio"],
         env=custom_env,
     )
 
