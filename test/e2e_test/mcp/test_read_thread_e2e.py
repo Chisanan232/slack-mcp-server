@@ -85,10 +85,10 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Use simple transport args with explicit log level
+    # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(
         command=sys.executable,
-        args=["-m", "slack_mcp.mcp.entry"],
+        args=["-m", "slack_mcp.mcp.entry", "--transport", "stdio"],
         env=custom_env,
     )
 
