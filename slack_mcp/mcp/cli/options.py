@@ -24,7 +24,7 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
         "--transport",
         choices=["stdio", "sse", "streamable-http"],
         default="sse",
-        help="Transport to use for MCP server (default: stdio)",
+        help="Transport to use for MCP server (default: sse)",
     )
     parser.add_argument(
         "--mount-path",
