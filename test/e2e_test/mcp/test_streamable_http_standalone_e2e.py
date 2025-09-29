@@ -14,6 +14,7 @@ from test.e2e_test.mcp.http_test_utils import (
     http_mcp_server,
     http_mcp_client_session,
     initialize_and_test_tools,
+    safe_call_tool,
     get_free_port
 )
 
@@ -117,9 +118,10 @@ async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D
             expected_tools = ["slack_post_message", "slack_read_channel_messages", "slack_thread_reply"]
             tool_names = await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_post_message tool
+            # Call slack_post_message tool with timeout protection
             logger.info(f"Calling slack_post_message tool with channel: {channel_id}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_post_message",
                 {
                     "input_params": {
@@ -213,9 +215,10 @@ async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: 
             expected_tools = ["slack_add_reactions"]
             await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_add_reactions tool
+            # Call slack_add_reactions tool with timeout protection
             logger.info(f"Calling slack_add_reactions tool with channel: {channel_id} and message ts: {message_ts}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_add_reactions",
                 {
                     "input_params": {
@@ -284,9 +287,10 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
             expected_tools = ["slack_read_emojis"]
             await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_read_emojis tool
+            # Call slack_read_emojis tool with timeout protection
             logger.info("Calling slack_read_emojis tool")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_read_emojis",
                 {"input_params": {}}
             )
@@ -362,9 +366,10 @@ async def test_streamable_http_standalone_thread_operations_e2e() -> None:  # no
             expected_tools = ["slack_read_thread_messages"]
             await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_read_thread_messages tool
+            # Call slack_read_thread_messages tool with timeout protection
             logger.info(f"Calling slack_read_thread_messages tool with channel: {channel_id} and thread_ts: {parent_ts}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_read_thread_messages",
                 {
                     "input_params": {

@@ -14,6 +14,7 @@ from test.e2e_test.mcp.http_test_utils import (
     http_mcp_server,
     http_mcp_client_session,
     initialize_and_test_tools,
+    safe_call_tool,
     get_free_port
 )
 
@@ -113,9 +114,10 @@ async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
             expected_tools = ["slack_post_message", "slack_read_channel_messages", "slack_thread_reply"]
             tool_names = await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_post_message tool
+            # Call slack_post_message tool with timeout protection
             logger.info(f"Calling slack_post_message tool with channel: {channel_id}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_post_message",
                 {
                     "input_params": {
@@ -207,9 +209,10 @@ async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
             expected_tools = ["slack_thread_reply"]
             await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_thread_reply tool
+            # Call slack_thread_reply tool with timeout protection
             logger.info(f"Calling slack_thread_reply tool with channel: {channel_id} and thread_ts: {parent_ts}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_thread_reply",
                 {"input_params": {"channel": channel_id, "thread_ts": parent_ts, "texts": unique_reply_texts}}
             )
@@ -273,9 +276,10 @@ async def test_sse_standalone_read_channel_messages_e2e() -> None:  # noqa: D401
             expected_tools = ["slack_read_channel_messages"]
             await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_read_channel_messages tool
+            # Call slack_read_channel_messages tool with timeout protection
             logger.info(f"Calling slack_read_channel_messages tool with channel: {channel_id}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_read_channel_messages",
                 {"input_params": {"channel": channel_id, "limit": 5}}
             )

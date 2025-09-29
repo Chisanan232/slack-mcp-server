@@ -14,6 +14,7 @@ from test.e2e_test.mcp.http_test_utils import (
     http_mcp_server,
     http_mcp_client_session,
     initialize_and_test_tools,
+    safe_call_tool,
     get_free_port
 )
 
@@ -78,7 +79,7 @@ async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
 
     # Get a free port for testing
     port = get_free_port()
-    mount_path = "/mcp"
+    mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
     server_env = {"SLACK_BOT_TOKEN": bot_token}
@@ -132,7 +133,7 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
 
     # Get a free port for testing
     port = get_free_port()
-    mount_path = "/mcp"
+    mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
     server_env = {"SLACK_BOT_TOKEN": bot_token}
@@ -157,9 +158,10 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
             expected_tools = ["slack_post_message", "slack_read_channel_messages", "slack_thread_reply"]
             tool_names = await initialize_and_test_tools(session, expected_tools)
 
-            # Call slack_post_message tool
+            # Call slack_post_message tool with timeout protection
             logger.info(f"Calling slack_post_message tool with channel: {channel_id}")
-            result = await session.call_tool(
+            result = await safe_call_tool(
+                session,
                 "slack_post_message",
                 {
                     "input_params": {
@@ -213,7 +215,7 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
 
     # Get a free port for testing
     port = get_free_port()
-    mount_path = "/mcp"
+    mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
     server_env = {"SLACK_BOT_TOKEN": bot_token}
@@ -258,7 +260,7 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
 
     # Get a free port for testing
     port = get_free_port()
-    mount_path = "/mcp"
+    mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
     server_env = {"SLACK_BOT_TOKEN": bot_token}
@@ -342,7 +344,7 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
 
     # Get a free port for testing
     port = get_free_port()
-    mount_path = "/mcp"
+    mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
     server_env = {"SLACK_BOT_TOKEN": bot_token}
