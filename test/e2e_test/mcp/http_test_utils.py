@@ -150,11 +150,15 @@ async def http_mcp_client_session(
     """Create MCP client session for HTTP transports with timeout safeguards."""
     try:
         if transport == "sse":
-            # SSE transport
-            # In integrated mode, use mount_path; in standalone mode, connect to /sse endpoint
-            if integrated and mount_path:
-                mcp_url = f"{base_url}{mount_path}/sse"
+            # SSE transport URL construction
+            if integrated:
+                # In integrated mode, SSE is mounted at /mcp, so connect to /mcp/sse
+                if mount_path:
+                    mcp_url = f"{base_url}{mount_path}/sse"
+                else:
+                    mcp_url = f"{base_url}/mcp/sse"
             else:
+                # In standalone mode, connect directly to /sse endpoint
                 mcp_url = f"{base_url}/sse"
             logger.info(f"Connecting SSE client to: {mcp_url}")
             
@@ -165,12 +169,15 @@ async def http_mcp_client_session(
                         yield session
                         
         elif transport == "streamable-http":
-            # Streamable HTTP transport URL patterns based on working client example
-            if integrated and mount_path:
-                # In integrated mode, use mount_path + /mcp (e.g., /mcp/mcp)
-                mcp_url = f"{base_url}{mount_path}/mcp"
+            # Streamable HTTP transport URL construction
+            if integrated:
+                # In integrated mode, streamable-http is mounted at /mcp
+                if mount_path:
+                    mcp_url = f"{base_url}{mount_path}"
+                else:
+                    mcp_url = f"{base_url}/mcp"
             else:
-                # In standalone mode, connect to /mcp endpoint
+                # In standalone mode, connect directly to /mcp endpoint
                 mcp_url = f"{base_url}/mcp"
             logger.info(f"Connecting Streamable-HTTP client to: {mcp_url}")
             

@@ -156,7 +156,11 @@ def create_integrated_app(
         app = create_slack_app()
 
     # Initialize the global Slack client with the provided token and retry settings
-    initialize_slack_client(token, retry=retry)
+    # Allow token to be None during app creation - it will be set later in entry.py
+    if token:
+        initialize_slack_client(token, retry=retry)
+    else:
+        _LOG.info("Deferring Slack client initialization - token will be set later")
 
     # Add integrated health check endpoint
     @app.get("/health")
@@ -198,7 +202,7 @@ def create_integrated_app(
                 status_code=status_code,
                 content={
                     "status": overall_status,
-                    "service": "integrated-server",
+                    "service": "slack-webhook-server",
                     "transport": mcp_transport,
                     "components": {
                         "mcp_server": mcp_status,
@@ -212,7 +216,7 @@ def create_integrated_app(
             _LOG.error(f"Integrated health check failed: {e}")
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"status": "unhealthy", "service": "integrated-server", "error": str(e)},
+                content={"status": "unhealthy", "service": "slack-webhook-server", "error": str(e)},
             )
 
     # Get the appropriate MCP app based on the transport
@@ -224,11 +228,13 @@ def create_integrated_app(
         _LOG.info(f"Mounting MCP server with SSE transport at path: {mcp_mount_path}")
         app.mount(mcp_mount_path or "/mcp", mcp_app)
     elif mcp_transport == "streamable-http":
-        # For streamable-http transport, get the app and mount it
+        # For streamable-http transport, investigate and add MCP routes
         mcp_app = _server_instance.streamable_http_app()
+        mount_path = mcp_mount_path or "/mcp"
 
-        _LOG.info("Integrating MCP server with streamable-http transport")
-        app.mount(mcp_mount_path or "/mcp", mcp_app)
+        # Mount streamable-HTTP app at root level since it already has /mcp path
+        _LOG.info(f"Integrating MCP server with streamable-http transport")
+        app.mount("", mcp_app)
 
     _LOG.info("Successfully created integrated server with both MCP and webhook functionalities")
     return app
