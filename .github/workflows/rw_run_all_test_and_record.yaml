@@ -71,10 +71,11 @@ jobs:
     if: ${{
         !contains(github.event.pull_request.labels.*.name, 'dependencies') &&
         (
-            (contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) ||
-            (github.event_name == 'push' && github.ref_name == 'master')
-        )) &&
-        inputs.run_e2e == true
+            (
+                contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) ||
+                (github.event_name == 'push' && github.ref_name == 'master')
+            )
+        )
       }}
     needs: build-and-test
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_upload_test_cov_report.yaml@v7.3
