@@ -65,11 +65,15 @@ def create_integrated_app(
             f"Invalid transport type for integrated server: {mcp_transport}. " "Must be 'sse' or 'streamable-http'."
         )
 
-    # Create the webhook app first
+    # Create the webhook app first - this will be returned for both transports
     app = create_slack_app()
 
     # Initialize the global Slack client with the provided token and retry settings
-    initialize_slack_client(token, retry=retry)
+    # Allow token to be None during app creation - it will be set later in entry.py
+    if token:
+        initialize_slack_client(token, retry=retry)
+    else:
+        _LOG.info("Deferring Slack client initialization - token will be set later")
 
     # Add integrated health check endpoint
     @app.get("/health")
@@ -137,16 +141,13 @@ def create_integrated_app(
         _LOG.info(f"Mounting MCP server with SSE transport at path: {mcp_mount_path}")
         app.mount(mcp_mount_path or "/mcp", mcp_app)
     elif mcp_transport == "streamable-http":
-        # For streamable-http transport, get the app
+        # For streamable-http transport, use existing _server_instance directly
+        # The SessionManager reuse issue should be resolved by the mounting approach
         mcp_app = _server_instance.streamable_http_app()
+        mount_path = mcp_mount_path or "/mcp"
 
-        # The streamable-http app doesn't use a mount_path so we mount it at root level
-        # but on a different route pattern than the webhook endpoints
-        _LOG.info("Integrating MCP server with streamable-http transport")
-
-        # Get all routes from the MCP app and add them to the main app
-        for route in mcp_app.routes:
-            app.routes.append(route)
+        _LOG.info(f"Integrating MCP server with streamable-http transport")
+        app.mount(mount_path, mcp_app)
 
     _LOG.info("Successfully created integrated server with both MCP and webhook functionalities")
     return app
