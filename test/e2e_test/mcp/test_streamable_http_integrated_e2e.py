@@ -7,19 +7,18 @@ import json
 import logging
 import os
 import uuid
-from datetime import timedelta
 from pathlib import Path
-from test.e2e_test.slack_retry_utils import retry_slack_api_call
 from test.e2e_test.mcp.http_test_utils import (
-    http_mcp_server,
+    get_free_port,
     http_mcp_client_session,
+    http_mcp_server,
     initialize_and_test_tools,
     safe_call_tool,
-    get_free_port
 )
+from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
-import pytest
 import httpx
+import pytest
 from dotenv import load_dotenv
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
@@ -74,7 +73,7 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
     """Test health check endpoint in Streamable-HTTP integrated mode."""
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
-    
+
     logger.info("Testing Streamable-HTTP integrated health check endpoint")
 
     # Get a free port for testing
@@ -88,18 +87,14 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
 
     # Start server and test health endpoint
     async with http_mcp_server(
-        transport="streamable-http",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="streamable-http", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         # Test health endpoint
         health_url = f"{server.base_url}/health"
         async with httpx.AsyncClient() as client:
             response = await client.get(health_url)
             assert response.status_code == 200, f"Health endpoint returned {response.status_code}"
-            
+
             health_data = response.json()
             assert health_data["status"] == "healthy", f"Health status is not healthy: {health_data}"
             assert health_data["service"] == "slack-webhook-server", "Wrong service name in health response"
@@ -142,17 +137,10 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
 
     # Start server and run test
     async with http_mcp_server(
-        transport="streamable-http",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="streamable-http", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=mount_path,
-            integrated=True
+            transport="streamable-http", base_url=server.base_url, mount_path=mount_path, integrated=True
         ) as session:
             # Initialize session and verify tools
             expected_tools = ["slack_post_message", "slack_read_channel_messages", "slack_thread_reply"]
@@ -168,7 +156,7 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
                         "channel": channel_id,
                         "text": unique_text,
                     }
-                }
+                },
             )
 
             # Verify the result is successful
@@ -184,7 +172,9 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
             assert slack_response.get("ok") is True, f"Slack API returned error: {slack_response}"
             assert "ts" in slack_response, "Missing timestamp in Slack response"
 
-            logger.info(f"Message successfully sent via Streamable-HTTP integrated with timestamp: {slack_response.get('ts')}")
+            logger.info(
+                f"Message successfully sent via Streamable-HTTP integrated with timestamp: {slack_response.get('ts')}"
+            )
 
     # Verify message was delivered
     await asyncio.sleep(1)
@@ -210,7 +200,7 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
     """Test webhook functionality in Streamable-HTTP integrated mode."""
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
-    
+
     logger.info("Testing Streamable-HTTP integrated webhook functionality")
 
     # Get a free port for testing
@@ -224,30 +214,37 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
 
     # Start server and test webhook endpoints
     async with http_mcp_server(
-        transport="streamable-http",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="streamable-http", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         async with httpx.AsyncClient() as client:
             # Test webhook events endpoint (should exist but require proper headers/auth)
             webhook_url = f"{server.base_url}/slack/events"
             response = await client.get(webhook_url)
             # Webhook endpoint should respond (likely with 405 Method Not Allowed for GET, but it exists)
-            assert response.status_code in [405, 422], f"Webhook endpoint returned unexpected status: {response.status_code}"
-            
+            assert response.status_code in [
+                405,
+                422,
+            ], f"Webhook endpoint returned unexpected status: {response.status_code}"
+
             # Test webhook install endpoint
             install_url = f"{server.base_url}/slack/install"
             response = await client.get(install_url)
             # Install endpoint should respond (may redirect or show install page)
-            assert response.status_code in [200, 302, 404], f"Install endpoint returned unexpected status: {response.status_code}"
+            assert response.status_code in [
+                200,
+                302,
+                404,
+            ], f"Install endpoint returned unexpected status: {response.status_code}"
 
             # Test OAuth callback endpoint
             oauth_url = f"{server.base_url}/slack/oauth_redirect"
             response = await client.get(oauth_url)
             # OAuth endpoint should respond (may return error without proper parameters or not found)
-            assert response.status_code in [400, 404, 422], f"OAuth endpoint returned unexpected status: {response.status_code}"
+            assert response.status_code in [
+                400,
+                404,
+                422,
+            ], f"OAuth endpoint returned unexpected status: {response.status_code}"
 
             logger.info("Webhook endpoints are functional in Streamable-HTTP integrated mode")
 
@@ -261,7 +258,7 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
-    
+
     logger.info("Testing Streamable-HTTP integrated concurrent MCP and webhook operations")
 
     # Get a free port for testing
@@ -275,19 +272,13 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
 
     # Start server and run concurrent tests
     async with http_mcp_server(
-        transport="streamable-http",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="streamable-http", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
+
         async def test_mcp_tools():
             """Test MCP tools functionality concurrently."""
             async with http_mcp_client_session(
-                transport="streamable-http",
-                base_url=server.base_url,
-                mount_path=mount_path,
-                integrated=True
+                transport="streamable-http", base_url=server.base_url, mount_path=mount_path, integrated=True
             ) as session:
                 # Initialize and list tools
                 await session.initialize()
@@ -310,26 +301,23 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
             async with httpx.AsyncClient() as client:
                 # Test multiple webhook endpoints
                 webhook_tests = []
-                
+
                 # Events endpoint (expect 405 or 422 for GET)
                 events_url = f"{server.base_url}/slack/events"
                 events_response = await client.get(events_url)
                 webhook_tests.append(events_response.status_code in [405, 422])
-                
+
                 # Install endpoint (expect various valid responses)
                 install_url = f"{server.base_url}/slack/install"
                 install_response = await client.get(install_url)
                 webhook_tests.append(install_response.status_code in [200, 302, 404])
-                
+
                 return all(webhook_tests)
 
         # Run all tests concurrently
         try:
             mcp_tools, health_ok, webhook_ok = await asyncio.gather(
-                test_mcp_tools(),
-                test_health_endpoint(),
-                test_webhook_endpoints(),
-                return_exceptions=True
+                test_mcp_tools(), test_health_endpoint(), test_webhook_endpoints(), return_exceptions=True
             )
 
             # Check results
@@ -344,7 +332,9 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
             assert health_ok, "Health endpoint not working"
             assert webhook_ok, "Webhook endpoints not working"
 
-            logger.info(f"Concurrent operations successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhooks: {webhook_ok}")
+            logger.info(
+                f"Concurrent operations successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhooks: {webhook_ok}"
+            )
 
         except Exception as e:
             pytest.fail(f"Concurrent operations test failed: {e}")
@@ -359,7 +349,7 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
-    
+
     logger.info("Testing Streamable-HTTP integrated streaming behavior")
 
     # Get a free port for testing
@@ -373,41 +363,31 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
 
     # Start server and test streaming behavior
     async with http_mcp_server(
-        transport="streamable-http",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="streamable-http", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=mount_path,
-            integrated=True
+            transport="streamable-http", base_url=server.base_url, mount_path=mount_path, integrated=True
         ) as session:
             # Initialize session
             await session.initialize()
-            
+
             # Test tool listing (should work with streaming)
             tools_result = await session.list_tools()
             assert len(tools_result.tools) > 0, "No tools found via streaming"
-            
+
             # Test resource listing (should work with streaming)
             resources_result = await session.list_resources()
             # Resources may or may not be available, just check it doesn't error
             logger.info(f"Resources available: {len(resources_result.resources) if resources_result.resources else 0}")
-            
+
             # Test prompt listing (should work with streaming)
             prompts_result = await session.list_prompts()
             # Prompts may or may not be available, just check it doesn't error
             logger.info(f"Prompts available: {len(prompts_result.prompts) if prompts_result.prompts else 0}")
 
             # Test a tool call with streaming (this should work smoothly)
-            result = await session.call_tool(
-                "slack_read_emojis",
-                {"input_params": {}}
-            )
-            
+            result = await session.call_tool("slack_read_emojis", {"input_params": {}})
+
             assert result.isError is False, f"Streaming tool call failed: {result.content}"
             assert len(result.content) > 0, "Expected content from streaming tool call"
 
@@ -427,7 +407,7 @@ async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa:
     """Test error handling in Streamable-HTTP integrated mode."""
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
-    
+
     logger.info("Testing Streamable-HTTP integrated error handling")
 
     # Get a free port for testing
@@ -441,27 +421,17 @@ async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa:
 
     # Start server and test error handling
     async with http_mcp_server(
-        transport="streamable-http",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="streamable-http", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=mount_path,
-            integrated=True
+            transport="streamable-http", base_url=server.base_url, mount_path=mount_path, integrated=True
         ) as session:
             # Initialize session
             await session.initialize()
-            
+
             # Test calling a non-existent tool (should handle error gracefully)
             try:
-                result = await session.call_tool(
-                    "non_existent_tool",
-                    {"input_params": {}}
-                )
+                result = await session.call_tool("non_existent_tool", {"input_params": {}})
                 # If this doesn't raise an exception, check that it returns an error
                 assert result.isError is True, "Expected error for non-existent tool"
                 logger.info("Non-existent tool error handled correctly")
@@ -473,7 +443,7 @@ async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa:
             try:
                 result = await session.call_tool(
                     "slack_post_message",
-                    {"input_params": {"invalid_param": "invalid_value"}}  # Missing required channel and text
+                    {"input_params": {"invalid_param": "invalid_value"}},  # Missing required channel and text
                 )
                 # Should return an error or raise an exception
                 if not result.isError:

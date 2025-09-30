@@ -166,7 +166,9 @@ def create_slack_app() -> FastAPI:
         The FastAPI app
     """
 
-    assert _server_instance is not None, "Please create a FastMCP instance first by calling *MCPServerFactory.create()*."
+    assert (
+        _server_instance is not None
+    ), "Please create a FastMCP instance first by calling *MCPServerFactory.create()*."
 
     @contextlib.asynccontextmanager
     async def lifespan_streamable_http(_: FastAPI):
@@ -174,7 +176,7 @@ def create_slack_app() -> FastAPI:
         # Initialize MCP apps
         _server_instance.sse_app()
         _server_instance.streamable_http_app()
-        
+
         # Try to run session manager - if already running (integrated mode), just yield
         try:
             async with _server_instance.session_manager.run():

@@ -7,16 +7,15 @@ import json
 import logging
 import os
 import uuid
-from datetime import timedelta
 from pathlib import Path
-from test.e2e_test.slack_retry_utils import retry_slack_api_call
 from test.e2e_test.mcp.http_test_utils import (
-    http_mcp_server,
+    get_free_port,
     http_mcp_client_session,
+    http_mcp_server,
     initialize_and_test_tools,
     safe_call_tool,
-    get_free_port
 )
+from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
 from dotenv import load_dotenv
@@ -106,13 +105,10 @@ async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D
         integrated=False,
         port=port,
         mount_path=None,  # streamable-http doesn't use mount_path
-        env=server_env
+        env=server_env,
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=None,
-            integrated=False
+            transport="streamable-http", base_url=server.base_url, mount_path=None, integrated=False
         ) as session:
             # Initialize session and verify tools
             expected_tools = ["slack_post_message", "slack_read_channel_messages", "slack_thread_reply"]
@@ -128,7 +124,7 @@ async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D
                         "channel": channel_id,
                         "text": unique_text,
                     }
-                }
+                },
             )
 
             # Verify the result is successful
@@ -144,7 +140,9 @@ async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D
             assert slack_response.get("ok") is True, f"Slack API returned error: {slack_response}"
             assert "ts" in slack_response, "Missing timestamp in Slack response"
 
-            logger.info(f"Message successfully sent via Streamable-HTTP standalone with timestamp: {slack_response.get('ts')}")
+            logger.info(
+                f"Message successfully sent via Streamable-HTTP standalone with timestamp: {slack_response.get('ts')}"
+            )
 
     # Verify message was delivered
     await asyncio.sleep(1)
@@ -203,13 +201,10 @@ async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: 
         integrated=False,
         port=port,
         mount_path=None,  # streamable-http doesn't use mount_path
-        env=server_env
+        env=server_env,
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=None,
-            integrated=False
+            transport="streamable-http", base_url=server.base_url, mount_path=None, integrated=False
         ) as session:
             # Initialize session and verify tools
             expected_tools = ["slack_add_reactions"]
@@ -226,7 +221,7 @@ async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: 
                         "timestamp": message_ts,
                         "emojis": emojis_to_add,
                     }
-                }
+                },
             )
 
             # Verify the result is successful
@@ -275,13 +270,10 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
         integrated=False,
         port=port,
         mount_path=None,  # streamable-http doesn't use mount_path
-        env=server_env
+        env=server_env,
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=None,
-            integrated=False
+            transport="streamable-http", base_url=server.base_url, mount_path=None, integrated=False
         ) as session:
             # Initialize session and verify tools
             expected_tools = ["slack_read_emojis"]
@@ -289,11 +281,7 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
 
             # Call slack_read_emojis tool with timeout protection
             logger.info("Calling slack_read_emojis tool")
-            result = await safe_call_tool(
-                session,
-                "slack_read_emojis",
-                {"input_params": {}}
-            )
+            result = await safe_call_tool(session, "slack_read_emojis", {"input_params": {}})
 
             # Verify the result is successful
             assert result.isError is False, f"Tool execution failed: {result.content}"
@@ -331,11 +319,13 @@ async def test_streamable_http_standalone_thread_operations_e2e() -> None:  # no
         parent_response = await _post_message(client, channel=channel_id, text=unique_parent_text)
         assert parent_response["ok"] is True, "Failed to send parent message"
         parent_ts = parent_response["ts"]
-        
+
         # Add a reply to create the thread
-        reply_response = await _post_message(client, channel=channel_id, text=unique_reply_texts[0], thread_ts=parent_ts)
+        reply_response = await _post_message(
+            client, channel=channel_id, text=unique_reply_texts[0], thread_ts=parent_ts
+        )
         assert reply_response["ok"] is True, "Failed to send reply message"
-        
+
         logger.info(f"Created thread with parent timestamp: {parent_ts}")
     except Exception as e:
         pytest.fail(f"Failed to create test thread: {e}")
@@ -354,20 +344,19 @@ async def test_streamable_http_standalone_thread_operations_e2e() -> None:  # no
         integrated=False,
         port=port,
         mount_path=None,  # streamable-http doesn't use mount_path
-        env=server_env
+        env=server_env,
     ) as server:
         async with http_mcp_client_session(
-            transport="streamable-http",
-            base_url=server.base_url,
-            mount_path=None,
-            integrated=False
+            transport="streamable-http", base_url=server.base_url, mount_path=None, integrated=False
         ) as session:
             # Initialize session and verify tools
             expected_tools = ["slack_read_thread_messages"]
             await initialize_and_test_tools(session, expected_tools)
 
             # Call slack_read_thread_messages tool with timeout protection
-            logger.info(f"Calling slack_read_thread_messages tool with channel: {channel_id} and thread_ts: {parent_ts}")
+            logger.info(
+                f"Calling slack_read_thread_messages tool with channel: {channel_id} and thread_ts: {parent_ts}"
+            )
             result = await safe_call_tool(
                 session,
                 "slack_read_thread_messages",
@@ -376,7 +365,7 @@ async def test_streamable_http_standalone_thread_operations_e2e() -> None:  # no
                         "channel": channel_id,
                         "thread_ts": parent_ts,
                     }
-                }
+                },
             )
 
             # Verify the result is successful

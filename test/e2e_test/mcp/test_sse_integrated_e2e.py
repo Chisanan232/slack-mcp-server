@@ -7,19 +7,18 @@ import json
 import logging
 import os
 import uuid
-from datetime import timedelta
 from pathlib import Path
-from test.e2e_test.slack_retry_utils import retry_slack_api_call
 from test.e2e_test.mcp.http_test_utils import (
-    http_mcp_server,
+    get_free_port,
     http_mcp_client_session,
+    http_mcp_server,
     initialize_and_test_tools,
     safe_call_tool,
-    get_free_port
 )
+from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
-import pytest
 import httpx
+import pytest
 from dotenv import load_dotenv
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
@@ -74,7 +73,7 @@ async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
     """Test health check endpoint in SSE integrated mode."""
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
-    
+
     logger.info("Testing SSE integrated health check endpoint")
 
     # Get a free port for testing
@@ -88,18 +87,14 @@ async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
 
     # Start server and test health endpoint
     async with http_mcp_server(
-        transport="sse",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="sse", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         # Test health endpoint
         health_url = f"{server.base_url}/health"
         async with httpx.AsyncClient() as client:
             response = await client.get(health_url)
             assert response.status_code == 200, f"Health endpoint returned {response.status_code}"
-            
+
             health_data = response.json()
             assert health_data["status"] == "healthy", f"Health status is not healthy: {health_data}"
             assert health_data["service"] == "slack-webhook-server", "Wrong service name in health response"
@@ -142,17 +137,10 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
 
     # Start server and run test
     async with http_mcp_server(
-        transport="sse",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="sse", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         async with http_mcp_client_session(
-            transport="sse",
-            base_url=server.base_url,
-            mount_path=mount_path,
-            integrated=True
+            transport="sse", base_url=server.base_url, mount_path=mount_path, integrated=True
         ) as session:
             # Initialize session and verify tools
             expected_tools = ["slack_post_message", "slack_read_channel_messages", "slack_thread_reply"]
@@ -168,7 +156,7 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
                         "channel": channel_id,
                         "text": unique_text,
                     }
-                }
+                },
             )
 
             # Verify the result is successful
@@ -210,7 +198,7 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
     """Test webhook endpoints availability in SSE integrated mode."""
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
-    
+
     logger.info("Testing SSE integrated webhook endpoint availability")
 
     # Get a free port for testing
@@ -224,24 +212,27 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
 
     # Start server and test webhook endpoints
     async with http_mcp_server(
-        transport="sse",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="sse", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
         async with httpx.AsyncClient() as client:
             # Test webhook events endpoint (should exist but require proper headers/auth)
             webhook_url = f"{server.base_url}/slack/events"
             response = await client.get(webhook_url)
             # Webhook endpoint should respond (likely with 405 Method Not Allowed for GET, but it exists)
-            assert response.status_code in [405, 422], f"Webhook endpoint returned unexpected status: {response.status_code}"
-            
+            assert response.status_code in [
+                405,
+                422,
+            ], f"Webhook endpoint returned unexpected status: {response.status_code}"
+
             # Test webhook install endpoint
             install_url = f"{server.base_url}/slack/install"
             response = await client.get(install_url)
             # Install endpoint should respond (may redirect or show install page)
-            assert response.status_code in [200, 302, 404], f"Install endpoint returned unexpected status: {response.status_code}"
+            assert response.status_code in [
+                200,
+                302,
+                404,
+            ], f"Install endpoint returned unexpected status: {response.status_code}"
 
             logger.info("Webhook endpoints are available in SSE integrated mode")
 
@@ -255,7 +246,7 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
-    
+
     logger.info("Testing SSE integrated concurrent access to MCP and webhook functionality")
 
     # Get a free port for testing
@@ -269,19 +260,13 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
 
     # Start server and run concurrent tests
     async with http_mcp_server(
-        transport="sse",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="sse", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
+
         async def test_mcp_functionality():
             """Test MCP functionality concurrently."""
             async with http_mcp_client_session(
-                transport="sse",
-                base_url=server.base_url,
-                mount_path=mount_path,
-                integrated=True
+                transport="sse", base_url=server.base_url, mount_path=mount_path, integrated=True
             ) as session:
                 # Initialize and list tools
                 await session.initialize()
@@ -306,10 +291,7 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
         # Run all tests concurrently
         try:
             mcp_tools, health_ok, webhook_ok = await asyncio.gather(
-                test_mcp_functionality(),
-                test_health_endpoint(),
-                test_webhook_endpoint(),
-                return_exceptions=True
+                test_mcp_functionality(), test_health_endpoint(), test_webhook_endpoint(), return_exceptions=True
             )
 
             # Check results
@@ -324,7 +306,9 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
             assert health_ok, "Health endpoint not accessible"
             assert webhook_ok, "Webhook endpoint not accessible"
 
-            logger.info(f"Concurrent access successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhook: {webhook_ok}")
+            logger.info(
+                f"Concurrent access successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhook: {webhook_ok}"
+            )
 
         except Exception as e:
             pytest.fail(f"Concurrent access test failed: {e}")
@@ -339,7 +323,7 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
     # Get required values from environment
     bot_token = os.environ["SLACK_BOT_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
-    
+
     logger.info("Testing SSE integrated multiple concurrent MCP sessions")
 
     # Get a free port for testing
@@ -353,29 +337,23 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
 
     # Start server and run multiple session test
     async with http_mcp_server(
-        transport="sse",
-        integrated=True,
-        port=port,
-        mount_path=mount_path,
-        env=server_env
+        transport="sse", integrated=True, port=port, mount_path=mount_path, env=server_env
     ) as server:
+
         async def create_mcp_session(session_id: int):
             """Create and test an MCP session."""
             try:
                 async with http_mcp_client_session(
-                    transport="sse",
-                    base_url=server.base_url,
-                    mount_path=mount_path,
-                    integrated=True
+                    transport="sse", base_url=server.base_url, mount_path=mount_path, integrated=True
                 ) as session:
                     # Initialize session
                     await session.initialize()
                     await asyncio.sleep(0.1)
-                    
+
                     # List tools
                     tools = await session.list_tools()
                     tool_names = [tool.name for tool in tools.tools]
-                    
+
                     logger.info(f"Session {session_id}: Found {len(tool_names)} tools")
                     return session_id, len(tool_names)
             except Exception as e:
@@ -385,10 +363,10 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
         # Create multiple concurrent sessions
         num_sessions = 3
         session_tasks = [create_mcp_session(i) for i in range(num_sessions)]
-        
+
         try:
             results = await asyncio.gather(*session_tasks, return_exceptions=True)
-            
+
             successful_sessions = 0
             for result in results:
                 if isinstance(result, Exception):
@@ -399,7 +377,9 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
                         successful_sessions += 1
                         logger.info(f"Session {session_id} successful with {tool_count} tools")
 
-            assert successful_sessions >= num_sessions * 0.8, f"Only {successful_sessions}/{num_sessions} sessions successful"
+            assert (
+                successful_sessions >= num_sessions * 0.8
+            ), f"Only {successful_sessions}/{num_sessions} sessions successful"
             logger.info(f"Multiple MCP sessions test successful: {successful_sessions}/{num_sessions} sessions worked")
 
         except Exception as e:

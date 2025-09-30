@@ -9,8 +9,7 @@ import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager
-from pathlib import Path
-from typing import AsyncGenerator, Any
+from typing import Any, AsyncGenerator
 
 import httpx
 from mcp import ClientSession
@@ -22,14 +21,14 @@ logger = logging.getLogger("http_test_utils")
 
 class HttpServerManager:
     """Manages HTTP-based MCP server instances for E2E testing."""
-    
+
     def __init__(
-        self, 
-        transport: str, 
-        integrated: bool = False, 
-        host: str = "127.0.0.1", 
+        self,
+        transport: str,
+        integrated: bool = False,
+        host: str = "127.0.0.1",
         port: int = 8000,
-        mount_path: str | None = None
+        mount_path: str | None = None,
     ):
         self.transport = transport
         self.integrated = integrated
@@ -38,7 +37,7 @@ class HttpServerManager:
         self.mount_path = mount_path
         self.process: subprocess.Popen | None = None
         self.base_url = f"http://{host}:{port}"
-        
+
     async def start_server(self, env: dict[str, str] | None = None) -> None:
         """Start the MCP server process with proper error handling."""
         try:
@@ -47,36 +46,31 @@ class HttpServerManager:
             args.extend(["--transport", self.transport])
             args.extend(["--host", self.host])
             args.extend(["--port", str(self.port)])
-            
+
             if self.mount_path:
                 args.extend(["--mount-path", self.mount_path])
-                
+
             if self.integrated:
                 args.append("--integrated")
                 # Pass Slack token for integrated mode
                 slack_token = os.getenv("SLACK_BOT_TOKEN")
                 if slack_token:
                     args.extend(["--slack-token", slack_token])
-                
+
             logger.info(f"Starting MCP server with args: {args}")
-            
+
             # Prepare environment
             server_env = {**os.environ}
             if env:
                 server_env.update(env)
-                
+
             # Start server process with error handling
             try:
-                self.process = subprocess.Popen(
-                    args,
-                    env=server_env,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
+                self.process = subprocess.Popen(args, env=server_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except OSError as e:
                 logger.error(f"Failed to start server process: {e}")
                 raise RuntimeError(f"Failed to start server process: {e}") from e
-            
+
             # Wait for server to be ready with timeout
             try:
                 await asyncio.wait_for(self._wait_for_server_ready(), timeout=60.0)
@@ -84,16 +78,16 @@ class HttpServerManager:
                 logger.error("Server startup timed out after 60 seconds")
                 await self.stop_server()  # Cleanup on timeout
                 raise RuntimeError("Server startup timed out after 60 seconds") from e
-                
+
         except Exception as e:
             logger.error(f"Server startup failed: {e}")
             await self.stop_server()  # Ensure cleanup on any failure
             raise
-        
+
     async def _wait_for_server_ready(self, timeout: int = 30) -> None:
         """Wait for the server to be ready to accept connections."""
         start_time = time.time()
-        
+
         while time.time() - start_time < timeout:
             try:
                 # Try to connect to the health endpoint or base URL
@@ -106,9 +100,9 @@ class HttpServerManager:
             except (httpx.ConnectError, httpx.TimeoutException):
                 await asyncio.sleep(0.5)
                 continue
-                
+
         raise RuntimeError(f"Server failed to start within {timeout} seconds")
-        
+
     async def stop_server(self) -> None:
         """Stop the MCP server process."""
         if self.process:
@@ -126,10 +120,10 @@ class HttpServerManager:
 async def http_mcp_server(
     transport: str,
     integrated: bool = False,
-    host: str = "127.0.0.1", 
+    host: str = "127.0.0.1",
     port: int = 8000,
     mount_path: str | None = None,
-    env: dict[str, str] | None = None
+    env: dict[str, str] | None = None,
 ) -> AsyncGenerator[HttpServerManager, None]:
     """Context manager for HTTP-based MCP server instances."""
     server = HttpServerManager(transport, integrated, host, port, mount_path)
@@ -142,10 +136,7 @@ async def http_mcp_server(
 
 @asynccontextmanager
 async def http_mcp_client_session(
-    transport: str,
-    base_url: str,
-    mount_path: str | None = None,
-    integrated: bool = False
+    transport: str, base_url: str, mount_path: str | None = None, integrated: bool = False
 ) -> AsyncGenerator[ClientSession, None]:
     """Create MCP client session for HTTP transports with timeout safeguards."""
     try:
@@ -161,13 +152,13 @@ async def http_mcp_client_session(
                 # In standalone mode, connect directly to /sse endpoint
                 mcp_url = f"{base_url}/sse"
             logger.info(f"Connecting SSE client to: {mcp_url}")
-            
+
             # Add timeout for client connection establishment
             async with asyncio.timeout(30.0):  # 30 second timeout for connection
                 async with sse_client(mcp_url) as (read_stream, write_stream):
                     async with ClientSession(read_stream, write_stream) as session:
                         yield session
-                        
+
         elif transport == "streamable-http":
             # Streamable HTTP transport URL construction
             if integrated:
@@ -180,7 +171,7 @@ async def http_mcp_client_session(
                 # In standalone mode, connect directly to /mcp endpoint
                 mcp_url = f"{base_url}/mcp"
             logger.info(f"Connecting Streamable-HTTP client to: {mcp_url}")
-            
+
             # Add timeout for client connection establishment
             async with asyncio.timeout(30.0):  # 30 second timeout for connection
                 async with streamablehttp_client(mcp_url) as (read_stream, write_stream, _close_fn):
@@ -188,7 +179,7 @@ async def http_mcp_client_session(
                         yield session
         else:
             raise ValueError(f"Unsupported HTTP transport: {transport}")
-            
+
     except asyncio.TimeoutError as e:
         logger.error(f"Timeout establishing {transport} client connection to {base_url}")
         raise AssertionError(f"Client connection timeout after 30 seconds for {transport} transport") from e
@@ -204,21 +195,21 @@ async def initialize_and_test_tools(session: ClientSession, expected_tools: list
         logger.info("Initializing MCP session...")
         init_result = await asyncio.wait_for(session.initialize(), timeout=30.0)
         logger.info(f"Initialization successful: {init_result}")
-        
+
         # Wait a moment to ensure server is ready
         await asyncio.sleep(1)
-        
+
         # List available tools with timeout
         logger.info("Listing available tools...")
         tools = await asyncio.wait_for(session.list_tools(), timeout=15.0)
         tool_names = [tool.name for tool in tools.tools]
         logger.info(f"Found tools: {tool_names}")
-        
+
         # Verify expected tools are present
         for expected_tool in expected_tools:
             if expected_tool not in tool_names:
                 raise AssertionError(f"{expected_tool} tool not found in server")
-                
+
         return tool_names
     except asyncio.TimeoutError as e:
         logger.error(f"Timeout during session initialization or tool listing: {e}")
@@ -228,14 +219,13 @@ async def initialize_and_test_tools(session: ClientSession, expected_tools: list
         raise AssertionError(f"Session initialization failed: {e}") from e
 
 
-async def safe_call_tool(session: ClientSession, tool_name: str, arguments: dict[str, Any], timeout: float = 45.0) -> Any:
+async def safe_call_tool(
+    session: ClientSession, tool_name: str, arguments: dict[str, Any], timeout: float = 45.0
+) -> Any:
     """Safely call an MCP tool with timeout and error handling to prevent test crashes."""
     try:
         logger.info(f"Calling tool '{tool_name}' with timeout {timeout}s")
-        result = await asyncio.wait_for(
-            session.call_tool(tool_name, arguments),
-            timeout=timeout
-        )
+        result = await asyncio.wait_for(session.call_tool(tool_name, arguments), timeout=timeout)
         logger.info(f"Tool '{tool_name}' completed successfully")
         return result
     except asyncio.TimeoutError as e:
@@ -249,8 +239,9 @@ async def safe_call_tool(session: ClientSession, tool_name: str, arguments: dict
 def get_free_port() -> int:
     """Get a free port for testing."""
     import socket
+
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(('', 0))
+        s.bind(("", 0))
         s.listen(1)
         port = s.getsockname()[1]
     return port

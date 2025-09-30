@@ -6,14 +6,11 @@ in a single FastAPI application. It follows PEP 484/585 typing conventions.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 from typing import Final, Optional
 
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
-import json
-import os
 
 from .mcp.server import mcp as _server_instance
 from .webhook.server import (
