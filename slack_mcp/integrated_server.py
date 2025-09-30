@@ -202,7 +202,7 @@ def create_integrated_app(
                 status_code=status_code,
                 content={
                     "status": overall_status,
-                    "service": "slack-webhook-server",
+                    "service": "integrated-server",
                     "transport": mcp_transport,
                     "components": {
                         "mcp_server": mcp_status,
@@ -216,7 +216,7 @@ def create_integrated_app(
             _LOG.error(f"Integrated health check failed: {e}")
             return JSONResponse(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                content={"status": "unhealthy", "service": "slack-webhook-server", "error": str(e)},
+                content={"status": "unhealthy", "service": "integrated-server", "error": str(e)},
             )
 
     # Get the appropriate MCP app based on the transport
