@@ -321,19 +321,19 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
             )
 
             # Check results
-            if isinstance(mcp_tools, Exception):
-                pytest.fail(f"MCP tools test failed: {mcp_tools}")
-            if isinstance(health_ok, Exception):
-                pytest.fail(f"Health endpoint test failed: {health_ok}")
-            if isinstance(webhook_ok, Exception):
-                pytest.fail(f"Webhook endpoints test failed: {webhook_ok}")
+            if isinstance(mcp_tools, Exception):  # type: ignore[has-type]
+                pytest.fail(f"MCP tools test failed: {mcp_tools}")  # type: ignore[has-type]
+            if isinstance(health_ok, Exception):  # type: ignore[has-type]
+                pytest.fail(f"Health endpoint test failed: {health_ok}")  # type: ignore[has-type]
+            if isinstance(webhook_ok, Exception):  # type: ignore[has-type]
+                pytest.fail(f"Webhook endpoints test failed: {webhook_ok}")  # type: ignore[has-type]
 
-            assert len(mcp_tools) > 0, "No MCP tools found"
-            assert health_ok, "Health endpoint not working"
-            assert webhook_ok, "Webhook endpoints not working"
+            assert len(mcp_tools) > 0, "No MCP tools found"  # type: ignore[has-type]
+            assert health_ok, "Health endpoint not working"  # type: ignore[has-type]
+            assert webhook_ok, "Webhook endpoints not working"  # type: ignore[has-type]
 
             logger.info(
-                f"Concurrent operations successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhooks: {webhook_ok}"
+                f"Concurrent operations successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhooks: {webhook_ok}"  # type: ignore[has-type]
             )
 
         except Exception as e:

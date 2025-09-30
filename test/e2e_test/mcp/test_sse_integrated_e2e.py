@@ -295,19 +295,19 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
             )
 
             # Check results
-            if isinstance(mcp_tools, Exception):
-                pytest.fail(f"MCP functionality test failed: {mcp_tools}")
-            if isinstance(health_ok, Exception):
-                pytest.fail(f"Health endpoint test failed: {health_ok}")
-            if isinstance(webhook_ok, Exception):
-                pytest.fail(f"Webhook endpoint test failed: {webhook_ok}")
+            if isinstance(mcp_tools, Exception):  # type: ignore[has-type]
+                pytest.fail(f"MCP functionality test failed: {mcp_tools}")  # type: ignore[has-type]
+            if isinstance(health_ok, Exception):  # type: ignore[has-type]
+                pytest.fail(f"Health endpoint test failed: {health_ok}")  # type: ignore[has-type]
+            if isinstance(webhook_ok, Exception):  # type: ignore[has-type]
+                pytest.fail(f"Webhook endpoint test failed: {webhook_ok}")  # type: ignore[has-type]
 
-            assert len(mcp_tools) > 0, "No MCP tools found"
-            assert health_ok, "Health endpoint not accessible"
-            assert webhook_ok, "Webhook endpoint not accessible"
+            assert len(mcp_tools) > 0, "No MCP tools found"  # type: ignore[has-type]
+            assert health_ok, "Health endpoint not accessible"  # type: ignore[has-type]
+            assert webhook_ok, "Webhook endpoint not accessible"  # type: ignore[has-type]
 
             logger.info(
-                f"Concurrent access successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhook: {webhook_ok}"
+                f"Concurrent access successful - MCP tools: {len(mcp_tools)}, Health: {health_ok}, Webhook: {webhook_ok}"  # type: ignore[has-type]
             )
 
         except Exception as e:
@@ -372,7 +372,7 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
                 if isinstance(result, Exception):
                     logger.error(f"Session failed with exception: {result}")
                 else:
-                    session_id, tool_count = result
+                    session_id, tool_count = result  # type: ignore[misc]
                     if tool_count > 0:
                         successful_sessions += 1
                         logger.info(f"Session {session_id} successful with {tool_count} tools")
