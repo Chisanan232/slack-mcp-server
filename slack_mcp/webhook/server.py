@@ -169,6 +169,9 @@ def create_slack_app() -> FastAPI:
     @contextlib.asynccontextmanager
     async def lifespan_streamable_http(_: FastAPI):
         """Lifespan context manager for streamable-http transport."""
+        _server_instance.sse_app()
+        _server_instance.streamable_http_app()
+
         async with _server_instance.session_manager.run():
             yield
 

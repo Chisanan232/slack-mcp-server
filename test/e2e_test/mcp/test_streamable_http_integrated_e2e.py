@@ -102,7 +102,7 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
             
             health_data = response.json()
             assert health_data["status"] == "healthy", f"Health status is not healthy: {health_data}"
-            assert health_data["service"] == "integrated-server", "Wrong service name in health response"
+            assert health_data["service"] == "slack-webhook-server", "Wrong service name in health response"
             assert "components" in health_data, "Missing components in health response"
             # Note: Integrated server doesn't include transport info in health response
 
