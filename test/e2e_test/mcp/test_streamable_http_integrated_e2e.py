@@ -286,7 +286,8 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
             async with http_mcp_client_session(
                 transport="streamable-http",
                 base_url=server.base_url,
-                mount_path=mount_path
+                mount_path=mount_path,
+                integrated=True
             ) as session:
                 # Initialize and list tools
                 await session.initialize()

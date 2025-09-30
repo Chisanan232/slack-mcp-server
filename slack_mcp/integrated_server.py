@@ -10,8 +10,10 @@ import contextlib
 import logging
 from typing import Final, Optional
 
-from fastapi import FastAPI, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse
+import json
+import os
 
 from .mcp.server import mcp as _server_instance
 from .webhook.server import (
@@ -92,15 +94,12 @@ def create_integrated_app(
         backend = get_queue_backend()
         
         # Get the topic for Slack events from environment or use default  
-        import os
         DEFAULT_SLACK_EVENTS_TOPIC = "slack_events"
         slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
         
         @app.post("/slack/events")
-        async def slack_events(request) -> JSONResponse:
+        async def slack_events(request: Request) -> JSONResponse:
             """Handle Slack events for streamable-http integrated server."""
-            from fastapi import HTTPException, Request, Response
-            import json
             from .webhook.server import verify_slack_request
             from .webhook.models import SlackEventModel, UrlVerificationModel, deserialize
             
