@@ -34,6 +34,19 @@ jobs:
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
+  run_one_e2e-test:
+#    name: Run all end-to-end test items under one case
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    with:
+      test_type: e2e-test
+      test_folder: './test/e2e_test'
+      install_dependency_with_group: 'dev'
+      max-parallel: 1
+      python-versions: '["3.13"]'
+      operating-systems: '["ubuntu-latest"]'
+    secrets:
+      e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
+
   run_e2e-test:
 #    name: Run all end-to-end test items
     if: ${{ inputs.run_e2e == true }}
@@ -90,6 +103,17 @@ jobs:
     with:
       test_type: integration-test
 
+  one_e2e-test_codecov:
+#    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
+    if: ${{
+        contains(fromJSON('["pull_request","workflow_dispatch","schedule"]'), github.event_name) ||
+        (github.event_name == 'push' && github.ref_name == 'master')
+      }}
+    needs: run_one_e2e-test
+    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master
+    with:
+      test_type: e2e-test
+
   e2e-test_codecov:
 #    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
     if: ${{
@@ -121,7 +145,6 @@ jobs:
         ) &&
         inputs.run_e2e == false
       }}
-#    needs: [run_unit-test, run_integration-test, run_contract-test]
     needs: [run_unit-test, run_integration-test, run_contract-test]
     uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
@@ -136,8 +159,7 @@ jobs:
         ) &&
         inputs.run_e2e == true
       }}
-#    needs: [run_unit-test, run_integration-test, run_contract-test, run_e2e-test]
-    needs: [run_unit-test, run_integration-test, run_contract-test, run_e2e-test]
+    needs: [run_unit-test, run_integration-test, run_contract-test, run_one_e2e-test]
     uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: all-test
