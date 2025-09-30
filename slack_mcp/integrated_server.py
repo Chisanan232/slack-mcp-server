@@ -234,7 +234,7 @@ def create_integrated_app(
 
         # Mount streamable-HTTP app at root level since it already has /mcp path
         _LOG.info(f"Integrating MCP server with streamable-http transport")
-        app.mount("", mcp_app)
+        app.mount(mount_path, mcp_app)
 
     _LOG.info("Successfully created integrated server with both MCP and webhook functionalities")
     return app

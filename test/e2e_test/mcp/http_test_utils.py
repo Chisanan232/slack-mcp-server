@@ -175,7 +175,7 @@ async def http_mcp_client_session(
                 if mount_path:
                     mcp_url = f"{base_url}{mount_path}"
                 else:
-                    mcp_url = f"{base_url}/mcp"
+                    mcp_url = f"{base_url}/mcp/mcp"
             else:
                 # In standalone mode, connect directly to /mcp endpoint
                 mcp_url = f"{base_url}/mcp"
