@@ -6,6 +6,7 @@ It follows PEP 484/585 typing conventions.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import os
@@ -19,6 +20,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.backends.loader import load_backend
 from slack_mcp.client.manager import get_client_manager
+from slack_mcp.mcp.server import mcp as _server_instance
 
 from .models import SlackEventModel, UrlVerificationModel, deserialize
 
@@ -163,7 +165,19 @@ def create_slack_app() -> FastAPI:
     FastAPI
         The FastAPI app
     """
-    app = FastAPI(title="Slack MCP Server")
+
+    @contextlib.asynccontextmanager
+    async def lifespan_streamable_http(_: FastAPI):
+        """Lifespan context manager for streamable-http transport."""
+        async with _server_instance.session_manager.run():
+            yield
+
+    app = FastAPI(
+        title="Slack MCP Server",
+        description="Integrated Slack webhook and MCP server",
+        version="0.0.1",
+        lifespan=lifespan_streamable_http,
+    )
 
     # Initialize the queue backend
     backend = get_queue_backend()

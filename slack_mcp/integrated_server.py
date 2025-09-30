@@ -68,91 +68,8 @@ def create_integrated_app(
             f"Invalid transport type for integrated server: {mcp_transport}. " "Must be 'sse' or 'streamable-http'."
         )
 
-    # For streamable-http transport, we need to create a new FastAPI app with proper lifespan
-    # For SSE transport, we can use the existing webhook app structure
-    if mcp_transport == "streamable-http":
-        # Create lifespan context manager for streamable-http transport
-        @contextlib.asynccontextmanager
-        async def lifespan_streamable_http(_: FastAPI):
-            """Lifespan context manager for streamable-http transport."""
-            async with _server_instance.session_manager.run():
-                yield
-        
-        # Create a new FastAPI app with lifespan for streamable-http
-        app = FastAPI(
-            title="Slack MCP Integrated Server",
-            description="Integrated Slack webhook and MCP server",
-            version="1.0.0",
-            lifespan=lifespan_streamable_http,
-            redirect_slashes=False,
-        )
-        
-        # Add webhook routes manually to the new app for streamable-http
-        # We need to replicate the webhook functionality from create_slack_app()
-        
-        # Initialize the queue backend
-        backend = get_queue_backend()
-        
-        # Get the topic for Slack events from environment or use default  
-        DEFAULT_SLACK_EVENTS_TOPIC = "slack_events"
-        slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
-        
-        @app.post("/slack/events")
-        async def slack_events(request: Request) -> JSONResponse:
-            """Handle Slack events for streamable-http integrated server."""
-            from .webhook.server import verify_slack_request
-            from .webhook.models import SlackEventModel, UrlVerificationModel, deserialize
-            
-            # Verify the request is from Slack
-            if not await verify_slack_request(request):
-                _LOG.warning("Invalid Slack request signature")
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid request signature")
-
-            # Get request body as text
-            body = await request.body()
-            body_str = body.decode("utf-8")
-
-            # Parse the request body
-            slack_event_dict = json.loads(body_str)
-
-            # Use Pydantic model for deserialization
-            try:
-                slack_event_model = deserialize(slack_event_dict)
-            except Exception as e:
-                _LOG.error(f"Error deserializing Slack event: {e}")
-                slack_event_model = None
-
-            # Handle URL verification challenge
-            if isinstance(slack_event_model, UrlVerificationModel):
-                _LOG.info("Handling URL verification challenge")
-                return JSONResponse(content={"challenge": slack_event_model.challenge})
-            elif "challenge" in slack_event_dict:
-                _LOG.info("Handling URL verification challenge (fallback)")
-                return JSONResponse(content={"challenge": slack_event_dict["challenge"]})
-
-            # Process the event
-            if isinstance(slack_event_model, SlackEventModel):
-                event_type = slack_event_model.event.type if hasattr(slack_event_model.event, "type") else "unknown"
-                _LOG.info(f"Received Slack event: {event_type}")
-                event_dict = slack_event_model.model_dump()
-                try:
-                    await backend.publish(slack_events_topic, event_dict)
-                    _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
-                except Exception as e:
-                    _LOG.error(f"Error publishing event to queue: {e}")
-            else:
-                event_type = slack_event_dict.get("event", {}).get("type", "unknown")
-                _LOG.info(f"Received Slack event: {event_type}")
-                try:
-                    await backend.publish(slack_events_topic, slack_event_dict)
-                    _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
-                except Exception as e:
-                    _LOG.error(f"Error publishing event to queue: {e}")
-
-            return JSONResponse(content={"status": "ok"})
-    else:
-        # For SSE transport, use the existing webhook app structure
-        app = create_slack_app()
+    # Create the webhook app first - this will be returned for both transports
+    app = create_slack_app()
 
     # Initialize the global Slack client with the provided token and retry settings
     # Allow token to be None during app creation - it will be set later in entry.py
@@ -227,11 +144,11 @@ def create_integrated_app(
         _LOG.info(f"Mounting MCP server with SSE transport at path: {mcp_mount_path}")
         app.mount(mcp_mount_path or "/mcp", mcp_app)
     elif mcp_transport == "streamable-http":
-        # For streamable-http transport, investigate and add MCP routes
+        # For streamable-http transport, use existing _server_instance directly
+        # The SessionManager reuse issue should be resolved by the mounting approach
         mcp_app = _server_instance.streamable_http_app()
         mount_path = mcp_mount_path or "/mcp"
 
-        # Mount streamable-HTTP app at root level since it already has /mcp path
         _LOG.info(f"Integrating MCP server with streamable-http transport")
         app.mount(mount_path, mcp_app)
 

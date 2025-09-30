@@ -101,12 +101,13 @@ def test_create_integrated_app_streamable_http(mock_dependencies: Dict[str, Any]
     # Verify streamable_http_app was called
     assert len(mock_mcp.streamable_http_app_calls) == 1
 
-    # Verify no apps were mounted (routes should be added directly)
-    assert len(mock_webhook_app.mounted_apps) == 0
+    # Verify MCP app was mounted at /mcp path
+    assert len(mock_webhook_app.mounted_apps) == 1
+    assert "/mcp" in mock_webhook_app.mounted_apps
 
-    # Create a test client to verify routes were merged
+    # Create a test client to verify routes were mounted
     client = TestClient(app)
-    response = client.get("/mcp-test-route")
+    response = client.get("/mcp/mcp-test-route")
     assert response.status_code == 200
     assert response.json() == {"message": "test"}
 
