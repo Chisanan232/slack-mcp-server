@@ -1,10 +1,13 @@
 import contextlib
 from collections.abc import Callable
+from typing import Final, Type
 
 from fastapi import FastAPI
 from mcp.server import FastMCP
 
 from slack_mcp._base import BaseServerFactory
+
+SERVER_NAME: Final[str] = "SlackMCPServer"
 
 _MCP_SERVER_INSTANCE: FastMCP | None = None
 
@@ -24,7 +27,7 @@ class MCPServerFactory(BaseServerFactory[FastMCP]):
         # Create a new FastMCP instance
         global _MCP_SERVER_INSTANCE
         assert _MCP_SERVER_INSTANCE is None, "It is not allowed to create more than one instance of FastMCP."
-        _MCP_SERVER_INSTANCE = FastMCP()
+        _MCP_SERVER_INSTANCE = FastMCP(name=SERVER_NAME)
         return _MCP_SERVER_INSTANCE
 
     @staticmethod
@@ -68,5 +71,5 @@ class MCPServerFactory(BaseServerFactory[FastMCP]):
 
 
 # Create a default MCP server instance for backward compatibility
-mcp_factory = MCPServerFactory
-mcp = mcp_factory.create()
+mcp_factory: Final[Type[MCPServerFactory]] = MCPServerFactory
+mcp: Final[FastMCP] = mcp_factory.create()
