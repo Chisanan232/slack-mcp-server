@@ -4,7 +4,7 @@ import os
 import tempfile
 from unittest.mock import MagicMock, patch
 
-from slack_mcp.mcp.server import mcp as _server_instance
+from slack_mcp.mcp.app import mcp_factory
 
 
 def test_dotenv_loading_with_valid_env_file():
@@ -21,7 +21,7 @@ def test_dotenv_loading_with_valid_env_file():
     try:
         # Run entry.main with our temp .env file
         with patch("sys.argv", ["slack-mcp-server", "--env-file", temp_env_path, "--transport", "stdio"]):
-            with patch.object(_server_instance, "run") as mock_run:
+            with patch.object(mcp_factory.get(), "run") as mock_run:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
@@ -57,7 +57,7 @@ def test_cmd_line_token_overrides_env_file():
             "sys.argv",
             ["slack-mcp-server", "--env-file", temp_env_path, "--slack-token", cmd_line_token, "--transport", "stdio"],
         ):
-            with patch.object(_server_instance, "run") as mock_run:
+            with patch.object(mcp_factory.get(), "run") as mock_run:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
@@ -82,7 +82,7 @@ def test_dotenv_loading_with_nonexistent_env_file():
     nonexistent_path = "/tmp/definitely-does-not-exist-12345.env"
 
     with patch("sys.argv", ["slack-mcp-server", "--env-file", nonexistent_path, "--transport", "stdio"]):
-        with patch.object(_server_instance, "run") as mock_run:
+        with patch.object(mcp_factory.get(), "run") as mock_run:
             with patch("logging.Logger.warning") as mock_warning:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
@@ -112,7 +112,7 @@ def test_dotenv_loading_disabled():
         with patch(
             "sys.argv", ["slack-mcp-server", "--env-file", temp_env_path, "--no-env-file", "--transport", "stdio"]
         ):
-            with patch.object(_server_instance, "run") as mock_run:
+            with patch.object(mcp_factory.get(), "run") as mock_run:
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
@@ -146,7 +146,7 @@ def test_sse_transport_with_token():
             "sys.argv",
             ["slack-mcp-server", "--env-file", temp_env_path, "--transport", "sse", "--mount-path", "/api/mcp"],
         ):
-            with patch.object(_server_instance, "sse_app") as mock_sse_app:
+            with patch.object(mcp_factory.get(), "sse_app") as mock_sse_app:
                 with patch("uvicorn.run") as mock_run:
                     mock_app = MagicMock()
                     mock_sse_app.return_value = mock_app

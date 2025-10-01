@@ -12,7 +12,7 @@ from typing import Final, Optional
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
-from .mcp.server import mcp as _server_instance
+from .mcp.app import mcp_factory
 from .webhook.server import (
     create_slack_app,
     get_queue_backend,
@@ -104,7 +104,7 @@ def create_integrated_app(
 
             # Check MCP server status
             mcp_status = "healthy"  # MCP server is healthy if we can access the instance
-            _ = _server_instance  # Access the server instance to verify it's available
+            _ = mcp_factory.get()  # Access the server instance to verify it's available
 
             # Determine overall health status
             is_healthy = backend_status == "healthy"
@@ -135,7 +135,7 @@ def create_integrated_app(
     # Get the appropriate MCP app based on the transport
     if mcp_transport == "sse":
         # For SSE transport, we can mount at a specified path
-        mcp_app = _server_instance.sse_app(mount_path=mcp_mount_path)
+        mcp_app = mcp_factory.get().sse_app(mount_path=mcp_mount_path)
 
         # Mount the MCP app on the webhook app
         _LOG.info(f"Mounting MCP server with SSE transport at path: {mcp_mount_path}")
@@ -143,7 +143,7 @@ def create_integrated_app(
     elif mcp_transport == "streamable-http":
         # For streamable-http transport, use existing _server_instance directly
         # The SessionManager reuse issue should be resolved by the mounting approach
-        mcp_app = _server_instance.streamable_http_app()
+        mcp_app = mcp_factory.get().streamable_http_app()
         mount_path = mcp_mount_path or "/mcp"
 
         _LOG.info(f"Integrating MCP server with streamable-http transport")

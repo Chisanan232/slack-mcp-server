@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 from slack_mcp.integrated_server import create_integrated_app
 
 from .cli import _parse_args
-from .server import mcp as _server_instance
+from .app import mcp_factory
 from .server import set_slack_client_retry_count
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
@@ -70,10 +70,10 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
             # Get the FastAPI app for the specific HTTP transport
             if args.transport == "sse":
                 # sse_app is a method that takes mount_path as a parameter
-                app = _server_instance.sse_app(mount_path=args.mount_path)
+                app = mcp_factory.get().sse_app(mount_path=args.mount_path)
             else:  # streamable-http
                 # streamable_http_app doesn't accept mount_path parameter
-                app = _server_instance.streamable_http_app()
+                app = mcp_factory.get().streamable_http_app()
                 if args.mount_path:
                     _LOG.warning("mount-path is not supported for streamable-http transport and will be ignored")
 
@@ -82,7 +82,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
         else:
             # For stdio transport, use the run method directly
             _LOG.info("Running stdio transport")
-            _server_instance.run(transport=args.transport)
+            mcp_factory.get().run(transport=args.transport)
 
 
 if __name__ == "__main__":  # pragma: no cover

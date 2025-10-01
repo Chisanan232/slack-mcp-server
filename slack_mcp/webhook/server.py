@@ -16,11 +16,12 @@ from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
+from mcp.server import FastMCP
 
 from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.backends.loader import load_backend
 from slack_mcp.client.manager import get_client_manager
-from slack_mcp.mcp.server import mcp as _server_instance
+from slack_mcp.mcp.app import mcp_factory
 
 from .models import SlackEventModel, UrlVerificationModel, deserialize
 
@@ -166,6 +167,7 @@ def create_slack_app() -> FastAPI:
         The FastAPI app
     """
 
+    _server_instance: Final[FastMCP] = mcp_factory.get()
     assert (
         _server_instance is not None
     ), "Please create a FastMCP instance first by calling *MCPServerFactory.create()*."

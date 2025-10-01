@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+from .models import MCPTransportType, LogLevel
 from .models import MCPServerCliOptions
 
 
@@ -22,9 +23,11 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
     )
     parser.add_argument(
         "--transport",
-        choices=["stdio", "sse", "streamable-http"],
+        type=str,
         default="sse",
-        help="Transport to use for MCP server (default: sse)",
+        dest="transport",
+        choices=[transport_type.value for transport_type in MCPTransportType],
+        help="Transport protocol to use for MCP (studio, sse or streamable-http)",
     )
     parser.add_argument(
         "--mount-path",
@@ -33,8 +36,9 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
     )
     parser.add_argument(
         "--log-level",
-        default="INFO",
-        help="Python logging level (e.g., DEBUG, INFO)",
+        type=str,
+        default="info",
+        choices=[level.value for level in LogLevel], help="Logging level",
     )
     parser.add_argument(
         "--env-file",

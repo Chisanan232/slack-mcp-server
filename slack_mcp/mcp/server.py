@@ -12,11 +12,11 @@ import logging
 import os
 from typing import Any, Final, Optional
 
-from mcp.server.fastmcp import FastMCP
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.client.manager import get_client_manager
 
+from .app import mcp
 from .model.input import (
     SlackAddReactionsInput,
     SlackPostMessageInput,
@@ -40,16 +40,11 @@ __all__: list[str] = [
     "update_slack_client",
 ]
 
-# A single FastMCP server instance to be discovered by the MCP runtime.
-SERVER_NAME: Final[str] = "SlackMCPServer"
-
 # Logger for this module
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.server")
 
 # Default token from environment
 _DEFAULT_TOKEN = os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
-
-mcp: Final[FastMCP] = FastMCP(name=SERVER_NAME)
 
 
 def set_slack_client_retry_count(retry: int) -> None:
