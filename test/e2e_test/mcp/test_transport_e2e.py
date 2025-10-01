@@ -60,13 +60,17 @@ async def test_server_http_transports(transport, mount_path, warning_expected, c
     mock_server = _DummyServer()
 
     # Create dummy args
-    argv = ["--transport", transport, "--host", "localhost", "--port", "8000", "--log-level", "INFO"]
+    argv = ["--transport", transport, "--host", "localhost", "--port", "8000", "--log-level", "info"]
 
     # Add mount path if specified
     if mount_path:
         argv.extend(["--mount-path", mount_path])
 
-    with patch("slack_mcp.mcp.entry._server_instance", mock_server), patch("uvicorn.run") as mock_uvicorn_run:
+    # Reset singleton factory for clean test state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+
+    with patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server), patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server), patch("uvicorn.run") as mock_uvicorn_run:
 
         # Run the main entry point
         entry.main(argv)
@@ -105,9 +109,13 @@ async def test_server_stdio_transport():
     mock_server = _DummyServer()
 
     # Create dummy args with stdio transport
-    argv = ["--transport", "stdio", "--log-level", "INFO"]
+    argv = ["--transport", "stdio", "--log-level", "info"]
 
-    with patch("slack_mcp.mcp.entry._server_instance", mock_server):
+    # Reset singleton factory for clean test state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+
+    with patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server), patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server):
         # Run the main entry point
         entry.main(argv)
 

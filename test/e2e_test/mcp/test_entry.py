@@ -63,9 +63,17 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     # Suppress stderr to avoid polluting test output
     monkeypatch.setattr(sys, "stderr", SimpleNamespace(write=lambda *args: None))
 
-    # Replace server instance with dummy
+    # Reset the singleton factory first to ensure clean state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+
+    # Replace server instance with dummy using the new factory pattern
     dummy = _DummyServer()
-    monkeypatch.setattr("slack_mcp.mcp.entry._server_instance", dummy)
+    
+    # Mock both the factory instance and the mcp_factory module import
+    monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.get", lambda: dummy)
+    monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.create", lambda **kwargs: dummy)
+    monkeypatch.setattr("slack_mcp.mcp.entry.mcp_factory.get", lambda: dummy)
 
     # Replace uvicorn.run with a non-blocking stub
     monkeypatch.setattr("uvicorn.run", lambda *args, **kwargs: None)
@@ -84,6 +92,9 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     entry = importlib.import_module("slack_mcp.mcp.entry")
 
     yield SimpleNamespace(entry=entry, dummy=dummy, mock_integrated_app=mock_integrated_app)
+    
+    # Clean up after test
+    MCPServerFactory.reset()
 
 
 # ---------------------------------------------------------------------------
@@ -137,7 +148,7 @@ def test_entry_custom_transport(_patch_entry):
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
 
-    argv = ["--transport", "sse", "--mount-path", "/mcp", "--log-level", "INFO"]
+    argv = ["--transport", "sse", "--mount-path", "/mcp", "--log-level", "info"]
 
     # Run with a timeout guard in case something blocks unexpectedly.
     def run_with_timeout():
@@ -158,7 +169,7 @@ def test_entry_streamable_http_transport(_patch_entry):
     entry = _patch_entry.entry
     dummy: _DummyServer = _patch_entry.dummy
 
-    argv = ["--transport", "streamable-http", "--mount-path", "/api", "--log-level", "INFO"]
+    argv = ["--transport", "streamable-http", "--mount-path", "/api", "--log-level", "info"]
 
     # Run with a timeout guard in case something blocks unexpectedly.
     def run_with_timeout():

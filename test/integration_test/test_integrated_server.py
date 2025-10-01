@@ -136,7 +136,9 @@ def test_integrated_server_structure(
 
     # Create a mock server instance
     mock_server = MockMCPApp()
-    monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_server)
+    
+    # Mock the factory pattern instead of the old _server_instance
+    monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.get", lambda: mock_server)
 
     # Test SSE integration - We can check the mount path
     app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp-test")
