@@ -54,11 +54,12 @@ def sse_integrated_client(fake_slack_credentials: Dict[str, str], mock_slack_ver
     """Create a test client for the integrated server using SSE transport."""
     # Reset factories for test isolation
     integrated_factory.reset()
-    from slack_mcp.webhook.app import web_factory
     from slack_mcp.mcp.app import mcp_factory
+    from slack_mcp.webhook.app import web_factory
+
     web_factory.reset()
     mcp_factory.reset()
-    
+
     app = integrated_factory.create(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp")
     return TestClient(app)
 
@@ -98,15 +99,15 @@ def test_http_webhook_endpoint(fake_slack_credentials: Dict[str, str], mock_slac
     """Test that the webhook endpoint works in the integrated server with HTTP transport."""
     # Since streamable-http transport requires running the task group,
     # we'll test just the webhook part by creating the app manually
-    from slack_mcp.webhook.server import create_slack_app, initialize_slack_client
-    from slack_mcp.webhook.app import web_factory
     from slack_mcp.mcp.app import mcp_factory
+    from slack_mcp.webhook.app import web_factory
+    from slack_mcp.webhook.server import create_slack_app, initialize_slack_client
 
     # Reset factories for test isolation first
     integrated_factory.reset()
     web_factory.reset()
     mcp_factory.reset()
-    
+
     # Initialize factories in the correct order: MCP first, then web factory
     mcp_factory.create()
     web_factory.create()
@@ -136,8 +137,9 @@ def test_integrated_server_structure(
     """Test that the integrated server is correctly structured with both MCP and webhook routes."""
     # Reset factories for test isolation first
     integrated_factory.reset()
-    from slack_mcp.webhook.app import web_factory
     from slack_mcp.mcp.app import mcp_factory
+    from slack_mcp.webhook.app import web_factory
+
     web_factory.reset()
     mcp_factory.reset()
 
@@ -161,12 +163,15 @@ def test_integrated_server_structure(
 
     # Mock the factory pattern instead of the old _server_instance
     from slack_mcp.mcp.app import mcp_factory
+
     monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.get", lambda: mock_server)
     # Initialize the MCP factory
     mcp_factory.create()
 
     # Test SSE integration - We can check the mount path
-    app = integrated_factory.create(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp-test")
+    app = integrated_factory.create(
+        token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp-test"
+    )
 
     # Verify mount path is used
     assert hasattr(app, "routes")

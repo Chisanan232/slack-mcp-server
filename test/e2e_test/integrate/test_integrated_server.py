@@ -203,7 +203,9 @@ async def sse_server(
         patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
     ):
         # Create the integrated app to test configuration
-        app = integrated_factory.create(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp")
+        app = integrated_factory.create(
+            token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp"
+        )
 
         # Verify the app was configured correctly
         assert app is not None

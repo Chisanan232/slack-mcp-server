@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from slack_mcp.integrate.app import integrated_factory, IntegratedServerFactory
+from slack_mcp.integrate.app import IntegratedServerFactory, integrated_factory
 from slack_mcp.mcp.app import MCPServerFactory
 
 
@@ -151,7 +151,7 @@ class TestIntegratedServerHealthCheck:
         # Reset factory state for test isolation
         IntegratedServerFactory.reset()
         MCPServerFactory.reset()
-        
+
         # Mock dependencies
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
@@ -194,7 +194,7 @@ class TestIntegratedServerHealthCheck:
         # Reset factory state for test isolation
         IntegratedServerFactory.reset()
         MCPServerFactory.reset()
-        
+
         # Mock dependencies
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
@@ -236,7 +236,7 @@ class TestIntegratedServerHealthCheck:
         # Reset factory state for test isolation
         IntegratedServerFactory.reset()
         MCPServerFactory.reset()
-        
+
         # Mock dependencies
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
@@ -272,7 +272,7 @@ class TestIntegratedServerHealthCheck:
         # Reset factory state for test isolation
         IntegratedServerFactory.reset()
         MCPServerFactory.reset()
-        
+
         # Mock dependencies
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()

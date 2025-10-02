@@ -83,19 +83,19 @@ def test_webhook_create_slack_app_with_initialize_client():
         with patch("slack_mcp.client.manager.SlackClientManager._instance", None):
             with patch("slack_mcp.webhook.server.get_client_manager", return_value=mock_manager):
                 # Import here to use the patched environment
+                from slack_mcp.mcp.app import mcp_factory
+                from slack_mcp.webhook.app import web_factory
                 from slack_mcp.webhook.server import (
                     create_slack_app,
                     initialize_slack_client,
                 )
-                from slack_mcp.webhook.app import web_factory
-                from slack_mcp.mcp.app import mcp_factory
 
                 # Reset and initialize factories first
                 mcp_factory.reset()
                 web_factory.reset()
                 mcp_factory.create()
                 web_factory.create()
-                
+
                 # Create app which should NOT initialize client
                 app = create_slack_app()
 

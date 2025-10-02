@@ -64,8 +64,8 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     monkeypatch.setattr(sys, "stderr", SimpleNamespace(write=lambda *args: None))
 
     # Reset the singleton factories first to ensure clean state
-    from slack_mcp.mcp.app import MCPServerFactory
     from slack_mcp.integrate.app import IntegratedServerFactory
+    from slack_mcp.mcp.app import MCPServerFactory
 
     MCPServerFactory.reset()
     IntegratedServerFactory.reset()
@@ -86,19 +86,16 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
 
     # Replace integrated app creation with a mock - now using IntegratedServerFactory
     mock_integrated_app = SimpleNamespace()
-    
+
     # Mock the IntegratedServerFactory.create method
     monkeypatch.setattr(
         "slack_mcp.integrate.app.IntegratedServerFactory.create",
         lambda **kwargs: mock_integrated_app,
     )
-    
+
     # Also patch the import in mcp.entry module if it imports the factory
     try:
-        monkeypatch.setattr(
-            "slack_mcp.mcp.entry.integrated_factory.create", 
-            lambda **kwargs: mock_integrated_app
-        )
+        monkeypatch.setattr("slack_mcp.mcp.entry.integrated_factory.create", lambda **kwargs: mock_integrated_app)
     except AttributeError:
         # integrated_factory may not be imported in entry.py, which is fine
         pass

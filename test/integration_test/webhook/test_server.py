@@ -7,9 +7,9 @@ from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.base.protocol import QueueBackend
-from slack_mcp.webhook.server import create_slack_app
-from slack_mcp.webhook.app import web_factory
 from slack_mcp.mcp.app import mcp_factory
+from slack_mcp.webhook.app import web_factory
+from slack_mcp.webhook.server import create_slack_app
 
 
 class MockQueueBackend(QueueBackend):

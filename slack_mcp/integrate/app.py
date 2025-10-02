@@ -53,20 +53,20 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
         # Create the webhook app first - this will be returned for both transports
         # Initialize web factory and MCP factory before creating the app
-        from slack_mcp.webhook.app import web_factory
         from slack_mcp.mcp.app import mcp_factory
-        
+        from slack_mcp.webhook.app import web_factory
+
         # Only create factories if they don't exist yet (avoid re-creation during tests)
         try:
             mcp_factory.get()
         except AssertionError:
             mcp_factory.create()
-            
+
         try:
             web_factory.get()
         except AssertionError:
             web_factory.create()
-        
+
         global _INTEGRATED_SERVER_INSTANCE
         _INTEGRATED_SERVER_INSTANCE = create_slack_app()
 
@@ -93,10 +93,14 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
         IntegratedServerFactory.get().include_router(health_check_router(mcp_transport=mcp_transport))
 
         # Get and mount the appropriate MCP app based on the transport
-        IntegratedServerFactory._mount_mcp_service(transport=mcp_transport, mount_path=mcp_mount_path, sse_mount_path=mcp_mount_path)
+        IntegratedServerFactory._mount_mcp_service(
+            transport=mcp_transport, mount_path=mcp_mount_path, sse_mount_path=mcp_mount_path
+        )
 
     @classmethod
-    def _mount_mcp_service(cls, transport: str = MCPTransportType.SSE, mount_path: str = "", sse_mount_path: str = "") -> None:
+    def _mount_mcp_service(
+        cls, transport: str = MCPTransportType.SSE, mount_path: str = "", sse_mount_path: str = ""
+    ) -> None:
         """
         Mount an MCP (Model Context Protocol) service into the web server.
 
@@ -125,8 +129,9 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
         match transport:
             case MCPTransportType.SSE:
                 _LOG.info(f"Mounting MCP server with SSE transport at path: {sse_mount_path}")
-                web_factory.get().mount(path=mount_path or "/mcp",
-                                        app=mcp_factory.get().sse_app(mount_path=sse_mount_path))
+                web_factory.get().mount(
+                    path=mount_path or "/mcp", app=mcp_factory.get().sse_app(mount_path=sse_mount_path)
+                )
             case MCPTransportType.STREAMABLE_HTTP:
                 web_factory.get().mount(path=mount_path or "/mcp", app=mcp_factory.get().streamable_http_app())
                 _LOG.info("Integrating MCP server with streamable-http transport")

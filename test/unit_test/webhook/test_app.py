@@ -8,7 +8,6 @@ import pytest
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from slack_mcp.mcp.cli.models import MCPTransportType
 from slack_mcp.webhook.app import WebServerFactory
 
 

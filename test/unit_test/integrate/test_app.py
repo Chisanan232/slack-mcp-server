@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, call, patch
 
 import pytest
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
-from slack_mcp.mcp.cli.models import MCPTransportType
 from slack_mcp.integrate.app import IntegratedServerFactory
+from slack_mcp.mcp.cli.models import MCPTransportType
 
 
 class TestIntegratedServerFactory:
@@ -29,8 +28,12 @@ class TestIntegratedServerFactory:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_create_success_with_defaults(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_health_router: Mock,
-        mock_init_client: Mock, mock_create_app: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_health_router: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
     ) -> None:
         """Test successful creation with default parameters."""
         # Mock dependencies
@@ -57,8 +60,12 @@ class TestIntegratedServerFactory:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_create_success_with_token(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_health_router: Mock,
-        mock_init_client: Mock, mock_create_app: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_health_router: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
     ) -> None:
         """Test successful creation with token provided."""
         # Mock dependencies
@@ -92,8 +99,12 @@ class TestIntegratedServerFactory:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_create_with_custom_parameters(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_health_router: Mock,
-        mock_init_client: Mock, mock_create_app: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_health_router: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
     ) -> None:
         """Test creation with custom parameters."""
         # Mock dependencies
@@ -105,10 +116,7 @@ class TestIntegratedServerFactory:
 
         # Create server with custom parameters
         result = IntegratedServerFactory.create(
-            token="custom-token",
-            mcp_transport="streamable-http",
-            mcp_mount_path="/custom-mcp",
-            retry=10
+            token="custom-token", mcp_transport="streamable-http", mcp_mount_path="/custom-mcp", retry=10
         )
 
         # Verify result
@@ -174,10 +182,10 @@ class TestIntegratedServerFactory:
     def test_prepare_without_token(self, mock_log: Mock, mock_init_client: Mock) -> None:
         """Test _prepare method without token (deferred initialization)."""
         IntegratedServerFactory._prepare(token=None, retry=3)
-        
+
         # Verify no client initialization
         mock_init_client.assert_not_called()
-        
+
         # Verify logging message
         mock_log.info.assert_called_once_with("Deferring Slack client initialization - token will be set later")
 
@@ -187,8 +195,12 @@ class TestIntegratedServerFactory:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_mount_includes_health_check_router(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_init_client: Mock,
-        mock_create_app: Mock, mock_health_router: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
+        mock_health_router: Mock,
     ) -> None:
         """Test _mount method includes health check router."""
         # Mock dependencies
@@ -207,7 +219,7 @@ class TestIntegratedServerFactory:
 
         # Verify health check router was created with correct transport
         mock_health_router.assert_called_once_with(mcp_transport="sse")
-        
+
         # Verify router was included in the app
         global_instance.include_router.assert_called_once_with(mock_router)
 
@@ -217,8 +229,12 @@ class TestIntegratedServerFactory:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_multiple_create_calls_recreate_instance(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_health_router: Mock,
-        mock_init_client: Mock, mock_create_app: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_health_router: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
     ) -> None:
         """Test that multiple create calls recreate the global instance."""
         # Mock dependencies
@@ -246,8 +262,12 @@ class TestIntegratedServerFactory:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_create_multiple_calls_with_different_parameters(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_health_router: Mock,
-        mock_init_client: Mock, mock_create_app: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_health_router: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
     ) -> None:
         """Test multiple create calls with different parameters."""
         # Mock dependencies
@@ -260,19 +280,16 @@ class TestIntegratedServerFactory:
 
         # First create with specific parameters
         result1 = IntegratedServerFactory.create(token="token1", mcp_transport="sse")
-        
+
         # Second create with different parameters - creates new instance
         result2 = IntegratedServerFactory.create(token="token2", mcp_transport="streamable-http")
-        
+
         assert result1 is mock_app1
         assert result2 is mock_app2
-        
+
         # Verify initialization was called twice with different parameters
         assert mock_init_client.call_count == 2
-        mock_init_client.assert_has_calls([
-            call("token1", retry=3),
-            call("token2", retry=3)
-        ])
+        mock_init_client.assert_has_calls([call("token1", retry=3), call("token2", retry=3)])
 
     def test_parameter_extraction_and_defaults(self) -> None:
         """Test parameter extraction and default value handling."""
@@ -290,7 +307,7 @@ class TestIntegratedServerFactory:
             # Test with no parameters (all defaults)
             IntegratedServerFactory.reset()
             IntegratedServerFactory.create()
-            
+
             # Should not initialize client (no token)
             mock_init_client.assert_not_called()
 
@@ -298,7 +315,7 @@ class TestIntegratedServerFactory:
             IntegratedServerFactory.reset()
             mock_init_client.reset_mock()
             IntegratedServerFactory.create(retry=8)
-            
+
             # Should still not initialize client (no token), but retry default should be overridden
             mock_init_client.assert_not_called()
 
@@ -317,7 +334,7 @@ class TestModuleLevelConstants:
     def test_integrated_factory_constant(self) -> None:
         """Test that integrated_factory constant is properly assigned."""
         from slack_mcp.integrate.app import integrated_factory
-        
+
         assert integrated_factory is IntegratedServerFactory
 
     @patch("slack_mcp.integrate.app.create_slack_app")
@@ -326,8 +343,12 @@ class TestModuleLevelConstants:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.web_factory")
     def test_module_initialization_creates_global_instance(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_health_router: Mock,
-        mock_init_client: Mock, mock_create_app: Mock
+        self,
+        mock_web_factory: Mock,
+        mock_mcp_factory: Mock,
+        mock_health_router: Mock,
+        mock_init_client: Mock,
+        mock_create_app: Mock,
     ) -> None:
         """Test that module initialization creates the global integrated_app instance."""
         # Mock dependencies
@@ -340,7 +361,7 @@ class TestModuleLevelConstants:
         # Import the integrated_app (this triggers module-level creation)
         # Note: This import happens at module load time, but we can test the result
         from slack_mcp.integrate.app import integrated_app
-        
+
         # The integrated_app should be a FastAPI instance
         assert isinstance(integrated_app, FastAPI)
 
@@ -381,9 +402,7 @@ class TestEdgeCasesAndErrorScenarios:
 
     @patch("slack_mcp.integrate.app.create_slack_app")
     @patch("slack_mcp.integrate.app.initialize_slack_client")
-    def test_create_with_client_initialization_failure(
-        self, mock_init_client: Mock, mock_create_app: Mock
-    ) -> None:
+    def test_create_with_client_initialization_failure(self, mock_init_client: Mock, mock_create_app: Mock) -> None:
         """Test handling of Slack client initialization failure."""
         # Mock dependencies
         mock_app = Mock(spec=FastAPI)
@@ -443,7 +462,9 @@ class TestMountService:
         mock_mcp_factory.get.return_value = mock_mcp_instance
 
         # Call mount_service with SSE transport
-        IntegratedServerFactory._mount_mcp_service(transport=MCPTransportType.SSE, mount_path="/custom", sse_mount_path="/sse-path")
+        IntegratedServerFactory._mount_mcp_service(
+            transport=MCPTransportType.SSE, mount_path="/custom", sse_mount_path="/sse-path"
+        )
 
         # Verify the correct methods were called
         mock_web_factory.get.assert_called_once()
@@ -466,7 +487,9 @@ class TestMountService:
         mock_mcp_factory.get.return_value = mock_mcp_instance
 
         # Call mount_service with empty mount_path (should default to /mcp)
-        IntegratedServerFactory._mount_mcp_service(transport=MCPTransportType.SSE, mount_path="", sse_mount_path="/sse-path")
+        IntegratedServerFactory._mount_mcp_service(
+            transport=MCPTransportType.SSE, mount_path="", sse_mount_path="/sse-path"
+        )
 
         # Verify default mount path was used
         mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
@@ -487,7 +510,9 @@ class TestMountService:
         mock_mcp_factory.get.return_value = mock_mcp_instance
 
         # Call mount_service with streamable-HTTP transport
-        IntegratedServerFactory._mount_mcp_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="/api", sse_mount_path="/unused")
+        IntegratedServerFactory._mount_mcp_service(
+            transport=MCPTransportType.STREAMABLE_HTTP, mount_path="/api", sse_mount_path="/unused"
+        )
 
         # Verify the correct methods were called
         mock_web_factory.get.assert_called_once()
@@ -597,15 +622,17 @@ class TestIntegration:
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.create_slack_app")
     @patch("slack_mcp.integrate.app.initialize_slack_client")
-    def test_full_workflow_sse_transport(self, mock_init_client: Mock, mock_create_app: Mock, mock_mcp_factory: Mock) -> None:
+    def test_full_workflow_sse_transport(
+        self, mock_init_client: Mock, mock_create_app: Mock, mock_mcp_factory: Mock
+    ) -> None:
         """Test the complete workflow: create server -> mount SSE service."""
         # Mock the create_slack_app to return a mock FastAPI app
         mock_app = Mock(spec=FastAPI)
         mock_create_app.return_value = mock_app
-        
+
         # Mock the initialize_slack_client to do nothing
         mock_init_client.return_value = None
-        
+
         # Mock the MCP factory
         mock_mcp_app = Mock(spec=FastAPI)
         mock_mcp_instance = Mock()
@@ -617,22 +644,24 @@ class TestIntegration:
 
         # Verify the MCP instance sse_app was called during creation
         mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/mcp")
-        
+
         # Verify the create_slack_app was called
         mock_create_app.assert_called_once()
 
     @patch("slack_mcp.integrate.app.mcp_factory")
     @patch("slack_mcp.integrate.app.create_slack_app")
     @patch("slack_mcp.integrate.app.initialize_slack_client")
-    def test_full_workflow_streamable_http_transport(self, mock_init_client: Mock, mock_create_app: Mock, mock_mcp_factory: Mock) -> None:
+    def test_full_workflow_streamable_http_transport(
+        self, mock_init_client: Mock, mock_create_app: Mock, mock_mcp_factory: Mock
+    ) -> None:
         """Test the complete workflow: create server -> mount streamable-HTTP service."""
         # Mock the create_slack_app to return a mock FastAPI app
         mock_app = Mock(spec=FastAPI)
         mock_create_app.return_value = mock_app
-        
+
         # Mock the initialize_slack_client to do nothing
         mock_init_client.return_value = None
-        
+
         # Mock the MCP factory
         mock_mcp_app = Mock(spec=FastAPI)
         mock_mcp_instance = Mock()
@@ -644,7 +673,7 @@ class TestIntegration:
 
         # Verify the MCP instance streamable_http_app was called during creation
         mock_mcp_instance.streamable_http_app.assert_called_once_with()
-        
+
         # Verify the create_slack_app was called
         mock_create_app.assert_called_once()
 
@@ -654,7 +683,7 @@ class TestIntegration:
         """Test error handling when trying to mount service without creating server first."""
         # Mock web_factory.get() to raise an error (simulating no web server created)
         mock_web_factory.get.side_effect = AssertionError("It must be created web server first.")
-        
+
         # Don't create the web server instance - just call the mount method directly
         # Attempting to mount service should fail when trying to get the server
         with pytest.raises(AssertionError, match="It must be created web server first"):
