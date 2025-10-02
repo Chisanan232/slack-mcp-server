@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from slack_mcp.integrated_server import create_integrated_app
+from slack_mcp.mcp.app import MCPServerFactory
 
 
 class _MockMCPServer:
@@ -52,8 +53,9 @@ def mock_dependencies(monkeypatch: pytest.MonkeyPatch) -> Dict[str, Any]:
     mock_mcp = _MockMCPServer()
     mock_webhook_app = _MockWebhookApp()
 
-    # Mock the server imports
-    monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+    # Reset MCPServerFactory before test and mock the factory get method
+    MCPServerFactory.reset()
+    monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
     monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
     monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
@@ -147,7 +149,8 @@ class TestIntegratedServerHealthCheck:
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
 
-        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        MCPServerFactory.reset()
+        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
@@ -185,7 +188,8 @@ class TestIntegratedServerHealthCheck:
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
 
-        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        MCPServerFactory.reset()
+        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
@@ -222,7 +226,8 @@ class TestIntegratedServerHealthCheck:
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
 
-        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        MCPServerFactory.reset()
+        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
@@ -253,7 +258,8 @@ class TestIntegratedServerHealthCheck:
         mock_mcp = _MockMCPServer()
         mock_webhook_app = _MockWebhookApp()
 
-        monkeypatch.setattr("slack_mcp.integrated_server._server_instance", mock_mcp)
+        MCPServerFactory.reset()
+        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
         monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
         monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
