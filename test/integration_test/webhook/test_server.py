@@ -8,6 +8,7 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.webhook.server import create_slack_app
+from slack_mcp.webhook.app import WebServerFactory
 
 
 class MockQueueBackend(QueueBackend):
@@ -52,14 +53,18 @@ def test_e2e_app_mention():
         mock_client.chat_postMessage.return_value = AsyncMock(data={"ok": True, "ts": "1234567890.123456"})
         mock_client_cls.return_value = mock_client
 
-        # Create a mock queue backend
+        # Create the FastAPI app and test client first
+        app = create_slack_app()
+        client = TestClient(app)
+
+        # Create a mock queue backend and patch the real backend's publish method
         mock_backend = MockQueueBackend()
-
-        # Create the FastAPI app and test client
-        with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
-            app = create_slack_app()
-            client = TestClient(app)
-
+        
+        # Get the real backend instance and patch its publish method to use our mock
+        from slack_mcp.webhook.server import get_queue_backend
+        backend = get_queue_backend()
+        
+        with patch.object(backend, 'publish', mock_backend.publish):
             # Create an app_mention event
             event_data = {
                 "type": "event_callback",
@@ -115,14 +120,18 @@ def test_e2e_reaction_added():
         )
         mock_client_cls.return_value = mock_client
 
-        # Create a mock queue backend
+        # Create the FastAPI app and test client first
+        app = create_slack_app()
+        client = TestClient(app)
+
+        # Create a mock queue backend and patch the real backend's publish method
         mock_backend = MockQueueBackend()
-
-        # Create the FastAPI app and test client
-        with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
-            app = create_slack_app()
-            client = TestClient(app)
-
+        
+        # Get the real backend instance and patch its publish method to use our mock
+        from slack_mcp.webhook.server import get_queue_backend
+        backend = get_queue_backend()
+        
+        with patch.object(backend, 'publish', mock_backend.publish):
             # Create a reaction_added event
             event_data = {
                 "type": "event_callback",
