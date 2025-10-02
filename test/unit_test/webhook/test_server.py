@@ -15,6 +15,7 @@ from slack_mcp.webhook.server import (
     verify_slack_request,
 )
 from slack_mcp.webhook.app import WebServerFactory
+from slack_mcp.mcp.app import MCPServerFactory
 
 
 class MockQueueBackend(QueueBackend):
@@ -85,6 +86,26 @@ def mock_deserialize():
     """Mock the deserialize function."""
     with patch("slack_mcp.webhook.server.deserialize") as mock:
         yield mock
+
+
+@pytest.fixture(autouse=True)
+def setup_web_server():
+    """Ensure both MCPServerFactory and WebServerFactory have instances for tests."""
+    # Reset any existing state
+    MCPServerFactory.reset()
+    WebServerFactory.reset()
+    
+    # Create MCP factory instance first (required by WebServerFactory)
+    MCPServerFactory.create()
+    
+    # Create a fresh web server instance for the test
+    WebServerFactory.create()
+    
+    yield
+    
+    # Clean up after the test
+    WebServerFactory.reset()
+    MCPServerFactory.reset()
 
 
 @pytest.mark.asyncio
@@ -469,8 +490,8 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
             # Verify the error was logged with the correct message
             mock_logger.error.assert_called_once_with(f"Error publishing event to queue: {test_exception}")
 
-            # Verify event publication was attempted with the default topic name
-            mock_publish.assert_awaited_once_with("slack_events", event_data)
+            # Verify event publication was attempted with the test topic name
+            mock_publish.assert_awaited_once_with("test_slack_events", event_data)
 
 
 @pytest.mark.parametrize(
