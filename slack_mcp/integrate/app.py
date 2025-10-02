@@ -52,6 +52,21 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
             )
 
         # Create the webhook app first - this will be returned for both transports
+        # Initialize web factory and MCP factory before creating the app
+        from slack_mcp.webhook.app import web_factory
+        from slack_mcp.mcp.app import mcp_factory
+        
+        # Only create factories if they don't exist yet (avoid re-creation during tests)
+        try:
+            mcp_factory.get()
+        except AssertionError:
+            mcp_factory.create()
+            
+        try:
+            web_factory.get()
+        except AssertionError:
+            web_factory.create()
+        
         global _INTEGRATED_SERVER_INSTANCE
         _INTEGRATED_SERVER_INSTANCE = create_slack_app()
 
