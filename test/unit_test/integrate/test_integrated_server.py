@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from slack_mcp.integrated_server import create_integrated_app
+from slack_mcp.integrate.integrated_server import create_integrated_app
 from slack_mcp.mcp.app import MCPServerFactory
 
 
@@ -55,9 +55,9 @@ def mock_dependencies(monkeypatch: pytest.MonkeyPatch) -> Dict[str, Any]:
 
     # Reset MCPServerFactory before test and mock the factory get method
     MCPServerFactory.reset()
-    monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
-    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
-    monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+    monkeypatch.setattr("slack_mcp.integrate.integrated_server.mcp_factory.get", lambda: mock_mcp)
+    monkeypatch.setattr("slack_mcp.integrate.integrated_server.create_slack_app", lambda: mock_webhook_app)
+    monkeypatch.setattr("slack_mcp.integrate.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
     # Mock web_factory.get() to return the same mock webhook app for mount_service to work correctly
     monkeypatch.setattr("slack_mcp.webhook.app.web_factory.get", lambda: mock_webhook_app)
@@ -120,8 +120,8 @@ def test_create_integrated_app_streamable_http(mock_dependencies: Dict[str, Any]
 def test_create_integrated_app_with_invalid_transport(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test creating an integrated app with an invalid transport."""
     # Mock create_slack_app to avoid token validation
-    monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: FastAPI())
-    monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+    monkeypatch.setattr("slack_mcp.integrate.integrated_server.create_slack_app", lambda: FastAPI())
+    monkeypatch.setattr("slack_mcp.integrate.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
     with pytest.raises(ValueError) as excinfo:
         create_integrated_app(token="test-token", mcp_transport="invalid-transport")
@@ -153,9 +153,9 @@ class TestIntegratedServerHealthCheck:
         mock_webhook_app = _MockWebhookApp()
 
         MCPServerFactory.reset()
-        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
-        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
-        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.mcp_factory.get", lambda: mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
         # Mock the health check dependencies with a functional backend
         from unittest.mock import AsyncMock
@@ -164,8 +164,8 @@ class TestIntegratedServerHealthCheck:
         mock_queue_backend.publish = AsyncMock()  # Mock successful publish
         mock_slack_client = object()  # Simple mock
 
-        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_queue_backend)
-        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", mock_slack_client)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.get_queue_backend", lambda: mock_queue_backend)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.slack_client", mock_slack_client)
 
         app = create_integrated_app(token="test-token", mcp_transport="sse", mcp_mount_path="/mcp")
         client = TestClient(app)
@@ -192,9 +192,9 @@ class TestIntegratedServerHealthCheck:
         mock_webhook_app = _MockWebhookApp()
 
         MCPServerFactory.reset()
-        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
-        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
-        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.mcp_factory.get", lambda: mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
         # Mock the health check dependencies with a functional backend
         from unittest.mock import AsyncMock
@@ -202,8 +202,8 @@ class TestIntegratedServerHealthCheck:
         mock_queue_backend = AsyncMock()
         mock_queue_backend.publish = AsyncMock()  # Mock successful publish
 
-        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_queue_backend)
-        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.get_queue_backend", lambda: mock_queue_backend)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.slack_client", None)
 
         app = create_integrated_app(token="test-token", mcp_transport="streamable-http")
         client = TestClient(app)
@@ -230,9 +230,9 @@ class TestIntegratedServerHealthCheck:
         mock_webhook_app = _MockWebhookApp()
 
         MCPServerFactory.reset()
-        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
-        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
-        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.mcp_factory.get", lambda: mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
         # Mock a backend that fails on publish (simulates connection issues)
         from unittest.mock import AsyncMock
@@ -240,8 +240,8 @@ class TestIntegratedServerHealthCheck:
         mock_failing_backend = AsyncMock()
         mock_failing_backend.publish = AsyncMock(side_effect=Exception("Redis connection timeout"))
 
-        monkeypatch.setattr("slack_mcp.integrated_server.get_queue_backend", lambda: mock_failing_backend)
-        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.get_queue_backend", lambda: mock_failing_backend)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.slack_client", None)
 
         app = create_integrated_app(token="test-token", mcp_transport="sse")
         client = TestClient(app)
@@ -262,16 +262,16 @@ class TestIntegratedServerHealthCheck:
         mock_webhook_app = _MockWebhookApp()
 
         MCPServerFactory.reset()
-        monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
-        monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
-        monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.mcp_factory.get", lambda: mock_mcp)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.create_slack_app", lambda: mock_webhook_app)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
 
         # Mock get_queue_backend to raise an exception (triggers outer exception handler)
         monkeypatch.setattr(
-            "slack_mcp.integrated_server.get_queue_backend",
+            "slack_mcp.integrate.integrated_server.get_queue_backend",
             lambda: (_ for _ in ()).throw(Exception("Database connection failed")),
         )
-        monkeypatch.setattr("slack_mcp.integrated_server.slack_client", None)
+        monkeypatch.setattr("slack_mcp.integrate.integrated_server.slack_client", None)
 
         app = create_integrated_app(token="test-token", mcp_transport="sse")
         client = TestClient(app)

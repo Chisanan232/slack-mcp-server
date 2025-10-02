@@ -12,9 +12,9 @@ from typing import Final, Optional
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
-from .mcp.app import mcp_factory
-from .webhook.app import mount_service
-from .webhook.server import (
+from slack_mcp.mcp.app import mcp_factory
+from slack_mcp.webhook.app import mount_service
+from slack_mcp.webhook.server import (
     create_slack_app,
     get_queue_backend,
     initialize_slack_client,
