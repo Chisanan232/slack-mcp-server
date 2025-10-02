@@ -46,14 +46,17 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
 
         _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {args.host}:{args.port}")
 
+        # Get effective token (CLI argument or environment variable)
+        effective_token = args.slack_token or os.environ.get("SLACK_BOT_TOKEN")
+
         # Create integrated app with both MCP and webhook functionality
         app = integrated_factory.create(
-            token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
+            token=effective_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
         from slack_mcp.mcp.server import update_slack_client
         from slack_mcp.webhook.server import slack_client
 
-        update_slack_client(token=args.slack_token, client=slack_client)
+        update_slack_client(token=effective_token, client=slack_client)
 
         # Run the integrated FastAPI app
         uvicorn.run(app, host=args.host, port=args.port)
