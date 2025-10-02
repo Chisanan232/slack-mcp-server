@@ -170,9 +170,6 @@ def create_slack_app() -> FastAPI:
     # Initialize the queue backend
     backend = get_queue_backend()
 
-    # Get the topic for Slack events from environment or use default
-    slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
-
     @app.get("/health")
     async def health_check() -> JSONResponse:
         """Health check endpoint for monitoring and load balancers.
@@ -266,6 +263,8 @@ def create_slack_app() -> FastAPI:
 
             # Publish event to queue
             try:
+                # Get the topic for Slack events from environment or use default (read at runtime)
+                slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
                 await backend.publish(slack_events_topic, event_dict)
                 _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
             except Exception as e:
@@ -277,6 +276,8 @@ def create_slack_app() -> FastAPI:
 
             # Publish event to queue
             try:
+                # Get the topic for Slack events from environment or use default (read at runtime)
+                slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
                 await backend.publish(slack_events_topic, slack_event_dict)
                 _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
             except Exception as e:

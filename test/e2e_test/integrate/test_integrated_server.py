@@ -482,10 +482,8 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
     app = sse_server["app"]
     real_queue_backend = sse_server["queue_backend"]
 
-    # Set a topic for Slack events
-    os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
-
     # Use FastAPI TestClient for non-blocking HTTP testing
+    # Note: SLACK_EVENTS_TOPIC is already set to "test_slack_events" in the sse_server fixture
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
@@ -556,10 +554,8 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
     app = http_server["app"]
     real_queue_backend = http_server["queue_backend"]
 
-    # Set a topic for Slack events
-    os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
-
     # Use FastAPI TestClient for non-blocking HTTP testing
+    # Note: SLACK_EVENTS_TOPIC is already set to "test_slack_events" in the http_server fixture
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
