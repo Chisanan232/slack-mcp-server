@@ -6,7 +6,7 @@ import asyncio
 import os
 import socket
 import warnings
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import Any, AsyncGenerator, Dict, Generator, Optional
 from unittest.mock import MagicMock, patch
 
@@ -14,7 +14,6 @@ import aiohttp
 import pytest
 import pytest_asyncio
 import uvicorn
-from contextlib import asynccontextmanager
 from fastapi import Request
 from fastapi.testclient import TestClient
 from mcp.server import FastMCP
@@ -22,7 +21,6 @@ from mcp.server import FastMCP
 from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.integrated_server import create_integrated_app
 from slack_mcp.mcp.app import MCPServerFactory
-from slack_mcp.webhook.app import WebServerFactory
 
 
 def find_free_port() -> int:
@@ -150,18 +148,20 @@ async def real_queue_backend() -> AsyncGenerator[Any, None]:
     """Use real MemoryBackend for queue testing instead of mocking."""
     # Reset MCP factory to prevent singleton conflicts
     MCPServerFactory.reset()
-    
+
     # Reset the global _queue_backend to None to ensure fresh initialization
     import slack_mcp.webhook.server
+
     original_backend = slack_mcp.webhook.server._queue_backend
     slack_mcp.webhook.server._queue_backend = None
-    
+
     try:
         # Let the system create the real MemoryBackend naturally
         # The first call to get_queue_backend() will initialize it
         from slack_mcp.webhook.server import get_queue_backend
+
         real_backend = get_queue_backend()
-        
+
         # Clear any existing messages in the queue to ensure test isolation
         while not real_backend._queue.empty():
             try:
@@ -169,7 +169,7 @@ async def real_queue_backend() -> AsyncGenerator[Any, None]:
                 real_backend._queue.task_done()
             except:
                 break
-        
+
         yield real_backend
     finally:
         # Restore the original backend after the test
@@ -186,23 +186,25 @@ async def sse_server(
 
     # Reset MCP factory before creating integrated app to prevent singleton conflicts
     MCPServerFactory.reset()
-    
+
     # Mock the MCP factory to return a mock FastMCP instance
     mock_mcp_instance = MagicMock(spec=FastMCP)
-    
+
     # Mock the SSE app
     mock_sse_app = MagicMock()
     mock_mcp_instance.sse_app.return_value = mock_sse_app
-    
-    # Mock the streamable HTTP app  
+
+    # Mock the streamable HTTP app
     mock_streamable_app = MagicMock()
     mock_mcp_instance.streamable_http_app.return_value = mock_streamable_app
-    
-    with patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance), \
-         patch("slack_mcp.integrated_server.mcp_factory.get", return_value=mock_mcp_instance):
+
+    with (
+        patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrated_server.mcp_factory.get", return_value=mock_mcp_instance),
+    ):
         # Create the integrated app to test configuration
         app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp")
-        
+
         # Verify the app was configured correctly
         assert app is not None
         assert mock_mcp_instance.sse_app.called
@@ -210,10 +212,10 @@ async def sse_server(
 
         # Yield the configured app and mock components for testing
         yield {
-            "app": app, 
-            "base_url": "http://127.0.0.1:8000", 
+            "app": app,
+            "base_url": "http://127.0.0.1:8000",
             "queue_backend": real_queue_backend,
-            "mock_mcp_instance": mock_mcp_instance
+            "mock_mcp_instance": mock_mcp_instance,
         }
 
 
@@ -227,23 +229,25 @@ async def http_server(
 
     # Reset MCP factory before creating integrated app to prevent singleton conflicts
     MCPServerFactory.reset()
-    
+
     # Mock the MCP factory to return a mock FastMCP instance
     mock_mcp_instance = MagicMock(spec=FastMCP)
-    
+
     # Mock the SSE app
     mock_sse_app = MagicMock()
     mock_mcp_instance.sse_app.return_value = mock_sse_app
-    
-    # Mock the streamable HTTP app  
+
+    # Mock the streamable HTTP app
     mock_streamable_app = MagicMock()
     mock_mcp_instance.streamable_http_app.return_value = mock_streamable_app
-    
-    with patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance), \
-         patch("slack_mcp.integrated_server.mcp_factory.get", return_value=mock_mcp_instance):
+
+    with (
+        patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrated_server.mcp_factory.get", return_value=mock_mcp_instance),
+    ):
         # Create the integrated app to test configuration
         app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="streamable-http")
-        
+
         # Verify the app was configured correctly
         assert app is not None
         assert mock_mcp_instance.streamable_http_app.called
@@ -251,23 +255,23 @@ async def http_server(
 
         # Yield the configured app and mock components for testing
         yield {
-            "app": app, 
-            "base_url": "http://127.0.0.1:8001", 
+            "app": app,
+            "base_url": "http://127.0.0.1:8001",
             "queue_backend": real_queue_backend,
-            "mock_mcp_instance": mock_mcp_instance
+            "mock_mcp_instance": mock_mcp_instance,
         }
 
 
 def test_sse_integrated_server_webhook(sse_server: Dict[str, Any]) -> None:
     """Test that the webhook endpoints for the integrated server work with SSE transport."""
     app = sse_server["app"]
-    
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # Test the webhook endpoint
@@ -290,13 +294,13 @@ def test_sse_integrated_server_webhook(sse_server: Dict[str, Any]) -> None:
 def test_sse_integrated_server_mount_point(sse_server: Dict[str, Any]) -> None:
     """Test that the MCP mount point is properly set up with SSE transport."""
     app = sse_server["app"]
-    
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # Test the MCP mount point (should redirect to /mcp/)
@@ -310,13 +314,13 @@ def test_sse_integrated_server_mount_point(sse_server: Dict[str, Any]) -> None:
 def test_sse_docs_endpoint(sse_server: Dict[str, Any]) -> None:
     """Test that the API docs are available in the integrated server with SSE transport."""
     app = sse_server["app"]
-    
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # FastAPI automatically adds docs endpoints
@@ -330,13 +334,13 @@ def test_sse_docs_endpoint(sse_server: Dict[str, Any]) -> None:
 def test_slack_webhook_message_events(sse_server: Dict[str, Any]) -> None:
     """Test the Slack webhook endpoint with message events."""
     app = sse_server["app"]
-    
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # Create a Slack message event
@@ -373,13 +377,13 @@ def test_slack_webhook_message_events(sse_server: Dict[str, Any]) -> None:
 def test_http_integrated_server_webhook(http_server: Dict[str, Any]) -> None:
     """Test that the webhook endpoints for the integrated server work with HTTP transport."""
     app = http_server["app"]
-    
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # Test the webhook endpoint
@@ -402,13 +406,13 @@ def test_http_integrated_server_webhook(http_server: Dict[str, Any]) -> None:
 def test_http_docs_endpoint(http_server: Dict[str, Any]) -> None:
     """Test that the API docs are available in the integrated server with HTTP transport."""
     app = http_server["app"]
-    
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # FastAPI automatically adds docs endpoints
@@ -477,12 +481,12 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
     # Set a topic for Slack events
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
 
-    # Use FastAPI TestClient for non-blocking HTTP testing 
+    # Use FastAPI TestClient for non-blocking HTTP testing
     # Patch lifespan to avoid session manager conflicts
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # Create a Slack event payload
@@ -526,11 +530,12 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
 
         # Verify that the event was actually published to the real queue
         from slack_mcp.backends.queue.memory import MemoryBackend
+
         assert isinstance(real_queue_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_queue_backend)}"
-        
+
         # Check that at least one message was published to the queue
         assert real_queue_backend._queue.qsize() >= 1, "No messages found in queue after publishing event"
-        
+
         # Consume and verify the published event
         topic, published_event = await real_queue_backend._queue.get()
         assert topic == "test_slack_events", f"Expected topic 'test_slack_events', got '{topic}'"
@@ -555,7 +560,7 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
     @asynccontextmanager
     async def no_op_lifespan(app):
         yield  # Simple no-op lifespan
-    
+
     app.router.lifespan_context = no_op_lifespan
     with TestClient(app) as client:
         # Create a Slack event payload
@@ -599,11 +604,12 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
 
         # Verify that the event was actually published to the real queue
         from slack_mcp.backends.queue.memory import MemoryBackend
+
         assert isinstance(real_queue_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_queue_backend)}"
-        
+
         # Check that at least one message was published to the queue
         assert real_queue_backend._queue.qsize() >= 1, "No messages found in queue after publishing event"
-        
+
         # Consume and verify the published event
         topic, published_event = await real_queue_backend._queue.get()
         assert topic == "test_slack_events", f"Expected topic 'test_slack_events', got '{topic}'"

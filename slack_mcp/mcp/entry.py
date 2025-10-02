@@ -12,8 +12,8 @@ from dotenv import load_dotenv
 
 from slack_mcp.integrated_server import create_integrated_app
 
-from .cli import _parse_args
 from .app import mcp_factory
+from .cli import _parse_args
 from .server import set_slack_client_retry_count
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")

@@ -9,13 +9,13 @@ from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.mcp.app import MCPServerFactory
+from slack_mcp.webhook.app import WebServerFactory
 from slack_mcp.webhook.models import SlackEventModel, UrlVerificationModel
 from slack_mcp.webhook.server import (
     create_slack_app,
     verify_slack_request,
 )
-from slack_mcp.webhook.app import WebServerFactory
-from slack_mcp.mcp.app import MCPServerFactory
 
 
 class MockQueueBackend(QueueBackend):
@@ -94,15 +94,15 @@ def setup_web_server():
     # Reset any existing state
     MCPServerFactory.reset()
     WebServerFactory.reset()
-    
+
     # Create MCP factory instance first (required by WebServerFactory)
     MCPServerFactory.create()
-    
+
     # Create a fresh web server instance for the test
     WebServerFactory.create()
-    
+
     yield
-    
+
     # Clean up after the test
     WebServerFactory.reset()
     MCPServerFactory.reset()
@@ -157,7 +157,7 @@ def test_create_slack_app_with_routes():
     app = create_slack_app()
 
     # Verify the app has the expected routes (filter out Mount objects which don't have methods)
-    routes = {route.path: route.methods for route in app.routes if hasattr(route, 'methods')}
+    routes = {route.path: route.methods for route in app.routes if hasattr(route, "methods")}
     assert "/slack/events" in routes
     assert "POST" in routes["/slack/events"]
 
@@ -338,10 +338,11 @@ async def test_slack_events_endpoint_with_queue_backend(
 
     # Get the backend instance and patch its publish method
     from slack_mcp.webhook.server import get_queue_backend
+
     backend = get_queue_backend()
     mock_publish = AsyncMock()
-    
-    with patch.object(backend, 'publish', mock_publish):
+
+    with patch.object(backend, "publish", mock_publish):
         # Send request with event data
         response = client.post(
             "/slack/events",
@@ -411,10 +412,11 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
 
     # Get the backend instance and patch its publish method to raise an exception
     from slack_mcp.webhook.server import get_queue_backend
+
     backend = get_queue_backend()
     mock_publish = AsyncMock(side_effect=Exception("Test publish error"))
-    
-    with patch.object(backend, 'publish', mock_publish):
+
+    with patch.object(backend, "publish", mock_publish):
         # Send request with event data
         response = client.post(
             "/slack/events",
@@ -465,17 +467,20 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
     test_exception = Exception("Test publish error")
 
     # Create app first
-    with patch("slack_mcp.webhook.server._LOG") as mock_logger, \
-         patch("slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"):
+    with (
+        patch("slack_mcp.webhook.server._LOG") as mock_logger,
+        patch("slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"),
+    ):
         app = create_slack_app()
         client = TestClient(app)
 
         # Get the backend instance and patch its publish method to raise the exception
         from slack_mcp.webhook.server import get_queue_backend
+
         backend = get_queue_backend()
         mock_publish = AsyncMock(side_effect=test_exception)
-        
-        with patch.object(backend, 'publish', mock_publish):
+
+        with patch.object(backend, "publish", mock_publish):
             # Send request with event data
             response = client.post(
                 "/slack/events",
@@ -643,10 +648,11 @@ async def test_slack_events_endpoint_parametrized(
 
     # Get the backend instance and patch its publish method
     from slack_mcp.webhook.server import get_queue_backend
+
     backend = get_queue_backend()
     mock_publish = AsyncMock()
-    
-    with patch.object(backend, 'publish', mock_publish):
+
+    with patch.object(backend, "publish", mock_publish):
         # Send request with event data
         response = client.post(
             "/slack/events",

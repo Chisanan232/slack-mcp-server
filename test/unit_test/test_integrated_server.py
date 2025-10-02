@@ -58,7 +58,7 @@ def mock_dependencies(monkeypatch: pytest.MonkeyPatch) -> Dict[str, Any]:
     monkeypatch.setattr("slack_mcp.integrated_server.mcp_factory.get", lambda: mock_mcp)
     monkeypatch.setattr("slack_mcp.integrated_server.create_slack_app", lambda: mock_webhook_app)
     monkeypatch.setattr("slack_mcp.integrated_server.initialize_slack_client", lambda token=None, retry=3: None)
-    
+
     # Mock web_factory.get() to return the same mock webhook app for mount_service to work correctly
     monkeypatch.setattr("slack_mcp.webhook.app.web_factory.get", lambda: mock_webhook_app)
 

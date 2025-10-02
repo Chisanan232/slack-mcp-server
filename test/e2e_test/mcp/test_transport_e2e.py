@@ -68,9 +68,14 @@ async def test_server_http_transports(transport, mount_path, warning_expected, c
 
     # Reset singleton factory for clean test state
     from slack_mcp.mcp.app import MCPServerFactory
+
     MCPServerFactory.reset()
 
-    with patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server), patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server), patch("uvicorn.run") as mock_uvicorn_run:
+    with (
+        patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server),
+        patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server),
+        patch("uvicorn.run") as mock_uvicorn_run,
+    ):
 
         # Run the main entry point
         entry.main(argv)
@@ -113,9 +118,13 @@ async def test_server_stdio_transport():
 
     # Reset singleton factory for clean test state
     from slack_mcp.mcp.app import MCPServerFactory
+
     MCPServerFactory.reset()
 
-    with patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server), patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server):
+    with (
+        patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server),
+        patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server),
+    ):
         # Run the main entry point
         entry.main(argv)
 

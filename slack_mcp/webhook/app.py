@@ -8,16 +8,17 @@ for exposing ClickUp functionality through a RESTful API.
 from __future__ import annotations
 
 import logging
-from typing import Optional, Final, Type
+from typing import Final, Optional, Type
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
 from slack_mcp._base import BaseServerFactory
+
 # from slack_mcp.client import ClickUpAPIClientFactory, get_api_token
 from slack_mcp.mcp.app import mcp_factory
 from slack_mcp.mcp.cli.models import MCPTransportType
+
 # from slack_mcp.models.cli import MCPTransportType, ServerConfig
 # from slack_mcp.models.dto.health_check import HealthyCheckResponseDto
 # from slack_mcp.utils import load_environment_from_file
@@ -94,7 +95,7 @@ def mount_service(transport: str = MCPTransportType.SSE, mount_path: str = "", s
     mounting it at the specified path.
 
     Args:
-        transport: The transport protocol to use for MCP. Must be either 
+        transport: The transport protocol to use for MCP. Must be either
             MCPTransportType.SSE ("sse") or MCPTransportType.STREAMABLE_HTTP ("streamable-http").
             Defaults to MCPTransportType.SSE.
         mount_path: The path where the MCP service should be mounted in the web server.

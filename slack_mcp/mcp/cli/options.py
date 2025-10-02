@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import argparse
 
-from .models import MCPTransportType, LogLevel
-from .models import MCPServerCliOptions
+from .models import LogLevel, MCPServerCliOptions, MCPTransportType
 
 
 def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: D401 – helper
@@ -38,7 +37,8 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
         "--log-level",
         type=str,
         default="info",
-        choices=[level.value for level in LogLevel], help="Logging level",
+        choices=[level.value for level in LogLevel],
+        help="Logging level",
     )
     parser.add_argument(
         "--env-file",

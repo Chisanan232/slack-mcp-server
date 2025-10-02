@@ -65,11 +65,12 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
 
     # Reset the singleton factory first to ensure clean state
     from slack_mcp.mcp.app import MCPServerFactory
+
     MCPServerFactory.reset()
 
     # Replace server instance with dummy using the new factory pattern
     dummy = _DummyServer()
-    
+
     # Mock both the factory instance and the mcp_factory module import
     monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.get", lambda: dummy)
     monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.create", lambda **kwargs: dummy)
@@ -92,7 +93,7 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     entry = importlib.import_module("slack_mcp.mcp.entry")
 
     yield SimpleNamespace(entry=entry, dummy=dummy, mock_integrated_app=mock_integrated_app)
-    
+
     # Clean up after test
     MCPServerFactory.reset()
 

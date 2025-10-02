@@ -13,13 +13,13 @@ from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 
 from .mcp.app import mcp_factory
+from .webhook.app import mount_service
 from .webhook.server import (
     create_slack_app,
     get_queue_backend,
     initialize_slack_client,
     slack_client,
 )
-from .webhook.app import mount_service
 
 __all__: list[str] = [
     "create_integrated_app",

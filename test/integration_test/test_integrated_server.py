@@ -136,7 +136,7 @@ def test_integrated_server_structure(
 
     # Create a mock server instance
     mock_server = MockMCPApp()
-    
+
     # Mock the factory pattern instead of the old _server_instance
     monkeypatch.setattr("slack_mcp.mcp.app.mcp_factory.get", lambda: mock_server)
 
