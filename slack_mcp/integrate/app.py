@@ -42,7 +42,7 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
         """
         token: Optional[str] = kwargs.get("token", None)
         mcp_transport: str = kwargs.get("mcp_transport", "sse")
-        mcp_mount_path: Optional[str] = kwargs.get("mcp_mount_path", "/mcp")
+        mcp_mount_path: str = kwargs.get("mcp_mount_path", "/mcp")
         retry: int = kwargs.get("retry", 3)
 
         # Validate transport type first before any other operations
@@ -88,7 +88,7 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
             _LOG.info("Deferring Slack client initialization - token will be set later")
 
     @classmethod
-    def _mount(cls, mcp_transport: str = "sse", mcp_mount_path: Optional[str] = "/mcp") -> None:
+    def _mount(cls, mcp_transport: str = "sse", mcp_mount_path: str = "/mcp") -> None:
         # mount the health check router
         IntegratedServerFactory.get().include_router(health_check_router(mcp_transport=mcp_transport))
 

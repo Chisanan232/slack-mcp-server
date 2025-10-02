@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 from mcp.server import FastMCP
 
 from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.integrate.app import integrated_factory
 from slack_mcp.mcp.app import MCPServerFactory
 
@@ -144,7 +145,7 @@ class MockQueueBackend(QueueBackend):
 
 
 @pytest_asyncio.fixture
-async def real_queue_backend() -> AsyncGenerator[Any, None]:
+async def real_queue_backend() -> AsyncGenerator[MemoryBackend, None]:
     """Use real MemoryBackend for queue testing instead of mocking."""
     # Reset MCP factory to prevent singleton conflicts
     MCPServerFactory.reset()
@@ -162,7 +163,8 @@ async def real_queue_backend() -> AsyncGenerator[Any, None]:
 
         real_backend = get_queue_backend()
 
-        # Clear any existing messages in the queue to ensure test isolation
+        # Ensure we have a MemoryBackend and clear any existing messages in the queue to ensure test isolation
+        assert isinstance(real_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_backend)}"
         while not real_backend._queue.empty():
             try:
                 real_backend._queue.get_nowait()
