@@ -135,8 +135,8 @@ def test_create_slack_app_with_routes():
     """Test creating a Slack app with proper routes."""
     app = create_slack_app()
 
-    # Verify the app has the expected routes
-    routes = {route.path: route.methods for route in app.routes}
+    # Verify the app has the expected routes (filter out Mount objects which don't have methods)
+    routes = {route.path: route.methods for route in app.routes if hasattr(route, 'methods')}
     assert "/slack/events" in routes
     assert "POST" in routes["/slack/events"]
 

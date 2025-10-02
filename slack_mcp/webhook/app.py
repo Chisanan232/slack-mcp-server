@@ -5,6 +5,9 @@ This module provides a FastAPI web server that mounts the MCP server
 for exposing ClickUp functionality through a RESTful API.
 """
 
+from __future__ import annotations
+
+import logging
 from typing import Optional, Final, Type
 
 from fastapi import FastAPI
@@ -18,6 +21,8 @@ from slack_mcp.mcp.cli.models import MCPTransportType
 # from slack_mcp.models.cli import MCPTransportType, ServerConfig
 # from slack_mcp.models.dto.health_check import HealthyCheckResponseDto
 # from slack_mcp.utils import load_environment_from_file
+
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 _WEB_SERVER_INSTANCE: Optional[FastAPI] = None
 
@@ -79,18 +84,39 @@ web_factory: Final[Type[WebServerFactory]] = WebServerFactory
 web: Final[FastAPI] = web_factory.create()
 
 
-def mount_service(transport: str = MCPTransportType.SSE) -> None:
+def mount_service(transport: str = MCPTransportType.SSE, mount_path: str = "", sse_mount_path: str = "") -> None:
     """
-    Mount a FastAPI service into the web server.
+    Mount an MCP (Model Context Protocol) service into the web server.
+
+    This function provides a centralized way to mount MCP services with different transport
+    protocols into the FastAPI web application. It handles both SSE (Server-Sent Events)
+    and streamable HTTP transports, automatically creating the appropriate MCP app and
+    mounting it at the specified path.
 
     Args:
-        transport: The transport protocol to use for MCP (sse or http-streaming).
+        transport: The transport protocol to use for MCP. Must be either 
+            MCPTransportType.SSE ("sse") or MCPTransportType.STREAMABLE_HTTP ("streamable-http").
+            Defaults to MCPTransportType.SSE.
+        mount_path: The path where the MCP service should be mounted in the web server.
+            If empty string, defaults to "/mcp" for both transport types.
+        sse_mount_path: The mount path parameter to pass to the SSE app creation.
+            Only used for SSE transport. Can be empty string or None.
+
+    Raises:
+        ValueError: If an unknown transport protocol is provided.
+
+    Note:
+        - For SSE transport: Creates an SSE app with the specified sse_mount_path and mounts it
+        - For streamable-HTTP transport: Creates a streamable HTTP app and mounts it
+        - Both transport types default to mounting at "/mcp" if mount_path is not specified
     """
     match transport:
         case MCPTransportType.SSE:
-            web_factory.get().mount("/sse", mcp_factory.get().sse_app())
+            _LOG.info(f"Mounting MCP server with SSE transport at path: {sse_mount_path}")
+            web_factory.get().mount(path=mount_path or "/mcp", app=mcp_factory.get().sse_app(mount_path=sse_mount_path))
         case MCPTransportType.STREAMABLE_HTTP:
-            web_factory.get().mount("/mcp", mcp_factory.get().streamable_http_app())
+            web_factory.get().mount(path=mount_path or "/mcp", app=mcp_factory.get().streamable_http_app())
+            _LOG.info(f"Integrating MCP server with streamable-http transport")
         case _:
             raise ValueError(f"Unknown transport protocol: {transport}")
 

@@ -19,6 +19,7 @@ from .webhook.server import (
     initialize_slack_client,
     slack_client,
 )
+from .webhook.app import mount_service
 
 __all__: list[str] = [
     "create_integrated_app",
@@ -132,22 +133,8 @@ def create_integrated_app(
                 content={"status": "unhealthy", "service": "integrated-server", "error": str(e)},
             )
 
-    # Get the appropriate MCP app based on the transport
-    if mcp_transport == "sse":
-        # For SSE transport, we can mount at a specified path
-        mcp_app = mcp_factory.get().sse_app(mount_path=mcp_mount_path)
-
-        # Mount the MCP app on the webhook app
-        _LOG.info(f"Mounting MCP server with SSE transport at path: {mcp_mount_path}")
-        app.mount(mcp_mount_path or "/mcp", mcp_app)
-    elif mcp_transport == "streamable-http":
-        # For streamable-http transport, use existing _server_instance directly
-        # The SessionManager reuse issue should be resolved by the mounting approach
-        mcp_app = mcp_factory.get().streamable_http_app()
-        mount_path = mcp_mount_path or "/mcp"
-
-        _LOG.info(f"Integrating MCP server with streamable-http transport")
-        app.mount(mount_path, mcp_app)
+    # Get and mount the appropriate MCP app based on the transport
+    mount_service(transport=mcp_transport, mount_path=mcp_mount_path, sse_mount_path=mcp_mount_path)
 
     _LOG.info("Successfully created integrated server with both MCP and webhook functionalities")
     return app
