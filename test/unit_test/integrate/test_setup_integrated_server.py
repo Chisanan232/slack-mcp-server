@@ -280,12 +280,12 @@ class TestIntegratedServerHealthCheck:
 
         # Create a mock backend that works during initialization but fails during health check
         from unittest.mock import Mock
-        
+
         def mock_get_queue_backend():
             backend = Mock()
             backend.publish = Mock(side_effect=Exception("Database connection failed"))
             return backend
-        
+
         monkeypatch.setattr("slack_mcp.webhook.server.get_queue_backend", mock_get_queue_backend)
         monkeypatch.setattr("slack_mcp.webhook.server.slack_client", None)
 
