@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 from mcp.server import FastMCP
 
 from slack_mcp.backends.base.protocol import QueueBackend
-from slack_mcp.integrate.integrated_server import create_integrated_app
+from slack_mcp.integrate.server import create_integrated_app
 from slack_mcp.mcp.app import MCPServerFactory
 
 
@@ -200,7 +200,7 @@ async def sse_server(
 
     with (
         patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
-        patch("slack_mcp.integrate.integrated_server.mcp_factory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
     ):
         # Create the integrated app to test configuration
         app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp")
@@ -243,7 +243,7 @@ async def http_server(
 
     with (
         patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
-        patch("slack_mcp.integrate.integrated_server.mcp_factory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
     ):
         # Create the integrated app to test configuration
         app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="streamable-http")

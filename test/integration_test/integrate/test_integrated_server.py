@@ -10,7 +10,7 @@ from fastapi import FastAPI, Request
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
-from slack_mcp.integrate.integrated_server import create_integrated_app
+from slack_mcp.integrate.server import create_integrated_app
 
 
 @pytest.fixture

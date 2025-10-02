@@ -10,7 +10,7 @@ from typing import Final
 import uvicorn
 from dotenv import load_dotenv
 
-from slack_mcp.integrate.integrated_server import create_integrated_app
+from slack_mcp.integrate.server import create_integrated_app
 
 from .app import mcp_factory
 from .cli import _parse_args

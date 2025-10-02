@@ -25,7 +25,7 @@ __all__: list[str] = [
     "create_integrated_app",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.integrated_server")
+_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.integrate.server")
 
 
 def create_integrated_app(
