@@ -33,7 +33,9 @@ fi
 
 # LOG_LEVEL: Python logging level
 if [ -n "${MCP_LOG_LEVEL}" ]; then
-  CMD_ARGS+=(--log-level "${MCP_LOG_LEVEL}")
+  # Convert to lowercase to ensure compatibility with CLI parser
+  LOG_LEVEL_LOWER=$(echo "${MCP_LOG_LEVEL}" | tr '[:upper:]' '[:lower:]')
+  CMD_ARGS+=(--log-level "${LOG_LEVEL_LOWER}")
 fi
 
 # HOST: Host for FastAPI HTTP transports (used for sse or streamable-http)

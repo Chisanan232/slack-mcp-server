@@ -3,8 +3,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from mcp.server import FastMCP
 
-from slack_mcp.mcp.server import FastMCP
 from slack_mcp.webhook.entry import (
     main,
     register_mcp_tools,
@@ -155,12 +155,17 @@ def test_main(
         patch("slack_mcp.webhook.entry.register_mcp_tools") as mock_register_mcp_tools,
         patch("slack_mcp.webhook.entry.run_integrated_server", new_callable=MagicMock) as mock_run_integrated_server,
         patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock) as mock_run_slack_server,
+        patch("slack_mcp.webhook.entry.mcp_factory.get") as mock_mcp_factory_get,
     ):
         # Configure the mock path to simulate env file existence
         mock_path_instance = MagicMock()
         mock_path_instance.exists.return_value = env_file_exists
         mock_path_instance.resolve.return_value = "/path/to/env"
         mock_path.return_value = mock_path_instance
+
+        # Configure the mock MCP factory to return a mock FastMCP instance
+        mock_mcp_instance = MagicMock(spec=FastMCP)
+        mock_mcp_factory_get.return_value = mock_mcp_instance
 
         # Run the main function
         main()
@@ -185,8 +190,8 @@ def test_main(
         else:
             mock_load_dotenv.assert_not_called()
 
-        # Verify MCP tools were registered
-        mock_register_mcp_tools.assert_called_once()
+        # Verify MCP tools were registered with the mocked instance
+        mock_register_mcp_tools.assert_called_once_with(mock_mcp_instance)
 
         # Verify the server was run with the expected parameters
         mock_run.assert_called_once()
@@ -235,7 +240,7 @@ def test_main(
 async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount_path):
     """Test running the integrated server with different configurations."""
     with (
-        patch("slack_mcp.webhook.entry.create_integrated_app") as mock_create_app,
+        patch("slack_mcp.webhook.entry.integrated_factory.create") as mock_create_app,
         patch("uvicorn.Server") as mock_server_cls,
         patch("uvicorn.Config") as mock_config_cls,
     ):

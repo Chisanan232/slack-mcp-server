@@ -7,32 +7,27 @@ in a single FastAPI application. It follows PEP 484/585 typing conventions.
 from __future__ import annotations
 
 import logging
-from typing import Final, Optional
+from typing import Final
 
-from fastapi import FastAPI, status
+from fastapi import APIRouter, status
 from fastapi.responses import JSONResponse
 
-from .mcp.server import mcp as _server_instance
-from .webhook.server import (
-    create_slack_app,
+from slack_mcp.mcp.app import mcp_factory
+from slack_mcp.webhook.server import (
     get_queue_backend,
-    initialize_slack_client,
     slack_client,
 )
 
 __all__: list[str] = [
-    "create_integrated_app",
+    "health_check_router",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.integrated_server")
+_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.integrate.server")
 
 
-def create_integrated_app(
-    token: Optional[str] = None,
+def health_check_router(
     mcp_transport: str = "sse",
-    mcp_mount_path: Optional[str] = "/mcp",
-    retry: int = 3,
-) -> FastAPI:
+) -> APIRouter:
     """Create an integrated FastAPI app with both MCP and webhook functionalities.
 
     This function creates a FastAPI application that serves both as a Slack webhook server
@@ -40,43 +35,23 @@ def create_integrated_app(
 
     Parameters
     ----------
-    token : Optional[str]
-        The Slack bot token to use. If None, will use environment variables.
     mcp_transport : str
         The transport to use for the MCP server. Either "sse" or "streamable-http".
-    mcp_mount_path : Optional[str]
-        The path to mount the MCP server on. Only relevant for "sse" transport.
-    retry : int
-        Number of retry attempts for network operations (default: 3).
 
     Returns
     -------
-    FastAPI
-        The FastAPI app with both MCP and webhook functionalities.
+    APIRouter
+        The APIRouter of FastAPI app with both MCP and webhook functionalities.
 
     Raises
     ------
     ValueError
         If an invalid transport type is provided.
     """
-    # Validate transport type first before any other operations
-    if mcp_transport not in ["sse", "streamable-http"]:
-        raise ValueError(
-            f"Invalid transport type for integrated server: {mcp_transport}. " "Must be 'sse' or 'streamable-http'."
-        )
-
-    # Create the webhook app first - this will be returned for both transports
-    app = create_slack_app()
-
-    # Initialize the global Slack client with the provided token and retry settings
-    # Allow token to be None during app creation - it will be set later in entry.py
-    if token:
-        initialize_slack_client(token, retry=retry)
-    else:
-        _LOG.info("Deferring Slack client initialization - token will be set later")
+    router = APIRouter()
 
     # Add integrated health check endpoint
-    @app.get("/health")
+    @router.get("/health")
     async def integrated_health_check() -> JSONResponse:
         """Health check endpoint for the integrated server.
 
@@ -104,7 +79,7 @@ def create_integrated_app(
 
             # Check MCP server status
             mcp_status = "healthy"  # MCP server is healthy if we can access the instance
-            _ = _server_instance  # Access the server instance to verify it's available
+            _ = mcp_factory.get()  # Access the server instance to verify it's available
 
             # Determine overall health status
             is_healthy = backend_status == "healthy"
@@ -132,22 +107,5 @@ def create_integrated_app(
                 content={"status": "unhealthy", "service": "integrated-server", "error": str(e)},
             )
 
-    # Get the appropriate MCP app based on the transport
-    if mcp_transport == "sse":
-        # For SSE transport, we can mount at a specified path
-        mcp_app = _server_instance.sse_app(mount_path=mcp_mount_path)
-
-        # Mount the MCP app on the webhook app
-        _LOG.info(f"Mounting MCP server with SSE transport at path: {mcp_mount_path}")
-        app.mount(mcp_mount_path or "/mcp", mcp_app)
-    elif mcp_transport == "streamable-http":
-        # For streamable-http transport, use existing _server_instance directly
-        # The SessionManager reuse issue should be resolved by the mounting approach
-        mcp_app = _server_instance.streamable_http_app()
-        mount_path = mcp_mount_path or "/mcp"
-
-        _LOG.info(f"Integrating MCP server with streamable-http transport")
-        app.mount(mount_path, mcp_app)
-
     _LOG.info("Successfully created integrated server with both MCP and webhook functionalities")
-    return app
+    return router

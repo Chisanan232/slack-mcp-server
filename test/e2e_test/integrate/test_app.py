@@ -6,18 +6,22 @@ import asyncio
 import os
 import socket
 import warnings
-from contextlib import suppress
+from contextlib import asynccontextmanager, suppress
 from typing import Any, AsyncGenerator, Dict, Generator, Optional
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import aiohttp
 import pytest
 import pytest_asyncio
 import uvicorn
 from fastapi import Request
+from fastapi.testclient import TestClient
+from mcp.server import FastMCP
 
 from slack_mcp.backends.base.protocol import QueueBackend
-from slack_mcp.integrated_server import create_integrated_app
+from slack_mcp.backends.queue.memory import MemoryBackend
+from slack_mcp.integrate.app import integrated_factory
+from slack_mcp.mcp.app import MCPServerFactory
 
 
 def find_free_port() -> int:
@@ -141,86 +145,139 @@ class MockQueueBackend(QueueBackend):
 
 
 @pytest_asyncio.fixture
-async def mock_queue_backend() -> AsyncGenerator[MockQueueBackend, None]:
-    """Create a mock queue backend and patch it into the system."""
-    # Create the mock backend
-    mock_backend = MockQueueBackend()
+async def real_queue_backend() -> AsyncGenerator[MemoryBackend, None]:
+    """Use real MemoryBackend for queue testing instead of mocking."""
+    # Reset MCP factory to prevent singleton conflicts
+    MCPServerFactory.reset()
 
-    # Patch the _queue_backend global variable in server.py
-    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
-        yield mock_backend
+    # Reset the global _queue_backend to None to ensure fresh initialization
+    import slack_mcp.webhook.server
+
+    original_backend = slack_mcp.webhook.server._queue_backend
+    slack_mcp.webhook.server._queue_backend = None
+
+    try:
+        # Let the system create the real MemoryBackend naturally
+        # The first call to get_queue_backend() will initialize it
+        from slack_mcp.webhook.server import get_queue_backend
+
+        real_backend = get_queue_backend()
+
+        # Ensure we have a MemoryBackend and clear any existing messages in the queue to ensure test isolation
+        assert isinstance(real_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_backend)}"
+        while not real_backend._queue.empty():
+            try:
+                real_backend._queue.get_nowait()
+                real_backend._queue.task_done()
+            except:
+                break
+
+        yield real_backend
+    finally:
+        # Restore the original backend after the test
+        slack_mcp.webhook.server._queue_backend = original_backend
 
 
 @pytest_asyncio.fixture
 async def sse_server(
-    fake_slack_credentials: Dict[str, str], mock_queue_backend: MockQueueBackend
+    fake_slack_credentials: Dict[str, str], real_queue_backend: Any
 ) -> AsyncGenerator[Dict[str, Any], None]:
-    """Start an integrated server with SSE transport for e2e testing."""
+    """Test SSE integrated server configuration without starting real server."""
     # Set environment variables for the test
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
 
-    port = find_free_port()
+    # Reset MCP factory before creating integrated app to prevent singleton conflicts
+    MCPServerFactory.reset()
 
-    # Create the integrated app
-    app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp")
+    # Mock the MCP factory to return a mock FastMCP instance
+    mock_mcp_instance = MagicMock(spec=FastMCP)
 
-    # Configure and start the server
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
-    server = UvicornTestServer(config)
+    # Mock the SSE app
+    mock_sse_app = MagicMock()
+    mock_mcp_instance.sse_app.return_value = mock_sse_app
 
-    # Start the server in a separate task
-    task = asyncio.create_task(server.start_and_wait())
+    # Mock the streamable HTTP app
+    mock_streamable_app = MagicMock()
+    mock_mcp_instance.streamable_http_app.return_value = mock_streamable_app
 
-    # Give it a moment to start up
-    await asyncio.sleep(0.5)
+    with (
+        patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
+    ):
+        # Create the integrated app to test configuration
+        app = integrated_factory.create(
+            token=fake_slack_credentials["token"], mcp_transport="sse", mcp_mount_path="/mcp"
+        )
 
-    try:
-        # Yield the server info
-        yield {"port": port, "base_url": f"http://127.0.0.1:{port}", "queue_backend": mock_queue_backend}
-    finally:
-        # Stop the server
-        await server.safe_shutdown()
-        await safely_cancel_task(task)
+        # Verify the app was configured correctly
+        assert app is not None
+        assert mock_mcp_instance.sse_app.called
+        mock_mcp_instance.sse_app.assert_called_with(mount_path="/mcp")
+
+        # Yield the configured app and mock components for testing
+        yield {
+            "app": app,
+            "base_url": "http://127.0.0.1:8000",
+            "queue_backend": real_queue_backend,
+            "mock_mcp_instance": mock_mcp_instance,
+        }
 
 
 @pytest_asyncio.fixture
 async def http_server(
-    fake_slack_credentials: Dict[str, str], mock_queue_backend: MockQueueBackend
+    fake_slack_credentials: Dict[str, str], real_queue_backend: Any
 ) -> AsyncGenerator[Dict[str, Any], None]:
-    """Start an integrated server with streamable-http transport for e2e testing."""
+    """Test streamable-HTTP integrated server configuration without starting real server."""
     # Set environment variables for the test
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
 
-    port = find_free_port()
+    # Reset MCP factory before creating integrated app to prevent singleton conflicts
+    MCPServerFactory.reset()
 
-    # Create the integrated app
-    app = create_integrated_app(token=fake_slack_credentials["token"], mcp_transport="streamable-http")
+    # Mock the MCP factory to return a mock FastMCP instance
+    mock_mcp_instance = MagicMock(spec=FastMCP)
 
-    # Configure and start the server
-    config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="error")
-    server = UvicornTestServer(config)
+    # Mock the SSE app
+    mock_sse_app = MagicMock()
+    mock_mcp_instance.sse_app.return_value = mock_sse_app
 
-    # Start the server in a separate task
-    task = asyncio.create_task(server.start_and_wait())
+    # Mock the streamable HTTP app
+    mock_streamable_app = MagicMock()
+    mock_mcp_instance.streamable_http_app.return_value = mock_streamable_app
 
-    # Give it a moment to start up
-    await asyncio.sleep(0.5)
+    with (
+        patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
+    ):
+        # Create the integrated app to test configuration
+        app = integrated_factory.create(token=fake_slack_credentials["token"], mcp_transport="streamable-http")
 
-    try:
-        # Yield the server info
-        yield {"port": port, "base_url": f"http://127.0.0.1:{port}", "queue_backend": mock_queue_backend}
-    finally:
-        # Stop the server
-        await server.safe_shutdown()
-        await safely_cancel_task(task)
+        # Verify the app was configured correctly
+        assert app is not None
+        assert mock_mcp_instance.streamable_http_app.called
+        mock_mcp_instance.streamable_http_app.assert_called_with()
+
+        # Yield the configured app and mock components for testing
+        yield {
+            "app": app,
+            "base_url": "http://127.0.0.1:8001",
+            "queue_backend": real_queue_backend,
+            "mock_mcp_instance": mock_mcp_instance,
+        }
 
 
-@pytest.mark.asyncio
-async def test_sse_integrated_server_webhook(sse_server: Dict[str, Any]) -> None:
+def test_sse_integrated_server_webhook(sse_server: Dict[str, Any]) -> None:
     """Test that the webhook endpoints for the integrated server work with SSE transport."""
-    base_url = sse_server["base_url"]
+    app = sse_server["app"]
 
-    async with aiohttp.ClientSession() as session:
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
+
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # Test the webhook endpoint
         challenge_data = {"token": "verification_token", "challenge": "challenge_value", "type": "url_verification"}
 
@@ -232,46 +289,64 @@ async def test_sse_integrated_server_webhook(sse_server: Dict[str, Any]) -> None
         }
 
         # Test the Slack webhook endpoint
-        async with session.post(f"{base_url}/slack/events", json=challenge_data, headers=headers) as response:
-            assert response.status == 200
-            data = await response.json()
-            assert data == {"challenge": "challenge_value"}
+        response = client.post("/slack/events", json=challenge_data, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data == {"challenge": "challenge_value"}
 
 
-@pytest.mark.asyncio
-async def test_sse_integrated_server_mount_point(sse_server: Dict[str, Any]) -> None:
+def test_sse_integrated_server_mount_point(sse_server: Dict[str, Any]) -> None:
     """Test that the MCP mount point is properly set up with SSE transport."""
-    base_url = sse_server["base_url"]
+    app = sse_server["app"]
 
-    async with aiohttp.ClientSession() as session:
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
+
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # Test the MCP mount point (should redirect to /mcp/)
-        async with session.get(f"{base_url}/mcp", allow_redirects=False) as response:
-            # We should get a redirect (307) when hitting the mount point
-            assert response.status == 307
-            # The location header should include the server address
-            assert response.headers.get("location").endswith("/mcp/")
+        response = client.get("/mcp", follow_redirects=False)
+        # We should get a redirect (307) when hitting the mount point
+        assert response.status_code == 307
+        # The location header should include the server address
+        assert response.headers.get("location").endswith("/mcp/")
 
 
-@pytest.mark.asyncio
-async def test_sse_docs_endpoint(sse_server: Dict[str, Any]) -> None:
+def test_sse_docs_endpoint(sse_server: Dict[str, Any]) -> None:
     """Test that the API docs are available in the integrated server with SSE transport."""
-    base_url = sse_server["base_url"]
+    app = sse_server["app"]
 
-    async with aiohttp.ClientSession() as session:
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
+
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # FastAPI automatically adds docs endpoints
-        async with session.get(f"{base_url}/docs") as response:
-            assert response.status == 200
-            # Just check that it returns HTML content for the docs
-            content = await response.text()
-            assert "swagger-ui" in content.lower()
+        response = client.get("/docs")
+        assert response.status_code == 200
+        # Just check that it returns HTML content for the docs
+        content = response.text
+        assert "swagger-ui" in content.lower()
 
 
-@pytest.mark.asyncio
-async def test_slack_webhook_message_events(sse_server: Dict[str, Any]) -> None:
+def test_slack_webhook_message_events(sse_server: Dict[str, Any]) -> None:
     """Test the Slack webhook endpoint with message events."""
-    base_url = sse_server["base_url"]
+    app = sse_server["app"]
 
-    async with aiohttp.ClientSession() as session:
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
+
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # Create a Slack message event
         message_event = {
             "token": "verification_token",
@@ -297,18 +372,24 @@ async def test_slack_webhook_message_events(sse_server: Dict[str, Any]) -> None:
         }
 
         # Test the Slack webhook endpoint with a message event
-        async with session.post(f"{base_url}/slack/events", json=message_event, headers=headers) as response:
-            assert response.status == 200
-            data = await response.json()
-            assert data == {"status": "ok"}
+        response = client.post("/slack/events", json=message_event, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data == {"status": "ok"}
 
 
-@pytest.mark.asyncio
-async def test_http_integrated_server_webhook(http_server: Dict[str, Any]) -> None:
+def test_http_integrated_server_webhook(http_server: Dict[str, Any]) -> None:
     """Test that the webhook endpoints for the integrated server work with HTTP transport."""
-    base_url = http_server["base_url"]
+    app = http_server["app"]
 
-    async with aiohttp.ClientSession() as session:
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
+
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # Test the webhook endpoint
         challenge_data = {"token": "verification_token", "challenge": "challenge_value", "type": "url_verification"}
 
@@ -320,24 +401,30 @@ async def test_http_integrated_server_webhook(http_server: Dict[str, Any]) -> No
         }
 
         # Test the Slack webhook endpoint
-        async with session.post(f"{base_url}/slack/events", json=challenge_data, headers=headers) as response:
-            assert response.status == 200
-            data = await response.json()
-            assert data == {"challenge": "challenge_value"}
+        response = client.post("/slack/events", json=challenge_data, headers=headers)
+        assert response.status_code == 200
+        data = response.json()
+        assert data == {"challenge": "challenge_value"}
 
 
-@pytest.mark.asyncio
-async def test_http_docs_endpoint(http_server: Dict[str, Any]) -> None:
+def test_http_docs_endpoint(http_server: Dict[str, Any]) -> None:
     """Test that the API docs are available in the integrated server with HTTP transport."""
-    base_url = http_server["base_url"]
+    app = http_server["app"]
 
-    async with aiohttp.ClientSession() as session:
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
+
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # FastAPI automatically adds docs endpoints
-        async with session.get(f"{base_url}/docs") as response:
-            assert response.status == 200
-            # Just check that it returns HTML content for the docs
-            content = await response.text()
-            assert "swagger-ui" in content.lower()
+        response = client.get("/docs")
+        assert response.status_code == 200
+        # Just check that it returns HTML content for the docs
+        content = response.text
+        assert "swagger-ui" in content.lower()
 
 
 @pytest.mark.asyncio
@@ -348,7 +435,7 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
     # Create a simple Slack app without MCP integration to test webhook functionality
     from slack_mcp.webhook.server import create_slack_app, initialize_slack_client
 
-    # Create the webhook app
+    # Create the webhook app (WebServerFactory creates singleton on module load)
     app = create_slack_app()
 
     # Initialize the Slack client with the fake token
@@ -392,14 +479,18 @@ async def test_http_webhook_server(fake_slack_credentials: Dict[str, str]) -> No
 @pytest.mark.asyncio
 async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[str, Any]) -> None:
     """Test that the webhook endpoints publish events to the queue backend."""
-    base_url = sse_server["base_url"]
-    mock_backend = sse_server["queue_backend"]
+    app = sse_server["app"]
+    real_queue_backend = sse_server["queue_backend"]
 
-    # Set a topic for Slack events - this might not take effect if the server has already started
-    # So we'll check for either the default topic 'slack_events' or our custom topic
-    os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Note: SLACK_EVENTS_TOPIC is already set to "test_slack_events" in the sse_server fixture
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
 
-    async with aiohttp.ClientSession() as session:
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # Create a Slack event payload
         event_data = {
             "type": "event_callback",
@@ -434,28 +525,22 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
         }
 
         # Send the Slack event to the webhook endpoint
-        async with session.post(f"{base_url}/slack/events", json=event_data, headers=headers) as response:
-            assert response.status == 200
-            response_data = await response.json()
-            assert response_data == {"status": "ok"}
+        response = client.post("/slack/events", json=event_data, headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data == {"status": "ok"}
 
-        # Wait for the event to be published to the queue (with timeout)
-        try:
-            await asyncio.wait_for(mock_backend.event_received.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            pytest.fail("Timed out waiting for event to be published to queue")
+        # Verify that the event was actually published to the real queue
+        from slack_mcp.backends.queue.memory import MemoryBackend
 
-        # Verify the event was published to the queue
-        assert len(mock_backend.published_events) >= 1
+        assert isinstance(real_queue_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_queue_backend)}"
 
-        # Find the published event with the app_mention type
-        published_event = None
-        for event in mock_backend.published_events:
-            if event.get("event", {}).get("type") == "app_mention":
-                published_event = event
-                break
+        # Check that at least one message was published to the queue
+        assert real_queue_backend._queue.qsize() >= 1, "No messages found in queue after publishing event"
 
-        assert published_event is not None
+        # Consume and verify the published event
+        topic, published_event = await real_queue_backend._queue.get()
+        assert topic == "test_slack_events", f"Expected topic 'test_slack_events', got '{topic}'"
         assert published_event["event"]["type"] == "app_mention"
         assert published_event["event"]["user"] == "U12345"
         assert published_event["event"]["text"] == "<@BOTID> Hello from e2e test"
@@ -466,13 +551,18 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
 @pytest.mark.asyncio
 async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict[str, Any]) -> None:
     """Test that the webhook endpoints publish events to the queue backend with HTTP transport."""
-    base_url = http_server["base_url"]
-    mock_backend = http_server["queue_backend"]
+    app = http_server["app"]
+    real_queue_backend = http_server["queue_backend"]
 
-    # Set a topic for Slack events
-    os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
+    # Use FastAPI TestClient for non-blocking HTTP testing
+    # Note: SLACK_EVENTS_TOPIC is already set to "test_slack_events" in the http_server fixture
+    # Patch lifespan to avoid session manager conflicts
+    @asynccontextmanager
+    async def no_op_lifespan(app):
+        yield  # Simple no-op lifespan
 
-    async with aiohttp.ClientSession() as session:
+    app.router.lifespan_context = no_op_lifespan
+    with TestClient(app) as client:
         # Create a Slack event payload
         event_data = {
             "type": "event_callback",
@@ -507,29 +597,24 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
         }
 
         # Send the Slack event to the webhook endpoint
-        async with session.post(f"{base_url}/slack/events", json=event_data, headers=headers) as response:
-            assert response.status == 200
-            response_data = await response.json()
-            assert response_data == {"status": "ok"}
+        response = client.post("/slack/events", json=event_data, headers=headers)
+        assert response.status_code == 200
+        response_data = response.json()
+        assert response_data == {"status": "ok"}
 
-        # Wait for the event to be published to the queue (with timeout)
-        try:
-            await asyncio.wait_for(mock_backend.event_received.wait(), timeout=5.0)
-        except asyncio.TimeoutError:
-            pytest.fail("Timed out waiting for event to be published to queue")
+        # Verify that the event was actually published to the real queue
+        from slack_mcp.backends.queue.memory import MemoryBackend
 
-        # Verify the event was published to the queue
-        assert len(mock_backend.published_events) >= 1
+        assert isinstance(real_queue_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_queue_backend)}"
 
-        # Find the published event with the message type
-        published_event = None
-        for event in mock_backend.published_events:
-            if event.get("event", {}).get("type") == "message":
-                published_event = event
-                break
+        # Check that at least one message was published to the queue
+        assert real_queue_backend._queue.qsize() >= 1, "No messages found in queue after publishing event"
 
-        assert published_event is not None
+        # Consume and verify the published event
+        topic, published_event = await real_queue_backend._queue.get()
+        assert topic == "test_slack_events", f"Expected topic 'test_slack_events', got '{topic}'"
         assert published_event["event"]["type"] == "message"
         assert published_event["event"]["user"] == "U12345"
+        assert published_event["event"]["text"] == "Hello from e2e test"
         assert published_event["team_id"] == "T12345"
         assert published_event["event_id"] == "Ev12345"

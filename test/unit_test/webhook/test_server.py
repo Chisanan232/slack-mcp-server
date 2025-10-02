@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.mcp.app import MCPServerFactory
+from slack_mcp.webhook.app import WebServerFactory
 from slack_mcp.webhook.models import SlackEventModel, UrlVerificationModel
 from slack_mcp.webhook.server import (
     create_slack_app,
@@ -86,6 +88,26 @@ def mock_deserialize():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def setup_web_server():
+    """Ensure both MCPServerFactory and WebServerFactory have instances for tests."""
+    # Reset any existing state
+    MCPServerFactory.reset()
+    WebServerFactory.reset()
+
+    # Create MCP factory instance first (required by WebServerFactory)
+    MCPServerFactory.create()
+
+    # Create a fresh web server instance for the test
+    WebServerFactory.create()
+
+    yield
+
+    # Clean up after the test
+    WebServerFactory.reset()
+    MCPServerFactory.reset()
+
+
 @pytest.mark.asyncio
 async def test_verify_slack_request_valid(mock_request):
     """Test verifying a valid Slack request."""
@@ -134,8 +156,8 @@ def test_create_slack_app_with_routes():
     """Test creating a Slack app with proper routes."""
     app = create_slack_app()
 
-    # Verify the app has the expected routes
-    routes = {route.path: route.methods for route in app.routes}
+    # Verify the app has the expected routes (filter out Mount objects which don't have methods)
+    routes = {route.path: route.methods for route in app.routes if hasattr(route, "methods")}
     assert "/slack/events" in routes
     assert "POST" in routes["/slack/events"]
 
@@ -310,14 +332,17 @@ async def test_slack_events_endpoint_with_queue_backend(
     )
     mock_deserialize.return_value = event_model
 
-    # Mock the queue backend
-    mock_backend = AsyncMock()
+    # Create app first
+    app = create_slack_app()
+    client = TestClient(app)
 
-    # Create app and test client
-    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
-        app = create_slack_app()
-        client = TestClient(app)
+    # Get the backend instance and patch its publish method
+    from slack_mcp.webhook.server import get_queue_backend
 
+    backend = get_queue_backend()
+    mock_publish = AsyncMock()
+
+    with patch.object(backend, "publish", mock_publish):
         # Send request with event data
         response = client.post(
             "/slack/events",
@@ -333,7 +358,7 @@ async def test_slack_events_endpoint_with_queue_backend(
         mock_deserialize.assert_called_once()
 
         # Verify event was published to the queue backend
-        mock_backend.publish.assert_awaited_once()
+        mock_publish.assert_awaited_once_with("slack_events", event_model.model_dump())
 
 
 @pytest.mark.asyncio
@@ -381,15 +406,17 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
     )
     mock_deserialize.return_value = event_model
 
-    # Mock the queue backend
-    mock_backend = AsyncMock()
-    mock_backend.publish.side_effect = Exception("Test publish error")
+    # Create app first
+    app = create_slack_app()
+    client = TestClient(app)
 
-    # Create app and test client
-    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
-        app = create_slack_app()
-        client = TestClient(app)
+    # Get the backend instance and patch its publish method to raise an exception
+    from slack_mcp.webhook.server import get_queue_backend
 
+    backend = get_queue_backend()
+    mock_publish = AsyncMock(side_effect=Exception("Test publish error"))
+
+    with patch.object(backend, "publish", mock_publish):
         # Send request with event data
         response = client.post(
             "/slack/events",
@@ -405,7 +432,7 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
         mock_deserialize.assert_called_once()
 
         # Verify event was published to the queue backend
-        mock_backend.publish.assert_awaited_once()
+        mock_publish.assert_awaited_once_with("slack_events", event_model.model_dump())
 
 
 @pytest.mark.asyncio
@@ -439,37 +466,37 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
     # Create a specific exception to test error logging
     test_exception = Exception("Test publish error")
 
-    # Mock the queue backend to raise the exception
-    mock_backend = AsyncMock()
-    mock_backend.publish.side_effect = test_exception
-
-    # Create app and test client
+    # Create app first
     with (
-        patch("slack_mcp.webhook.server._queue_backend", mock_backend),
         patch("slack_mcp.webhook.server._LOG") as mock_logger,
-        patch(
-            "slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"
-        ),  # Match the topic used in tests
+        patch("slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"),
     ):
         app = create_slack_app()
         client = TestClient(app)
 
-        # Send request with event data
-        response = client.post(
-            "/slack/events",
-            json=event_data,
-            headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
-        )
+        # Get the backend instance and patch its publish method to raise the exception
+        from slack_mcp.webhook.server import get_queue_backend
 
-        # Verify response is still 200 OK despite the error
-        assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        backend = get_queue_backend()
+        mock_publish = AsyncMock(side_effect=test_exception)
 
-        # Verify the error was logged with the correct message
-        mock_logger.error.assert_called_once_with(f"Error publishing event to queue: {test_exception}")
+        with patch.object(backend, "publish", mock_publish):
+            # Send request with event data
+            response = client.post(
+                "/slack/events",
+                json=event_data,
+                headers={"X-Slack-Signature": "valid_sig", "X-Slack-Request-Timestamp": "1234567890"},
+            )
 
-        # Verify event publication was attempted with the test topic name
-        mock_backend.publish.assert_awaited_once_with("test_slack_events", event_data)
+            # Verify response is still 200 OK despite the error
+            assert response.status_code == 200
+            assert response.json() == {"status": "ok"}
+
+            # Verify the error was logged with the correct message
+            mock_logger.error.assert_called_once_with(f"Error publishing event to queue: {test_exception}")
+
+            # Verify event publication was attempted with the test topic name
+            mock_publish.assert_awaited_once_with("test_slack_events", event_data)
 
 
 @pytest.mark.parametrize(
@@ -615,14 +642,17 @@ async def test_slack_events_endpoint_parametrized(
     else:
         mock_deserialize.return_value = event_data
 
-    # Mock the queue backend
-    mock_backend = AsyncMock()
+    # Create app first
+    app = create_slack_app()
+    client = TestClient(app)
 
-    # Create app and test client
-    with patch("slack_mcp.webhook.server._queue_backend", mock_backend):
-        app = create_slack_app()
-        client = TestClient(app)
+    # Get the backend instance and patch its publish method
+    from slack_mcp.webhook.server import get_queue_backend
 
+    backend = get_queue_backend()
+    mock_publish = AsyncMock()
+
+    with patch.object(backend, "publish", mock_publish):
         # Send request with event data
         response = client.post(
             "/slack/events",
@@ -639,7 +669,7 @@ async def test_slack_events_endpoint_parametrized(
 
         # For event_callback types that aren't URL verification, verify queue publish was called
         if event_data.get("type") == "event_callback":
-            mock_backend.publish.assert_awaited_once()
+            mock_publish.assert_awaited_once()
 
 
 class TestHealthCheckEndpoint:

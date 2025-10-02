@@ -12,9 +12,10 @@ import pathlib
 from typing import Any, Final
 
 from dotenv import load_dotenv
+from mcp.server import FastMCP
 
-from slack_mcp.integrated_server import create_integrated_app
-from slack_mcp.mcp.server import FastMCP, mcp
+from slack_mcp.integrate.app import integrated_factory
+from slack_mcp.mcp.app import mcp_factory
 
 from .cli.options import _parse_args
 from .server import create_slack_app, initialize_slack_client
@@ -143,7 +144,7 @@ async def run_integrated_server(
     _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {host}:{port}")
 
     # Create the integrated app with both MCP and webhook functionalities
-    app = create_integrated_app(
+    app = integrated_factory.create(
         token=token,
         mcp_transport=mcp_transport,
         mcp_mount_path=mcp_mount_path,
@@ -176,7 +177,7 @@ def main(argv: list[str] | None = None) -> None:
             _LOG.warning(f"Environment file not found: {env_path.resolve()}")
 
     # Register MCP tools
-    register_mcp_tools(mcp)
+    register_mcp_tools(mcp_factory.get())
 
     # Determine whether to run in integrated mode or standalone mode
     if args.integrated:

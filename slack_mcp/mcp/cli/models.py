@@ -1,18 +1,38 @@
 from __future__ import annotations
 
 import argparse
-from typing import Literal
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+class LogLevel(str, Enum):
+    """Log levels enumeration for type safety."""
+
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class MCPTransportType(str, Enum):
+    """Server type enumeration for type safety."""
+
+    STUDIO = "stdio"
+    SSE = "sse"
+    STREAMABLE_HTTP = "streamable-http"
 
 
 class MCPServerCliOptions(BaseModel):
 
     host: str = "127.0.0.1"
     port: int = Field(8000, ge=1, le=65535)
-    transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
+    transport: MCPTransportType = Field(
+        default=MCPTransportType.SSE, description="Type of server to run (studio, sse or http-streaming)"
+    )
     mount_path: str | None = None
-    log_level: str = "INFO"
+    log_level: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
     env_file: str = ".env"
     no_env_file: bool = False
     slack_token: str | None = None

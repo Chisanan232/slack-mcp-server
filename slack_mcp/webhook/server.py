@@ -6,7 +6,6 @@ It follows PEP 484/585 typing conventions.
 
 from __future__ import annotations
 
-import contextlib
 import json
 import logging
 import os
@@ -20,8 +19,8 @@ from slack_sdk.web.async_client import AsyncWebClient
 from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.backends.loader import load_backend
 from slack_mcp.client.manager import get_client_manager
-from slack_mcp.mcp.server import mcp as _server_instance
 
+from .app import web_factory
 from .models import SlackEventModel, UrlVerificationModel, deserialize
 
 __all__: list[str] = [
@@ -166,42 +165,10 @@ def create_slack_app() -> FastAPI:
         The FastAPI app
     """
 
-    assert (
-        _server_instance is not None
-    ), "Please create a FastMCP instance first by calling *MCPServerFactory.create()*."
-
-    @contextlib.asynccontextmanager
-    async def lifespan_streamable_http(_: FastAPI):
-        """Lifespan context manager for streamable-http transport."""
-        # Initialize MCP apps
-        _server_instance.sse_app()
-        _server_instance.streamable_http_app()
-
-        # Try to run session manager - if already running (integrated mode), just yield
-        try:
-            async with _server_instance.session_manager.run():
-                yield
-        except RuntimeError as e:
-            # FIXME: Would fix this issue after refactor by singleton pattern of server instance management
-            if "can only be called once per instance" in str(e):
-                # Session manager already running (integrated mode) - just yield
-                yield
-            else:
-                # Different error - re-raise
-                raise
-
-    app = FastAPI(
-        title="Slack MCP Server",
-        description="Integrated Slack webhook and MCP server",
-        version="0.0.1",
-        lifespan=lifespan_streamable_http,
-    )
+    app = web_factory.get()
 
     # Initialize the queue backend
     backend = get_queue_backend()
-
-    # Get the topic for Slack events from environment or use default
-    slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
 
     @app.get("/health")
     async def health_check() -> JSONResponse:
@@ -296,6 +263,8 @@ def create_slack_app() -> FastAPI:
 
             # Publish event to queue
             try:
+                # Get the topic for Slack events from environment or use default (read at runtime)
+                slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
                 await backend.publish(slack_events_topic, event_dict)
                 _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
             except Exception as e:
@@ -307,6 +276,8 @@ def create_slack_app() -> FastAPI:
 
             # Publish event to queue
             try:
+                # Get the topic for Slack events from environment or use default (read at runtime)
+                slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
                 await backend.publish(slack_events_topic, slack_event_dict)
                 _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
             except Exception as e:

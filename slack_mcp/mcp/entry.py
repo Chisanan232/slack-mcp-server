@@ -10,10 +10,10 @@ from typing import Final
 import uvicorn
 from dotenv import load_dotenv
 
-from slack_mcp.integrated_server import create_integrated_app
+from slack_mcp.integrate.app import integrated_factory
 
+from .app import mcp_factory
 from .cli import _parse_args
-from .server import mcp as _server_instance
 from .server import set_slack_client_retry_count
 
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
@@ -46,14 +46,17 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
 
         _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {args.host}:{args.port}")
 
+        # Get effective token (CLI argument or environment variable)
+        effective_token = args.slack_token or os.environ.get("SLACK_BOT_TOKEN")
+
         # Create integrated app with both MCP and webhook functionality
-        app = create_integrated_app(
-            token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
+        app = integrated_factory.create(
+            token=effective_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
         from slack_mcp.mcp.server import update_slack_client
         from slack_mcp.webhook.server import slack_client
 
-        update_slack_client(token=args.slack_token, client=slack_client)
+        update_slack_client(token=effective_token, client=slack_client)
 
         # Run the integrated FastAPI app
         uvicorn.run(app, host=args.host, port=args.port)
@@ -70,10 +73,10 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
             # Get the FastAPI app for the specific HTTP transport
             if args.transport == "sse":
                 # sse_app is a method that takes mount_path as a parameter
-                app = _server_instance.sse_app(mount_path=args.mount_path)
+                app = mcp_factory.get().sse_app(mount_path=args.mount_path)
             else:  # streamable-http
                 # streamable_http_app doesn't accept mount_path parameter
-                app = _server_instance.streamable_http_app()
+                app = mcp_factory.get().streamable_http_app()
                 if args.mount_path:
                     _LOG.warning("mount-path is not supported for streamable-http transport and will be ignored")
 
@@ -82,7 +85,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
         else:
             # For stdio transport, use the run method directly
             _LOG.info("Running stdio transport")
-            _server_instance.run(transport=args.transport)
+            mcp_factory.get().run(transport=args.transport)
 
 
 if __name__ == "__main__":  # pragma: no cover
