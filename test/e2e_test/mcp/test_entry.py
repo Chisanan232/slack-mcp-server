@@ -63,10 +63,12 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     # Suppress stderr to avoid polluting test output
     monkeypatch.setattr(sys, "stderr", SimpleNamespace(write=lambda *args: None))
 
-    # Reset the singleton factory first to ensure clean state
+    # Reset the singleton factories first to ensure clean state
     from slack_mcp.mcp.app import MCPServerFactory
+    from slack_mcp.integrate.app import IntegratedServerFactory
 
     MCPServerFactory.reset()
+    IntegratedServerFactory.reset()
 
     # Replace server instance with dummy using the new factory pattern
     dummy = _DummyServer()
@@ -82,12 +84,24 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     # Replace logging with a no-op function
     monkeypatch.setattr(logging, "basicConfig", lambda *args, **kwargs: None)
 
-    # Replace integrated app creation with a mock
+    # Replace integrated app creation with a mock - now using IntegratedServerFactory
     mock_integrated_app = SimpleNamespace()
+    
+    # Mock the IntegratedServerFactory.create method
     monkeypatch.setattr(
-        "slack_mcp.mcp.entry.create_integrated_app",
-        lambda token=None, mcp_transport=None, mcp_mount_path=None, retry=0: mock_integrated_app,
+        "slack_mcp.integrate.app.IntegratedServerFactory.create",
+        lambda **kwargs: mock_integrated_app,
     )
+    
+    # Also patch the import in mcp.entry module if it imports the factory
+    try:
+        monkeypatch.setattr(
+            "slack_mcp.mcp.entry.integrated_factory.create", 
+            lambda **kwargs: mock_integrated_app
+        )
+    except AttributeError:
+        # integrated_factory may not be imported in entry.py, which is fine
+        pass
 
     # Re-import the module to update bindings
     entry = importlib.import_module("slack_mcp.mcp.entry")
@@ -96,6 +110,7 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
 
     # Clean up after test
     MCPServerFactory.reset()
+    IntegratedServerFactory.reset()
 
 
 # ---------------------------------------------------------------------------
