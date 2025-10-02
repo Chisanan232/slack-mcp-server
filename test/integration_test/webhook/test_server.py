@@ -8,6 +8,8 @@ from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.webhook.server import create_slack_app
+from slack_mcp.webhook.app import web_factory
+from slack_mcp.mcp.app import mcp_factory
 
 
 class MockQueueBackend(QueueBackend):
@@ -52,7 +54,11 @@ def test_e2e_app_mention():
         mock_client.chat_postMessage.return_value = AsyncMock(data={"ok": True, "ts": "1234567890.123456"})
         mock_client_cls.return_value = mock_client
 
-        # Create the FastAPI app and test client first
+        # Reset factories for test isolation and create the FastAPI app
+        web_factory.reset()
+        mcp_factory.reset()
+        mcp_factory.create()
+        web_factory.create()
         app = create_slack_app()
         client = TestClient(app)
 
@@ -120,7 +126,11 @@ def test_e2e_reaction_added():
         )
         mock_client_cls.return_value = mock_client
 
-        # Create the FastAPI app and test client first
+        # Reset factories for test isolation and create the FastAPI app
+        web_factory.reset()
+        mcp_factory.reset()
+        mcp_factory.create()
+        web_factory.create()
         app = create_slack_app()
         client = TestClient(app)
 
