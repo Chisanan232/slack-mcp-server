@@ -10,7 +10,7 @@ from typing import Final
 import uvicorn
 from dotenv import load_dotenv
 
-from slack_mcp.integrate.server import create_integrated_app
+from slack_mcp.integrate.app import integrated_factory
 
 from .app import mcp_factory
 from .cli import _parse_args
@@ -47,7 +47,7 @@ def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
         _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {args.host}:{args.port}")
 
         # Create integrated app with both MCP and webhook functionality
-        app = create_integrated_app(
+        app = integrated_factory.create(
             token=args.slack_token, mcp_transport=args.transport, mcp_mount_path=args.mount_path, retry=args.retry
         )
         from slack_mcp.mcp.server import update_slack_client
