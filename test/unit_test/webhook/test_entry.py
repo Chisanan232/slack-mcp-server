@@ -240,7 +240,7 @@ def test_main(
 async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount_path):
     """Test running the integrated server with different configurations."""
     with (
-        patch("slack_mcp.webhook.entry.create_integrated_app") as mock_create_app,
+        patch("slack_mcp.webhook.entry.integrated_factory.create") as mock_create_app,
         patch("uvicorn.Server") as mock_server_cls,
         patch("uvicorn.Config") as mock_config_cls,
     ):

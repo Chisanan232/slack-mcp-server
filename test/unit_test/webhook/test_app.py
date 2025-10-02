@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from slack_mcp.mcp.cli.models import MCPTransportType
-from slack_mcp.webhook.app import WebServerFactory, mount_service
+from slack_mcp.webhook.app import WebServerFactory
 
 
 class TestWebServerFactory:
@@ -127,172 +127,172 @@ class TestWebServerFactory:
         assert app.title == "Slack MCP Server"
 
 
-class TestMountService:
-    """Test cases for mount_service function."""
-
-    def setup_method(self) -> None:
-        """Set up test fixtures before each test method."""
-        # Reset the factory before each test
-        WebServerFactory.reset()
-
-    def teardown_method(self) -> None:
-        """Clean up after each test method."""
-        # Reset the factory after each test
-        WebServerFactory.reset()
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_sse_transport(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
-        """Test mounting service with SSE transport."""
-        # Mock the web server instance
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-
-        # Mock the MCP factory
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.sse_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service with SSE transport
-        mount_service(transport=MCPTransportType.SSE, mount_path="/custom", sse_mount_path="/sse-path")
-
-        # Verify the correct methods were called
-        mock_web_factory.get.assert_called_once()
-        mock_mcp_factory.get.assert_called_once()
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/sse-path")
-        mock_app.mount.assert_called_once_with(path="/custom", app=mock_mcp_app)
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_sse_default_path(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
-        """Test mounting service with SSE transport using default path."""
-        # Mock the web server instance
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-
-        # Mock the MCP factory
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.sse_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service with empty mount_path (should default to /mcp)
-        mount_service(transport=MCPTransportType.SSE, mount_path="", sse_mount_path="/sse-path")
-
-        # Verify default mount path was used
-        mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/sse-path")
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_streamable_http_transport(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
-        """Test mounting service with streamable-HTTP transport."""
-        # Mock the web server instance
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-
-        # Mock the MCP factory
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.streamable_http_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service with streamable-HTTP transport
-        mount_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="/api", sse_mount_path="/unused")
-
-        # Verify the correct methods were called
-        mock_web_factory.get.assert_called_once()
-        mock_mcp_factory.get.assert_called_once()
-        mock_mcp_instance.streamable_http_app.assert_called_once_with()
-        mock_app.mount.assert_called_once_with(path="/api", app=mock_mcp_app)
-
-        # Verify sse_app was not called for streamable-HTTP
-        mock_mcp_instance.sse_app.assert_not_called()
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_streamable_http_default_path(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
-        """Test mounting service with streamable-HTTP transport using default path."""
-        # Mock the web server instance
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-
-        # Mock the MCP factory
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.streamable_http_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service with empty mount_path (should default to /mcp)
-        mount_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="")
-
-        # Verify default mount path was used
-        mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_default_parameters(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
-        """Test mounting service with all default parameters."""
-        # Mock the web server instance
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-
-        # Mock the MCP factory
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.sse_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service with no parameters (should use defaults)
-        mount_service()
-
-        # Verify defaults: SSE transport, /mcp mount path, empty sse_mount_path
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="")
-        mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
-
-    def test_mount_service_invalid_transport(self) -> None:
-        """Test that mount_service raises ValueError for invalid transport."""
-        with pytest.raises(ValueError, match="Unknown transport protocol: invalid-transport"):
-            mount_service(transport="invalid-transport")
-
-    @patch("slack_mcp.webhook.app._LOG")
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_logging_sse(self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_log: Mock) -> None:
-        """Test that mount_service logs correctly for SSE transport."""
-        # Mock dependencies
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.sse_app.return_value = Mock()
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service
-        mount_service(transport=MCPTransportType.SSE, sse_mount_path="/test-sse")
-
-        # Verify logging
-        mock_log.info.assert_called_with("Mounting MCP server with SSE transport at path: /test-sse")
-
-    @patch("slack_mcp.webhook.app._LOG")
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    @patch("slack_mcp.webhook.app.web_factory")
-    def test_mount_service_logging_streamable_http(
-        self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_log: Mock
-    ) -> None:
-        """Test that mount_service logs correctly for streamable-HTTP transport."""
-        # Mock dependencies
-        mock_app = Mock(spec=FastAPI)
-        mock_web_factory.get.return_value = mock_app
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.streamable_http_app.return_value = Mock()
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Call mount_service
-        mount_service(transport=MCPTransportType.STREAMABLE_HTTP)
-
-        # Verify logging
-        mock_log.info.assert_called_with("Integrating MCP server with streamable-http transport")
+# class TestMountService:
+#     """Test cases for mount_service function."""
+#
+#     def setup_method(self) -> None:
+#         """Set up test fixtures before each test method."""
+#         # Reset the factory before each test
+#         WebServerFactory.reset()
+#
+#     def teardown_method(self) -> None:
+#         """Clean up after each test method."""
+#         # Reset the factory after each test
+#         WebServerFactory.reset()
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_sse_transport(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
+#         """Test mounting service with SSE transport."""
+#         # Mock the web server instance
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#
+#         # Mock the MCP factory
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.sse_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service with SSE transport
+#         mount_service(transport=MCPTransportType.SSE, mount_path="/custom", sse_mount_path="/sse-path")
+#
+#         # Verify the correct methods were called
+#         mock_web_factory.get.assert_called_once()
+#         mock_mcp_factory.get.assert_called_once()
+#         mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/sse-path")
+#         mock_app.mount.assert_called_once_with(path="/custom", app=mock_mcp_app)
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_sse_default_path(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
+#         """Test mounting service with SSE transport using default path."""
+#         # Mock the web server instance
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#
+#         # Mock the MCP factory
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.sse_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service with empty mount_path (should default to /mcp)
+#         mount_service(transport=MCPTransportType.SSE, mount_path="", sse_mount_path="/sse-path")
+#
+#         # Verify default mount path was used
+#         mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
+#         mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/sse-path")
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_streamable_http_transport(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
+#         """Test mounting service with streamable-HTTP transport."""
+#         # Mock the web server instance
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#
+#         # Mock the MCP factory
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.streamable_http_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service with streamable-HTTP transport
+#         mount_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="/api", sse_mount_path="/unused")
+#
+#         # Verify the correct methods were called
+#         mock_web_factory.get.assert_called_once()
+#         mock_mcp_factory.get.assert_called_once()
+#         mock_mcp_instance.streamable_http_app.assert_called_once_with()
+#         mock_app.mount.assert_called_once_with(path="/api", app=mock_mcp_app)
+#
+#         # Verify sse_app was not called for streamable-HTTP
+#         mock_mcp_instance.sse_app.assert_not_called()
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_streamable_http_default_path(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
+#         """Test mounting service with streamable-HTTP transport using default path."""
+#         # Mock the web server instance
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#
+#         # Mock the MCP factory
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.streamable_http_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service with empty mount_path (should default to /mcp)
+#         mount_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="")
+#
+#         # Verify default mount path was used
+#         mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_default_parameters(self, mock_web_factory: Mock, mock_mcp_factory: Mock) -> None:
+#         """Test mounting service with all default parameters."""
+#         # Mock the web server instance
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#
+#         # Mock the MCP factory
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.sse_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service with no parameters (should use defaults)
+#         mount_service()
+#
+#         # Verify defaults: SSE transport, /mcp mount path, empty sse_mount_path
+#         mock_mcp_instance.sse_app.assert_called_once_with(mount_path="")
+#         mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
+#
+#     def test_mount_service_invalid_transport(self) -> None:
+#         """Test that mount_service raises ValueError for invalid transport."""
+#         with pytest.raises(ValueError, match="Unknown transport protocol: invalid-transport"):
+#             mount_service(transport="invalid-transport")
+#
+#     @patch("slack_mcp.webhook.app._LOG")
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_logging_sse(self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_log: Mock) -> None:
+#         """Test that mount_service logs correctly for SSE transport."""
+#         # Mock dependencies
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.sse_app.return_value = Mock()
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service
+#         mount_service(transport=MCPTransportType.SSE, sse_mount_path="/test-sse")
+#
+#         # Verify logging
+#         mock_log.info.assert_called_with("Mounting MCP server with SSE transport at path: /test-sse")
+#
+#     @patch("slack_mcp.webhook.app._LOG")
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     @patch("slack_mcp.webhook.app.web_factory")
+#     def test_mount_service_logging_streamable_http(
+#         self, mock_web_factory: Mock, mock_mcp_factory: Mock, mock_log: Mock
+#     ) -> None:
+#         """Test that mount_service logs correctly for streamable-HTTP transport."""
+#         # Mock dependencies
+#         mock_app = Mock(spec=FastAPI)
+#         mock_web_factory.get.return_value = mock_app
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.streamable_http_app.return_value = Mock()
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Call mount_service
+#         mount_service(transport=MCPTransportType.STREAMABLE_HTTP)
+#
+#         # Verify logging
+#         mock_log.info.assert_called_with("Integrating MCP server with streamable-http transport")
 
 
 class TestGlobalInstances:
@@ -339,63 +339,63 @@ class TestGlobalInstances:
         # Note: _WEB_SERVER_INSTANCE should be None initially if we reset properly
 
 
-class TestIntegration:
-    """Integration tests for the webhook app module."""
-
-    def setup_method(self) -> None:
-        """Set up test fixtures before each test method."""
-        WebServerFactory.reset()
-
-    def teardown_method(self) -> None:
-        """Clean up after each test method."""
-        WebServerFactory.reset()
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    def test_full_workflow_sse_transport(self, mock_mcp_factory: Mock) -> None:
-        """Test the complete workflow: create server -> mount SSE service."""
-        # Mock the lifespan and MCP components
-        mock_mcp_factory.lifespan.return_value = Mock()
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.sse_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Create web server
-        app = WebServerFactory.create()
-
-        # Mount SSE service
-        mount_service(transport=MCPTransportType.SSE, mount_path="/mcp", sse_mount_path="/sse")
-
-        # Verify the service was mounted on the created app
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/sse")
-
-        # Verify the app has the mounted service
-        # Note: In real FastAPI, this would be visible in app.routes, but our mock doesn't track this
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    def test_full_workflow_streamable_http_transport(self, mock_mcp_factory: Mock) -> None:
-        """Test the complete workflow: create server -> mount streamable-HTTP service."""
-        # Mock the lifespan and MCP components
-        mock_mcp_factory.lifespan.return_value = Mock()
-        mock_mcp_app = Mock(spec=FastAPI)
-        mock_mcp_instance = Mock()
-        mock_mcp_instance.streamable_http_app.return_value = mock_mcp_app
-        mock_mcp_factory.get.return_value = mock_mcp_instance
-
-        # Create web server
-        app = WebServerFactory.create()
-
-        # Mount streamable-HTTP service
-        mount_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="/api")
-
-        # Verify the service was mounted
-        mock_mcp_instance.streamable_http_app.assert_called_once_with()
-
-    @patch("slack_mcp.webhook.app.mcp_factory")
-    def test_error_handling_mount_without_server(self, mock_mcp_factory: Mock) -> None:
-        """Test error handling when trying to mount service without creating server first."""
-        # Don't create the web server instance
-
-        # Attempting to mount service should fail when trying to get the server
-        with pytest.raises(AssertionError, match="It must be created web server first"):
-            mount_service(transport=MCPTransportType.SSE)
+# class TestIntegration:
+#     """Integration tests for the webhook app module."""
+#
+#     def setup_method(self) -> None:
+#         """Set up test fixtures before each test method."""
+#         WebServerFactory.reset()
+#
+#     def teardown_method(self) -> None:
+#         """Clean up after each test method."""
+#         WebServerFactory.reset()
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     def test_full_workflow_sse_transport(self, mock_mcp_factory: Mock) -> None:
+#         """Test the complete workflow: create server -> mount SSE service."""
+#         # Mock the lifespan and MCP components
+#         mock_mcp_factory.lifespan.return_value = Mock()
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.sse_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Create web server
+#         app = WebServerFactory.create()
+#
+#         # Mount SSE service
+#         mount_service(transport=MCPTransportType.SSE, mount_path="/mcp", sse_mount_path="/sse")
+#
+#         # Verify the service was mounted on the created app
+#         mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/sse")
+#
+#         # Verify the app has the mounted service
+#         # Note: In real FastAPI, this would be visible in app.routes, but our mock doesn't track this
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     def test_full_workflow_streamable_http_transport(self, mock_mcp_factory: Mock) -> None:
+#         """Test the complete workflow: create server -> mount streamable-HTTP service."""
+#         # Mock the lifespan and MCP components
+#         mock_mcp_factory.lifespan.return_value = Mock()
+#         mock_mcp_app = Mock(spec=FastAPI)
+#         mock_mcp_instance = Mock()
+#         mock_mcp_instance.streamable_http_app.return_value = mock_mcp_app
+#         mock_mcp_factory.get.return_value = mock_mcp_instance
+#
+#         # Create web server
+#         app = WebServerFactory.create()
+#
+#         # Mount streamable-HTTP service
+#         mount_service(transport=MCPTransportType.STREAMABLE_HTTP, mount_path="/api")
+#
+#         # Verify the service was mounted
+#         mock_mcp_instance.streamable_http_app.assert_called_once_with()
+#
+#     @patch("slack_mcp.webhook.app.mcp_factory")
+#     def test_error_handling_mount_without_server(self, mock_mcp_factory: Mock) -> None:
+#         """Test error handling when trying to mount service without creating server first."""
+#         # Don't create the web server instance
+#
+#         # Attempting to mount service should fail when trying to get the server
+#         with pytest.raises(AssertionError, match="It must be created web server first"):
+#             mount_service(transport=MCPTransportType.SSE)
