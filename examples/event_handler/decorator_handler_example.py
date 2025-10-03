@@ -14,18 +14,15 @@ This example shows how to:
 
 import asyncio
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
 
-from slack_mcp.events import SlackEvent
-from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
-from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.backends.queue.memory import MemoryBackend
+from slack_mcp.events import SlackEvent
+from slack_mcp.webhook.event.consumer import SlackEventConsumer
+from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 # Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("decorator_handler_example")
 
 # Create a DecoratorHandler instance
@@ -33,6 +30,7 @@ slack_event = DecoratorHandler()
 
 
 # ---- Basic Usage Examples ----
+
 
 # Register handlers using attribute-style decorators
 @slack_event.message
@@ -59,6 +57,7 @@ async def handle_app_mention(event: Dict[str, Any]) -> None:
 
 # ---- Advanced Usage Examples ----
 
+
 # Register a handler for a specific message subtype
 @slack_event("message.channel_join")
 def handle_channel_join(event: Dict[str, Any]) -> None:
@@ -77,7 +76,7 @@ async def log_channel_creation(event: Dict[str, Any]) -> None:
 @slack_event.channel_created
 async def notify_admin_channel_creation(event: Dict[str, Any]) -> None:
     """Second handler for channel_created events."""
-    channel_name = event.get('channel', {}).get('name', '')
+    channel_name = event.get("channel", {}).get("name", "")
     logger.info(f"Admin notification: New channel '{channel_name}' created")
 
 
@@ -85,12 +84,12 @@ async def notify_admin_channel_creation(event: Dict[str, Any]) -> None:
 @slack_event.pin_added
 async def process_pin(event: Dict[str, Any]) -> Dict[str, Any]:
     """Process pin_added events and return enriched data."""
-    item = event.get('item', {})
+    item = event.get("item", {})
     enriched_data = {
-        "pin_type": item.get('type'),
-        "channel": event.get('channel_id'),
-        "timestamp": event.get('event_ts'),
-        "pinned_by": event.get('user')
+        "pin_type": item.get("type"),
+        "channel": event.get("channel_id"),
+        "timestamp": event.get("event_ts"),
+        "pinned_by": event.get("user"),
     }
     logger.info(f"Pin processed: {enriched_data}")
     return enriched_data
@@ -102,8 +101,8 @@ async def handle_user_change_with_error(event: Dict[str, Any]) -> None:
     """Demonstrate error handling in event handlers."""
     try:
         # Deliberately cause an error
-        user_profile = event['user']['profile']
-        nonexistent_field = user_profile['nonexistent_field']
+        user_profile = event["user"]["profile"]
+        nonexistent_field = user_profile["nonexistent_field"]
         logger.info(f"This won't be reached: {nonexistent_field}")
     except KeyError as e:
         logger.error(f"Error in user_change handler: {e}")
@@ -125,6 +124,7 @@ async def log_all_events(event: Dict[str, Any]) -> None:
 # Create a second, isolated handler instance for a different component
 analytics_handler = DecoratorHandler()
 
+
 @analytics_handler.message
 async def track_message_analytics(event: Dict[str, Any]) -> None:
     """Track analytics for message events in a separate handler."""
@@ -139,6 +139,7 @@ async def track_reaction_analytics(event: Dict[str, Any]) -> None:
 
 # ---- Custom Event Type Example ----
 
+
 @slack_event("custom.event")
 async def handle_custom_event(event: Dict[str, Any]) -> None:
     """Handle a custom event type not defined in SlackEvent enum."""
@@ -149,18 +150,18 @@ async def main() -> None:
     """Run the example."""
     # Create a memory backend for testing
     backend = MemoryBackend()
-    
+
     # Create SlackEventConsumers with our handlers
     main_consumer = SlackEventConsumer(backend=backend, handler=slack_event)
     analytics_consumer = SlackEventConsumer(backend=backend, handler=analytics_handler)
-    
+
     # Start the consumers in separate tasks
     main_consumer_task = asyncio.create_task(main_consumer.run())
     analytics_consumer_task = asyncio.create_task(analytics_consumer.run())
-    
+
     # Give consumers a moment to start
     await asyncio.sleep(0.1)
-    
+
     # Publish some test events to the backend
     # For MemoryBackend, we need to use a topic key (we'll use "slack_events")
     topic = "slack_events"
@@ -170,31 +171,37 @@ async def main() -> None:
         {"type": "reaction_added", "reaction": "thumbsup"},
         {"type": "app_mention", "text": "<@U12345> How are you?"},
         {"type": "channel_created", "channel": {"name": "new-project"}},
-        {"type": "pin_added", "item": {"type": "message"}, "channel_id": "C12345", "event_ts": "1234567890.123456", "user": "U12345"},
+        {
+            "type": "pin_added",
+            "item": {"type": "message"},
+            "channel_id": "C12345",
+            "event_ts": "1234567890.123456",
+            "user": "U12345",
+        },
         {"type": "user_change", "user": {"profile": {}}},  # Will cause handled error
-        {"type": "custom.event", "data": "Custom event data"}
+        {"type": "custom.event", "data": "Custom event data"},
     ]
-    
+
     # Publish events with a small delay between them
     for event in test_events:
         await backend.publish(topic, event)
         await asyncio.sleep(0.1)  # Small delay to make logs more readable
-    
+
     # Let consumers run for a bit to process all events
     await asyncio.sleep(1)
-    
+
     # Demonstrate handler methods and inspection
     logger.info("\n--- Handler Inspection ---")
     handlers = slack_event.get_handlers()
     logger.info(f"Registered event types: {list(handlers.keys())}")
     logger.info(f"Number of message handlers: {len(handlers.get('message', []))}")
-    
+
     # Shut down the consumers
     await main_consumer.shutdown()
     await analytics_consumer.shutdown()
     await main_consumer_task
     await analytics_consumer_task
-    
+
     logger.info("Example completed successfully")
 
 

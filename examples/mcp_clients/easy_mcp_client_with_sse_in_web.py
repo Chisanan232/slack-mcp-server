@@ -1,6 +1,8 @@
 import asyncio
+
 from mcp import ClientSession
 from mcp.client.sse import sse_client
+
 
 async def mcp_client():
     url = "http://localhost:9000/mcp/sse"  # SSE endpoint in standalone mode

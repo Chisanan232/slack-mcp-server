@@ -1,4 +1,5 @@
 import asyncio
+
 from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
@@ -11,7 +12,7 @@ async def mcp_client():
     async with streamablehttp_client(url) as (
         read_stream,
         write_stream,
-        _close_fn,            # Can be called to close connection when stopping (usually not needed)
+        _close_fn,  # Can be called to close connection when stopping (usually not needed)
     ):
         # 3. Create MCP Session
         async with ClientSession(read_stream, write_stream) as session:
