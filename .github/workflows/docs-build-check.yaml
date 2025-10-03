@@ -28,30 +28,6 @@ on:
       # Static assets
       - "docs/static/**"
       - "docs/src/**"
-  push:
-    branches-ignore:
-      - "master"  # Skip master as it's handled by documentation.yaml
-    paths:
-      # Same paths as PR triggers
-      - ".github/workflows/docs-build-check.yaml"
-      - ".github/workflows/documentation.yaml"
-      - "docs/package.json"
-      - "docs/pnpm-lock.yaml"
-      - "docs/docusaurus.config.ts"
-      - "docs/tsconfig.json"
-      - "docs/**/*.md"
-      - "docs/**/*.mdx"
-      - "docs/**/*.ts"
-      - "docs/**/*.tsx"
-      - "docs/**/*.js"
-      - "docs/**/*.jsx"
-      - "docs/**/*.css"
-      - "docs/**/*.json"
-      - "docs/*_versions.json"
-      - "docs/*_versioned_docs/**"
-      - "docs/*_versioned_sidebars/**"
-      - "docs/static/**"
-      - "docs/src/**"
 
 permissions:
   contents: read
