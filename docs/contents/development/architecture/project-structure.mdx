@@ -13,24 +13,34 @@ This document provides an overview of the Slack MCP Server project structure, so
 ```
 slack-mcp-server/
 ├── slack_mcp/                 # Main package directory
+│   ├── _base/                 # Base classes and common patterns
+│   │   ├── app.py             # Base server factory interface
+│   │   └── __init__.py
 │   ├── mcp/                   # MCP server implementation
 │   │   ├── model/             # Data models and schemas
 │   │   ├── cli/               # Command-line interface
 │   │   ├── server.py          # MCP server implementation
+│   │   ├── app.py             # MCP server factory
+│   │   ├── entry.py           # MCP server entry point
 │   │   └── __init__.py
 │   ├── webhook/               # Webhook server implementation
 │   │   ├── event/             # Event handling and models
 │   │   ├── cli/               # Webhook CLI interface
 │   │   ├── server.py          # FastAPI webhook server
 │   │   ├── models.py          # Pydantic models for Slack events
+│   │   ├── app.py             # Webhook server factory
 │   │   └── entry.py           # Entry points and runners
+│   ├── integrate/             # Integrated server implementation
+│   │   ├── app.py             # Integrated server factory
+│   │   ├── server.py          # Health checks and utilities
+│   │   └── __init__.py
 │   ├── client/                # Slack client management
 │   │   ├── factory.py         # Client factory patterns
 │   │   └── manager.py         # Client lifecycle management
 │   ├── backends/              # Queue backend abstractions
 │   │   ├── base/              # Base backend interfaces
 │   │   └── queue/             # Queue backend implementations
-│   ├── integrated_server.py   # Integrated MCP + webhook server
+│   ├── events.py              # Slack event type definitions
 │   └── __init__.py
 ├── test/                      # Test suite
 │   ├── unit_test/             # Unit tests
@@ -45,17 +55,34 @@ slack-mcp-server/
 
 ## Core Components
 
+### **Base Classes (`slack_mcp/_base/`)**
+
+Foundation classes and interfaces for the common instance management pattern:
+
+- **`app.py`**: `BaseServerFactory` abstract class defining the factory interface
+- Provides consistent `create()`, `get()`, and `reset()` methods for all server types
+- Generic typing support for different server implementations
+- Foundation for singleton management and testing support
+
+**Key Features:**
+- Abstract factory pattern implementation
+- Type-safe generic interfaces
+- Consistent lifecycle management across all server types
+
 ### **MCP Server (`slack_mcp/mcp/`)**
 
 The MCP server implements the Model Context Protocol for Slack integration:
 
 - **`server.py`**: Main MCP server implementation with tool registration
+- **`app.py`**: MCP server factory implementing BaseServerFactory pattern
+- **`entry.py`**: Command-line entry point and server runner
 - **`model/`**: Pydantic models for MCP requests and responses
-- **`cli/`**: Command-line interface for running the MCP server
+- **`cli/`**: Command-line interface options and argument parsing
 
 **Key Features:**
 - Multiple transport support (stdio, SSE, HTTP)
 - Slack API integration through registered tools
+- Factory pattern for consistent server creation
 - Async/await patterns for non-blocking operations
 - Comprehensive error handling and logging
 
@@ -64,15 +91,33 @@ The MCP server implements the Model Context Protocol for Slack integration:
 FastAPI-based webhook server for receiving Slack events:
 
 - **`server.py`**: FastAPI application with webhook endpoints
+- **`app.py`**: Webhook server factory implementing BaseServerFactory pattern
+- **`entry.py`**: Command-line entry point and server runners
 - **`models.py`**: Pydantic models for Slack event payloads
 - **`event/`**: Event processing and handler management
-- **`entry.py`**: Server runners and entry points
 
 **Key Features:**
 - Request signature verification for security
 - Event publishing to queue backends
 - URL verification challenge handling
+- Factory pattern for consistent server creation
 - Standalone and integrated deployment modes
+
+### **Integrated Server (`slack_mcp/integrate/`)**
+
+Combined MCP and webhook server functionality in a unified deployment:
+
+- **`app.py`**: IntegratedServerFactory implementing BaseServerFactory pattern
+- **`server.py`**: Health check routers and server utilities
+- Coordinates MCP and webhook server creation and mounting
+- Provides unified configuration and shared resource management
+
+**Key Features:**
+- Single deployment combining both MCP and webhook functionality
+- Shared Slack client and resource management
+- Configurable transport options (SSE, HTTP streaming)
+- Unified health checks and monitoring
+- Factory pattern for consistent server creation
 
 ### **Client Management (`slack_mcp/client/`)**
 
@@ -88,17 +133,40 @@ Queue backend abstraction layer:
 - **`base/`**: Abstract base classes and interfaces
 - **`queue/`**: Concrete queue backend implementations
 
+### **Event Type Definitions (`slack_mcp/events.py`)**
+
+Comprehensive Slack event type definitions and constants:
+
+- Type definitions for all supported Slack event types
+- Event validation and parsing utilities
+- Reference implementation for Slack API events
+- Used across webhook server and event handling components
+
 ## Design Patterns
 
 ### **Factory Pattern**
 Used extensively for creating clients and server instances:
 
 ```python
+# Base factory pattern
+from slack_mcp._base import BaseServerFactory
+
 # Client factory
 from slack_mcp.client.factory import create_slack_client
 
-# Server factory functions
-from slack_mcp.integrate.server import create_integrated_app
+# Server factory implementations
+from slack_mcp.mcp.app import mcp_factory
+from slack_mcp.webhook.app import web_factory
+from slack_mcp.integrate.app import integrated_factory
+
+# Factory usage examples
+mcp_server = mcp_factory.create()
+webhook_app = web_factory.create()
+integrated_app = integrated_factory.create(
+    token="xoxb-token",
+    mcp_transport="sse",
+    mcp_mount_path="/mcp"
+)
 ```
 
 ### **Strategy Pattern**
