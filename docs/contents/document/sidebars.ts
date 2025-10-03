@@ -160,6 +160,11 @@ const sidebars: SidebarsConfig = {
               label: '🔄 Server Modes',
             },
             {
+              type: 'doc',
+              id: 'server-references/webhook-server/event-handlers',
+              label: '⚡ Event Handlers & Queue Architecture',
+            },
+            {
               type: 'category',
               label: '🔌 End-points',
               items: [
