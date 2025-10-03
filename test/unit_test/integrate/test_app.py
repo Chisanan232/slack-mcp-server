@@ -560,8 +560,8 @@ class TestMountService:
         # Call mount_service with no parameters (should use defaults)
         IntegratedServerFactory._mount_mcp_service()
 
-        # Verify defaults: SSE transport, /mcp mount path, empty sse_mount_path
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="")
+        # Verify defaults: SSE transport, /mcp mount path, None sse_mount_path (default behavior)
+        mock_mcp_instance.sse_app.assert_called_once_with(mount_path=None)
         mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
 
     def test_mount_service_invalid_transport(self) -> None:
@@ -642,8 +642,8 @@ class TestIntegration:
         # Create integrated server (this will call _mount internally)
         app = IntegratedServerFactory.create(mcp_transport="sse", mcp_mount_path="/mcp")
 
-        # Verify the MCP instance sse_app was called during creation
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/mcp")
+        # Verify the MCP instance sse_app was called during creation (mount_path is always None for SSE)
+        mock_mcp_instance.sse_app.assert_called_once_with(mount_path=None)
 
         # Verify the create_slack_app was called
         mock_create_app.assert_called_once()
