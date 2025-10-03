@@ -10,6 +10,10 @@ The Webhook Server is a FastAPI-based component that receives and processes Slac
 
 ## Overview
 
+:::info Common Instance Management
+The Webhook Server uses the **common instance management design** shared across all server types in this project. For detailed information about factory patterns, singleton management, token handling, and testing support, see the [Common Instance Management](./instance-management-design.mdx) documentation.
+:::
+
 The Webhook Server provides a secure, scalable endpoint for receiving Slack events with enterprise-grade security and reliability. It implements multi-layer security verification, event parsing with Pydantic models, and asynchronous publishing to configurable queue backends. The server supports both standalone and integrated deployment modes with comprehensive monitoring and error handling.
 
 ```mermaid

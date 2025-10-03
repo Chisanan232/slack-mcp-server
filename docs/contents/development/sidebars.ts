@@ -55,6 +55,11 @@ const sidebars: SidebarsConfig = {
           id: 'architecture/integrated-server-architecture',
           label: '🔗 Integrated Server Architecture',
         },
+        {
+          type: 'doc',
+          id: 'architecture/instance-management-design',
+          label: '⚙️ Common Instance Management',
+        },
       ],
     },
     {
