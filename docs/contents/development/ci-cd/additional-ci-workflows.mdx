@@ -14,6 +14,7 @@ The project includes several specialized CI workflows that handle specific opera
 - **🔍 Slack Event Types Validation** - Weekly validation of Slack event types against official API spec
 - **🐳 Docker CI** - Container image building and testing
 - **📋 DockerHub README CI** - Repository description synchronization
+- **📚 Documentation Build Check** - Validates documentation builds on PRs and branch changes
 - **🤖 Documentation Auto-Approve & Auto-Merge** - Streamlined docs updates
 
 ---
@@ -93,6 +94,52 @@ The [`dockerhub-readme-ci.yml`](https://github.com/Chisanan232/slack-mcp-server/
 
 ---
 
+## Documentation Build Check
+
+[![Documentation Build Check](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docs-build-check.yaml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docs-build-check.yaml)
+
+The [`docs-build-check.yaml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/docs-build-check.yaml) workflow validates that documentation builds successfully whenever documentation-related files are modified.
+
+**Triggers:**
+- **Pull Requests**: Any PR that modifies documentation files
+- **Push Events**: All branches except `master` (to avoid conflicts with the main documentation deployment workflow)
+- **Path Monitoring**: Automatically detects changes to documentation content, configuration, and dependencies
+
+**Purpose**: Ensures documentation builds successfully before merging changes, preventing broken documentation deployments.
+
+**Key Features:**
+- **Comprehensive Path Monitoring** - Watches all documentation-related files including content, configuration, dependencies, and assets
+- **Fast Build Validation** - Uses optimized setup with shallow clones and dependency caching for quick feedback
+- **Build Quality Checks** - Validates build output, critical files, and provides detailed build statistics
+- **TypeScript Validation** - Runs type checking to catch configuration errors early
+- **Concurrency Control** - Cancels in-progress runs for the same PR/branch to save resources
+- **Detailed Reporting** - Provides comprehensive build summaries in GitHub Actions interface
+
+**Build Process:**
+1. **Environment Setup**: Node.js 22 + pnpm 10 (matching production deployment)
+2. **Dependency Installation**: Uses frozen lockfile for consistency
+3. **Type Checking**: Validates TypeScript configuration and content
+4. **Documentation Build**: Executes full Docusaurus build process
+5. **Quality Validation**: Checks build artifacts and critical files
+6. **Build Reporting**: Provides detailed statistics and status summary
+
+**Path Coverage:**
+- CI workflow configurations (`.github/workflows/docs-build-check.yaml`, `documentation.yaml`)
+- Dependencies (`package.json`, `pnpm-lock.yaml`)
+- Configuration files (`docusaurus.config.ts`, `tsconfig.json`)
+- Content files (`.md`, `.mdx`, `.ts`, `.tsx`, `.js`, `.jsx`, `.css`)
+- Versioned content and sidebars
+- Static assets and source files
+
+**Safety Mechanisms:**
+- Prevents conflicts with main documentation deployment workflow
+- Uses frozen lockfile installation for reproducible builds
+- Validates critical files existence (index.html, 404.html)
+- Provides warnings for potential build issues
+- Includes comprehensive error reporting and debugging information
+
+---
+
 ## Documentation Auto-Approve & Auto-Merge
 
 [![Docs-only auto-approve & automerge](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docs-automerge.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/docs-automerge.yml)
@@ -126,6 +173,7 @@ These additional CI workflows integrate with the main CI/CD system:
 - **API Spec Checking** → Feeds into development planning and feature updates
 - **Docker CI** → Validates containers before release workflows 
 - **DockerHub README** → Ensures registry documentation stays current
+- **Documentation Build Check** → Validates docs builds on PRs to prevent broken deployments
 - **Docs Auto-merge** → Accelerates documentation maintenance
 
 ### **Monitoring and Maintenance:**
