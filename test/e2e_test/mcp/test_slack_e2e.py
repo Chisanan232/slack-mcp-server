@@ -33,7 +33,7 @@ def load_env() -> None:  # noqa: D401 – fixture
         logger.info("Environment loaded")
     else:
         logger.warning(f"Environment file not found: {env_path}")
-    logger.info(f"Using SLACK_BOT_TOKEN: {os.getenv('SLACK_BOT_TOKEN')}")
+    logger.info(f"Using E2E_TEST_API_TOKEN: {os.getenv('E2E_TEST_API_TOKEN')}")
 
 
 load_env()
@@ -81,8 +81,8 @@ async def _get_conversation_replies(client, channel, ts):
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     """Spawn the server via stdio and post a message, then verify on Slack."""
@@ -91,7 +91,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     from mcp.client.stdio import stdio_client
 
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_text = f"mcp-e2e-{uuid.uuid4()}"
 
@@ -108,7 +108,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
 
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
-    custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
+    custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
     # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(
@@ -215,8 +215,8 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_slack_read_channel_messages_e2e() -> None:
     """Spawn the server via stdio and read messages from a channel."""
@@ -225,7 +225,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
     from mcp.client.stdio import stdio_client
 
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info(f"Testing read messages from channel ID: {channel_id}")
@@ -295,7 +295,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
     if not should_fail:
         # Prepare server with explicit environment set
         custom_env = {**os.environ}
-        custom_env["SLACK_BOT_TOKEN"] = bot_token
+        custom_env["E2E_TEST_API_TOKEN"] = bot_token
 
         # Use simple transport args with explicit log level and stdio transport
         server_params = StdioServerParameters(
@@ -430,8 +430,8 @@ async def test_slack_read_channel_messages_e2e() -> None:
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     """Spawn the server via stdio, post a parent message, then reply to it with multiple thread messages."""
@@ -440,7 +440,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     from mcp.client.stdio import stdio_client
 
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_parent_text = f"mcp-e2e-parent-{uuid.uuid4()}"
     unique_reply_texts = [f"mcp-e2e-reply1-{uuid.uuid4()}", f"mcp-e2e-reply2-{uuid.uuid4()}"]
@@ -469,7 +469,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
-    custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
+    custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
     # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(
@@ -606,8 +606,8 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     """Spawn the server via stdio, post a message, then add emoji reactions to it."""
@@ -616,7 +616,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     from mcp.client.stdio import stdio_client
 
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_text = f"mcp-e2e-reaction-test-{uuid.uuid4()}"
 
@@ -641,7 +641,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
 
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
-    custom_env["SLACK_BOT_TOKEN"] = bot_token  # Ensure token is explicitly set
+    custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
     # Use simple transport args with stdio transport
     server_params = StdioServerParameters(

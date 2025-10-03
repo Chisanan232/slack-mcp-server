@@ -58,6 +58,7 @@ jobs:
     secrets:
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
       sonar_token: ${{ secrets.SONAR_TOKEN }}
+      e2e_test_api_token: ${{ secrets.SLACK_BOT_TOKEN }}
 
 #  pre-building_test:
 ##    name: Check about it could work finely by installing the Python package with setup.py file

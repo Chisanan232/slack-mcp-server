@@ -66,13 +66,13 @@ async def _get_conversation_history(client, channel, limit):
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
     """Test health check endpoint in SSE integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
 
     logger.info("Testing SSE integrated health check endpoint")
 
@@ -81,7 +81,7 @@ async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
     mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE integrated server on port {port}")
 
@@ -105,13 +105,13 @@ async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 – E2E
     """Test MCP functionality via SSE transport in integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_text = f"mcp-e2e-sse-integrated-{uuid.uuid4()}"
 
@@ -131,7 +131,7 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
     mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE integrated server on port {port}")
 
@@ -191,13 +191,13 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 – E2E
     """Test webhook endpoints availability in SSE integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
 
     logger.info("Testing SSE integrated webhook endpoint availability")
 
@@ -206,7 +206,7 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
     mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE integrated server on port {port}")
 
@@ -238,13 +238,13 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 – E2E
     """Test concurrent access to both MCP and webhook functionality in SSE integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info("Testing SSE integrated concurrent access to MCP and webhook functionality")
@@ -254,7 +254,7 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
     mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE integrated server on port {port}")
 
@@ -315,13 +315,13 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401 – E2E
     """Test multiple concurrent MCP sessions in SSE integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info("Testing SSE integrated multiple concurrent MCP sessions")
@@ -331,7 +331,7 @@ async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401
     mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE integrated server on port {port}")
 
