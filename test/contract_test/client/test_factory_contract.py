@@ -89,6 +89,7 @@ class SlackClientFactoryContractTest(ABC):
         """
         # Set environment variables that should be ignored when token is provided
         monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-env-token-should-not-be-used")
+        monkeypatch.setenv("E2E_TEST_API_TOKEN", "xoxb-env-token-should-not-be-used")
         monkeypatch.setenv("SLACK_TOKEN", "xoxb-env-token-should-not-be-used")
 
         # Setup mocks
@@ -161,6 +162,7 @@ class SlackClientFactoryContractTest(ABC):
         """
         # Ensure no token environment variables are set
         monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
+        monkeypatch.delenv("E2E_TEST_API_TOKEN", raising=False)
         monkeypatch.delenv("SLACK_TOKEN", raising=False)
 
         # Should raise ValueError when no token is available

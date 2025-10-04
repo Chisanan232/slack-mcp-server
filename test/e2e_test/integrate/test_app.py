@@ -73,20 +73,20 @@ class UvicornTestServer(uvicorn.Server):
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    original_token = os.environ.get("SLACK_BOT_TOKEN")
+    original_token = os.environ.get("E2E_TEST_API_TOKEN")
     original_secret = os.environ.get("SLACK_SIGNING_SECRET")
 
     # Set fake values for testing
-    os.environ["SLACK_BOT_TOKEN"] = "xoxb-fake-token-for-testing"
+    os.environ["E2E_TEST_API_TOKEN"] = "xoxb-fake-token-for-testing"
     os.environ["SLACK_SIGNING_SECRET"] = "fake-signing-secret"
 
-    yield {"token": os.environ["SLACK_BOT_TOKEN"], "secret": os.environ["SLACK_SIGNING_SECRET"]}
+    yield {"token": os.environ["E2E_TEST_API_TOKEN"], "secret": os.environ["SLACK_SIGNING_SECRET"]}
 
     # Restore originals
     if original_token is not None:
-        os.environ["SLACK_BOT_TOKEN"] = original_token
+        os.environ["E2E_TEST_API_TOKEN"] = original_token
     else:
-        del os.environ["SLACK_BOT_TOKEN"]
+        del os.environ["E2E_TEST_API_TOKEN"]
 
     if original_secret is not None:
         os.environ["SLACK_SIGNING_SECRET"] = original_secret
@@ -202,7 +202,7 @@ async def sse_server(
 
     with (
         patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
-        patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrate.app.mcp_factory.get", return_value=mock_mcp_instance),
     ):
         # Create the integrated app to test configuration
         app = integrated_factory.create(
@@ -212,7 +212,7 @@ async def sse_server(
         # Verify the app was configured correctly
         assert app is not None
         assert mock_mcp_instance.sse_app.called
-        mock_mcp_instance.sse_app.assert_called_with(mount_path="/mcp")
+        mock_mcp_instance.sse_app.assert_called_with(mount_path=None)
 
         # Yield the configured app and mock components for testing
         yield {
@@ -247,7 +247,7 @@ async def http_server(
 
     with (
         patch("slack_mcp.mcp.app.MCPServerFactory.get", return_value=mock_mcp_instance),
-        patch("slack_mcp.integrate.server.mcp_factory.get", return_value=mock_mcp_instance),
+        patch("slack_mcp.integrate.app.mcp_factory.get", return_value=mock_mcp_instance),
     ):
         # Create the integrated app to test configuration
         app = integrated_factory.create(token=fake_slack_credentials["token"], mcp_transport="streamable-http")

@@ -53,7 +53,7 @@ class HttpServerManager:
             if self.integrated:
                 args.append("--integrated")
                 # Pass Slack token for integrated mode
-                slack_token = os.getenv("SLACK_BOT_TOKEN")
+                slack_token = os.getenv("E2E_TEST_API_TOKEN")
                 if slack_token:
                     args.extend(["--slack-token", slack_token])
 
@@ -63,6 +63,15 @@ class HttpServerManager:
             server_env = {**os.environ}
             if env:
                 server_env.update(env)
+
+            # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
+            # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
+            if "E2E_TEST_API_TOKEN" in server_env:
+                server_env["SLACK_BOT_TOKEN"] = server_env["E2E_TEST_API_TOKEN"]
+            else:
+                e2e_token = os.getenv("E2E_TEST_API_TOKEN")
+                if e2e_token:
+                    server_env["SLACK_BOT_TOKEN"] = e2e_token
 
             # Start server process with error handling
             try:
@@ -162,7 +171,7 @@ async def http_mcp_client_session(
         elif transport == "streamable-http":
             # Streamable HTTP transport URL construction
             if integrated:
-                # In integrated mode, streamable-http is mounted at /mcp
+                # In integrated mode, streamable-http is mounted at /mcp with internal /mcp routes
                 if mount_path:
                     mcp_url = f"{base_url}{mount_path}"
                 else:

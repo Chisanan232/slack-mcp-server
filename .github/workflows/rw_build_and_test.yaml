@@ -8,6 +8,11 @@ on:
         type: boolean
         required: false
         default: false
+      with-environment-variables:
+        description: "Set the specific environment for the environment variables."
+        type: string
+        required: false
+        default: ''
     secrets:
       e2e_test_api_token:
         description: "Set the Slack bot token for end-to-end test."
@@ -44,6 +49,7 @@ jobs:
       max-parallel: 1
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest"]'
+      with-environment-variables: ${{ inputs.with-environment-variables }}
     secrets:
       e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
 
@@ -58,6 +64,7 @@ jobs:
       max-parallel: 1
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+      with-environment-variables: ${{ inputs.with-environment-variables }}
     secrets:
       e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
 

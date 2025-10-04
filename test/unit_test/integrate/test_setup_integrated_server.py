@@ -79,9 +79,9 @@ def test_create_integrated_app_sse(mock_dependencies: Dict[str, Any]) -> None:
     # Verify the app instance is the mock webhook app
     assert app is mock_webhook_app
 
-    # Verify sse_app was called with the correct mount path
+    # Verify sse_app was called (mount_path is now always None in the new implementation)
     assert len(mock_mcp.sse_app_calls) == 1
-    assert mock_mcp.sse_app_calls[0]["mount_path"] == mount_path
+    assert mock_mcp.sse_app_calls[0]["mount_path"] is None
 
     # Verify the MCP app was mounted on the webhook app
     assert mount_path in mock_webhook_app.mounted_apps
