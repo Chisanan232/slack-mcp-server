@@ -60,6 +60,11 @@ const sidebars: SidebarsConfig = {
           id: 'architecture/instance-management-design',
           label: '⚙️ Common Instance Management',
         },
+        {
+          type: 'doc',
+          id: 'architecture/event-handler-queue-architecture',
+          label: '⚡ Event Handler & Queue Architecture',
+        },
       ],
     },
     {
