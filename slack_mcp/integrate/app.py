@@ -159,3 +159,34 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
 
 integrated_factory: Final[Type[IntegratedServerFactory]] = IntegratedServerFactory
+
+# IMPORTANT: DO NOT CREATE MODULE-LEVEL integrated_app INSTANCE HERE
+#
+# Previous implementation had:
+#   integrated_app: FastAPI = IntegratedServerFactory.create()
+#
+# This was removed to fix critical E2E test failures in streamable-HTTP integrated mode.
+#
+# ROOT CAUSES FOR REMOVAL:
+# 1. **Singleton Conflicts**: Module-level instance creation caused route duplication 
+#    when multiple test cases or applications tried to create integrated server instances
+#
+# 2. **Route Mounting Issues**: Streamable-HTTP transport uses different integration 
+#    approach than SSE, and automatic instance creation caused conflicts between:
+#    - MCP routes (mounted at /mcp)  
+#    - Webhook routes (at /slack/*)
+#    - Health check routes (at /health)
+#
+# 3. **Test Environment Issues**: E2E tests require clean server instances per test,
+#    but module-level creation prevented proper test isolation
+#
+# CURRENT ARCHITECTURE (DO NOT CHANGE):
+# - Outside code must explicitly call IntegratedServerFactory.create()
+# - Each call creates a fresh instance (no singleton pattern at module level)
+# - Tests can properly reset and recreate instances via IntegratedServerFactory.reset()
+# - Prevents route conflicts between SSE and streamable-HTTP transports
+#
+# REFERENCE: See test fixes in test/e2e_test/mcp/test_streamable_http_integrated_e2e.py
+# If you need an integrated_app instance, create it explicitly in your code:
+#   from slack_mcp.integrate.app import IntegratedServerFactory  
+#   app = IntegratedServerFactory.create(mcp_transport="sse")  # or "streamable-http"
