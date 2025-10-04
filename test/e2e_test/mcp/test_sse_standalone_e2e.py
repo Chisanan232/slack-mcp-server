@@ -65,13 +65,13 @@ async def _get_conversation_history(client, channel, limit):
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
     """Test posting a message via SSE transport in standalone mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_text = f"mcp-e2e-sse-standalone-{uuid.uuid4()}"
 
@@ -91,7 +91,7 @@ async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
     mount_path = None  # No mount path in standalone mode
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE standalone server on port {port}")
 
@@ -155,13 +155,13 @@ async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     """Test sending thread replies via SSE transport in standalone mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_parent_text = f"mcp-e2e-sse-standalone-parent-{uuid.uuid4()}"
     unique_reply_texts = [
@@ -186,7 +186,7 @@ async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     mount_path = None  # No mount path in standalone mode
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE standalone server on port {port}")
 
@@ -234,13 +234,13 @@ async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_standalone_read_channel_messages_e2e() -> None:  # noqa: D401 – E2E
     """Test reading channel messages via SSE transport in standalone mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info(f"Testing SSE standalone read messages from channel ID: {channel_id}")
@@ -250,7 +250,7 @@ async def test_sse_standalone_read_channel_messages_e2e() -> None:  # noqa: D401
     mount_path = None  # No mount path in standalone mode
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE standalone server on port {port}")
 

@@ -66,13 +66,13 @@ async def _get_conversation_history(client, channel, limit):
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
     """Test health check endpoint in Streamable-HTTP integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
 
     logger.info("Testing Streamable-HTTP integrated health check endpoint")
 
@@ -81,7 +81,7 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -105,13 +105,13 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 – E2E
     """Test MCP functionality via Streamable-HTTP transport in integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
     unique_text = f"mcp-e2e-streamable-http-integrated-{uuid.uuid4()}"
 
@@ -131,7 +131,7 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -193,13 +193,13 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  # noqa: D401 – E2E
     """Test webhook functionality in Streamable-HTTP integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
 
     logger.info("Testing Streamable-HTTP integrated webhook functionality")
 
@@ -208,7 +208,7 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -250,13 +250,13 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None:  # noqa: D401 – E2E
     """Test concurrent MCP and webhook operations in Streamable-HTTP integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info("Testing Streamable-HTTP integrated concurrent MCP and webhook operations")
@@ -266,7 +266,7 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -341,13 +341,13 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # noqa: D401 – E2E
     """Test streaming behavior specific to Streamable-HTTP transport in integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
     channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
 
     logger.info("Testing Streamable-HTTP integrated streaming behavior")
@@ -357,7 +357,7 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -400,13 +400,13 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
 
 
 @pytest.mark.skipif(
-    not os.getenv("SLACK_BOT_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
-    reason="Real Slack credentials (SLACK_BOT_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
+    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa: D401 – E2E
     """Test error handling in Streamable-HTTP integrated mode."""
     # Get required values from environment
-    bot_token = os.environ["SLACK_BOT_TOKEN"]
+    bot_token = os.environ["E2E_TEST_API_TOKEN"]
 
     logger.info("Testing Streamable-HTTP integrated error handling")
 
@@ -415,7 +415,7 @@ async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa:
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"SLACK_BOT_TOKEN": bot_token}
+    server_env = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 

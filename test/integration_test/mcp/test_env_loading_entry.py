@@ -15,6 +15,7 @@ def test_dotenv_loading_with_valid_env_file():
 
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".env") as temp_env:
         temp_env.write(f"SLACK_BOT_TOKEN={test_bot_token}\n")
+        temp_env.write(f"E2E_TEST_API_TOKEN={test_bot_token}\n")
         temp_env.write(f"SLACK_SIGNING_SECRET={test_signing_secret}\n")
         temp_env_path = temp_env.name
 
@@ -49,6 +50,7 @@ def test_cmd_line_token_overrides_env_file():
 
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".env") as temp_env:
         temp_env.write(f"SLACK_BOT_TOKEN={env_file_token}\n")
+        temp_env.write(f"E2E_TEST_API_TOKEN={env_file_token}\n")
         temp_env_path = temp_env.name
 
     try:

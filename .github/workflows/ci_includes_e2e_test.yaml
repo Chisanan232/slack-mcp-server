@@ -32,6 +32,7 @@ jobs:
     uses: ./.github/workflows/rw_run_all_test_and_record.yaml
     with:
       run_e2e: true
+      with-environment-variables: 'SLACK_TEST_CHANNEL_ID="${{ vars.SLACK_TEST_CHANNEL_ID }}"'
     secrets:
       e2e_test_api_token: ${{ secrets.SLACK_BOT_TOKEN }}
       codecov_token: ${{ secrets.CODECOV_TOKEN }}
