@@ -93,13 +93,11 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
         IntegratedServerFactory.get().include_router(health_check_router(mcp_transport=mcp_transport))
 
         # Get and mount the appropriate MCP app based on the transport
-        IntegratedServerFactory._mount_mcp_service(
-            transport=mcp_transport, mount_path=mcp_mount_path, sse_mount_path=mcp_mount_path
-        )
+        IntegratedServerFactory._mount_mcp_service(transport=mcp_transport, mount_path=mcp_mount_path)
 
     @classmethod
     def _mount_mcp_service(
-        cls, transport: str = MCPTransportType.SSE, mount_path: str = "", sse_mount_path: str = ""
+        cls, transport: str = MCPTransportType.SSE, mount_path: str = "", sse_mount_path: str | None = None
     ) -> None:
         """
         Mount an MCP (Model Context Protocol) service into the web server.
@@ -133,6 +131,8 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
                     path=mount_path or "/mcp", app=mcp_factory.get().sse_app(mount_path=sse_mount_path)
                 )
             case MCPTransportType.STREAMABLE_HTTP:
+                # Mount streamable-HTTP at /mcp path to avoid conflicts with webhook routes
+                # The streamable-HTTP app has internal /mcp routes, so it will be accessible at /mcp/mcp
                 web_factory.get().mount(path=mount_path or "/mcp", app=mcp_factory.get().streamable_http_app())
                 _LOG.info("Integrating MCP server with streamable-http transport")
             case _:
@@ -159,4 +159,34 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
 
 integrated_factory: Final[Type[IntegratedServerFactory]] = IntegratedServerFactory
-integrated_app: Final[FastAPI] = integrated_factory.create()
+
+# IMPORTANT: DO NOT CREATE MODULE-LEVEL integrated_app INSTANCE HERE
+#
+# Previous implementation had:
+#   integrated_app: FastAPI = IntegratedServerFactory.create()
+#
+# This was removed to fix critical E2E test failures in streamable-HTTP integrated mode.
+#
+# ROOT CAUSES FOR REMOVAL:
+# 1. **Singleton Conflicts**: Module-level instance creation caused route duplication
+#    when multiple test cases or applications tried to create integrated server instances
+#
+# 2. **Route Mounting Issues**: Streamable-HTTP transport uses different integration
+#    approach than SSE, and automatic instance creation caused conflicts between:
+#    - MCP routes (mounted at /mcp)
+#    - Webhook routes (at /slack/*)
+#    - Health check routes (at /health)
+#
+# 3. **Test Environment Issues**: E2E tests require clean server instances per test,
+#    but module-level creation prevented proper test isolation
+#
+# CURRENT ARCHITECTURE (DO NOT CHANGE):
+# - Outside code must explicitly call IntegratedServerFactory.create()
+# - Each call creates a fresh instance (no singleton pattern at module level)
+# - Tests can properly reset and recreate instances via IntegratedServerFactory.reset()
+# - Prevents route conflicts between SSE and streamable-HTTP transports
+#
+# REFERENCE: See test fixes in test/e2e_test/mcp/test_streamable_http_integrated_e2e.py
+# If you need an integrated_app instance, create it explicitly in your code:
+#   from slack_mcp.integrate.app import IntegratedServerFactory
+#   app = IntegratedServerFactory.create(mcp_transport="sse")  # or "streamable-http"
