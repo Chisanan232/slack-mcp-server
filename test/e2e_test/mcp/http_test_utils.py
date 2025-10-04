@@ -162,7 +162,7 @@ async def http_mcp_client_session(
         elif transport == "streamable-http":
             # Streamable HTTP transport URL construction
             if integrated:
-                # In integrated mode, streamable-http is mounted at /mcp
+                # In integrated mode, streamable-http is mounted at /mcp with internal /mcp routes
                 if mount_path:
                     mcp_url = f"{base_url}{mount_path}"
                 else:
