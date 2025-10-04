@@ -131,7 +131,8 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
                     path=mount_path or "/mcp", app=mcp_factory.get().sse_app(mount_path=sse_mount_path)
                 )
             case MCPTransportType.STREAMABLE_HTTP:
-                # Mount streamable-HTTP at root level - the app has internal /mcp routes
+                # Mount streamable-HTTP at /mcp path to avoid conflicts with webhook routes
+                # The streamable-HTTP app has internal /mcp routes, so it will be accessible at /mcp/mcp
                 web_factory.get().mount(path=mount_path or "/mcp", app=mcp_factory.get().streamable_http_app())
                 _LOG.info("Integrating MCP server with streamable-http transport")
             case _:
@@ -158,4 +159,3 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
 
 integrated_factory: Final[Type[IntegratedServerFactory]] = IntegratedServerFactory
-integrated_app: Final[FastAPI] = integrated_factory.create()
