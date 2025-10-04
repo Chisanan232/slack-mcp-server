@@ -109,7 +109,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
-    
+
     # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
     # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
     custom_env["SLACK_BOT_TOKEN"] = bot_token
@@ -300,7 +300,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
         # Prepare server with explicit environment set
         custom_env = {**os.environ}
         custom_env["E2E_TEST_API_TOKEN"] = bot_token
-        
+
         # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
         # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
         custom_env["SLACK_BOT_TOKEN"] = bot_token
@@ -478,7 +478,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
-    
+
     # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
     # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
     custom_env["SLACK_BOT_TOKEN"] = bot_token
@@ -654,7 +654,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
-    
+
     # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
     # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
     custom_env["SLACK_BOT_TOKEN"] = bot_token

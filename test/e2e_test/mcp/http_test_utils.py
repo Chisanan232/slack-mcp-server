@@ -63,7 +63,7 @@ class HttpServerManager:
             server_env = {**os.environ}
             if env:
                 server_env.update(env)
-            
+
             # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
             # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
             if "E2E_TEST_API_TOKEN" in server_env:
