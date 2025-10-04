@@ -68,8 +68,10 @@ class HttpServerManager:
             # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
             if "E2E_TEST_API_TOKEN" in server_env:
                 server_env["SLACK_BOT_TOKEN"] = server_env["E2E_TEST_API_TOKEN"]
-            elif os.getenv("E2E_TEST_API_TOKEN"):
-                server_env["SLACK_BOT_TOKEN"] = os.getenv("E2E_TEST_API_TOKEN")
+            else:
+                e2e_token = os.getenv("E2E_TEST_API_TOKEN")
+                if e2e_token:
+                    server_env["SLACK_BOT_TOKEN"] = e2e_token
 
             # Start server process with error handling
             try:
