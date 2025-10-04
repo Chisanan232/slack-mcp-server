@@ -84,6 +84,10 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     # Prepare server with explicit environment set
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
+    
+    # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
+    # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
+    custom_env["SLACK_BOT_TOKEN"] = bot_token
 
     # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(
