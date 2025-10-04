@@ -344,7 +344,7 @@ class TestModuleLevelConstants:
 
         # The integrated_factory should be the IntegratedServerFactory class
         assert integrated_factory is IntegratedServerFactory
-        
+
         # Verify no global instance exists automatically - should require explicit creation
         with pytest.raises(AssertionError, match="It must be created web server first"):
             IntegratedServerFactory.get()
