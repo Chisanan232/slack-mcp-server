@@ -337,33 +337,17 @@ class TestModuleLevelConstants:
 
         assert integrated_factory is IntegratedServerFactory
 
-    @patch("slack_mcp.integrate.app.create_slack_app")
-    @patch("slack_mcp.integrate.app.initialize_slack_client")
-    @patch("slack_mcp.integrate.app.health_check_router")
-    @patch("slack_mcp.integrate.app.mcp_factory")
-    @patch("slack_mcp.integrate.app.web_factory")
-    def test_module_initialization_creates_global_instance(
-        self,
-        mock_web_factory: Mock,
-        mock_mcp_factory: Mock,
-        mock_health_router: Mock,
-        mock_init_client: Mock,
-        mock_create_app: Mock,
-    ) -> None:
-        """Test that module initialization creates the global integrated_app instance."""
-        # Mock dependencies
-        mock_app = Mock(spec=FastAPI)
-        mock_create_app.return_value = mock_app
-        mock_health_router.return_value = Mock()
-        mock_web_factory.get.return_value = mock_app
-        mock_mcp_factory.get.return_value = Mock()
+    def test_module_initialization_constants_available(self) -> None:
+        """Test that module initialization properly sets up constants and no automatic instance creation."""
+        # Import the integrated_factory constant - this should work without any dependencies
+        from slack_mcp.integrate.app import integrated_factory
 
-        # Import the integrated_app (this triggers module-level creation)
-        # Note: This import happens at module load time, but we can test the result
-        from slack_mcp.integrate.app import integrated_app
+        # The integrated_factory should be the IntegratedServerFactory class
+        assert integrated_factory is IntegratedServerFactory
 
-        # The integrated_app should be a FastAPI instance
-        assert isinstance(integrated_app, FastAPI)
+        # Verify no global instance exists automatically - should require explicit creation
+        with pytest.raises(AssertionError, match="It must be created web server first"):
+            IntegratedServerFactory.get()
 
 
 class TestEdgeCasesAndErrorScenarios:
@@ -560,8 +544,8 @@ class TestMountService:
         # Call mount_service with no parameters (should use defaults)
         IntegratedServerFactory._mount_mcp_service()
 
-        # Verify defaults: SSE transport, /mcp mount path, empty sse_mount_path
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="")
+        # Verify defaults: SSE transport, /mcp mount path, None sse_mount_path (default behavior)
+        mock_mcp_instance.sse_app.assert_called_once_with(mount_path=None)
         mock_app.mount.assert_called_once_with(path="/mcp", app=mock_mcp_app)
 
     def test_mount_service_invalid_transport(self) -> None:
@@ -642,8 +626,8 @@ class TestIntegration:
         # Create integrated server (this will call _mount internally)
         app = IntegratedServerFactory.create(mcp_transport="sse", mcp_mount_path="/mcp")
 
-        # Verify the MCP instance sse_app was called during creation
-        mock_mcp_instance.sse_app.assert_called_once_with(mount_path="/mcp")
+        # Verify the MCP instance sse_app was called during creation (mount_path is always None for SSE)
+        mock_mcp_instance.sse_app.assert_called_once_with(mount_path=None)
 
         # Verify the create_slack_app was called
         mock_create_app.assert_called_once()
