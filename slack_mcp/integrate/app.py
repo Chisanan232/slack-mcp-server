@@ -168,12 +168,12 @@ integrated_factory: Final[Type[IntegratedServerFactory]] = IntegratedServerFacto
 # This was removed to fix critical E2E test failures in streamable-HTTP integrated mode.
 #
 # ROOT CAUSES FOR REMOVAL:
-# 1. **Singleton Conflicts**: Module-level instance creation caused route duplication 
+# 1. **Singleton Conflicts**: Module-level instance creation caused route duplication
 #    when multiple test cases or applications tried to create integrated server instances
 #
-# 2. **Route Mounting Issues**: Streamable-HTTP transport uses different integration 
+# 2. **Route Mounting Issues**: Streamable-HTTP transport uses different integration
 #    approach than SSE, and automatic instance creation caused conflicts between:
-#    - MCP routes (mounted at /mcp)  
+#    - MCP routes (mounted at /mcp)
 #    - Webhook routes (at /slack/*)
 #    - Health check routes (at /health)
 #
@@ -188,5 +188,5 @@ integrated_factory: Final[Type[IntegratedServerFactory]] = IntegratedServerFacto
 #
 # REFERENCE: See test fixes in test/e2e_test/mcp/test_streamable_http_integrated_e2e.py
 # If you need an integrated_app instance, create it explicitly in your code:
-#   from slack_mcp.integrate.app import IntegratedServerFactory  
+#   from slack_mcp.integrate.app import IntegratedServerFactory
 #   app = IntegratedServerFactory.create(mcp_transport="sse")  # or "streamable-http"
