@@ -93,9 +93,7 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
         IntegratedServerFactory.get().include_router(health_check_router(mcp_transport=mcp_transport))
 
         # Get and mount the appropriate MCP app based on the transport
-        IntegratedServerFactory._mount_mcp_service(
-            transport=mcp_transport, mount_path=mcp_mount_path
-        )
+        IntegratedServerFactory._mount_mcp_service(transport=mcp_transport, mount_path=mcp_mount_path)
 
     @classmethod
     def _mount_mcp_service(
