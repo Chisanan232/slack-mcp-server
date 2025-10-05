@@ -103,6 +103,11 @@ const sidebars: SidebarsConfig = {
               label: '🔄 Server Modes',
             },
             {
+              type: 'doc',
+              id: 'server-references/mcp-server/mcp-client-examples',
+              label: '📱 Client Examples',
+            },
+            {
               type: 'category',
               label: '🛠️ Tools (End-points)',
               items: [
