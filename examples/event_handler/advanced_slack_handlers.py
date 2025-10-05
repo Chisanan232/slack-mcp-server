@@ -198,10 +198,10 @@ async def handle_channel_archive_events(event: Dict[str, Any]) -> None:
     logger.info(f"[Decorator-Enum] Channel {channel} was {action} by {user}")
 
 
-# Example of a priority handler (called first with priority=0)
-@slack_event(SlackEvent.MESSAGE, priority=0)
+# Example of a message handler
+@slack_event(SlackEvent.MESSAGE)
 async def log_all_messages(event: Dict[str, Any]) -> None:
-    """Log all messages (runs before other message handlers due to priority)."""
+    """Log all messages."""
     event_id = event.get("event_ts", "unknown")
     logger.info(f"[Decorator-Enum] Message received with ID: {event_id} (PRIORITY HANDLER)")
 
@@ -281,7 +281,7 @@ async def main():
         logger.info("- Decorator-style handler consumer running in group 'decorator_handlers'")
 
         # Run both consumers concurrently
-        await asyncio.gather(oo_consumer.run(), decorator_consumer.run())
+        await asyncio.gather(oo_consumer.run(oo_handler.handle_event), decorator_consumer.run(slack_event.handle_event))
     except KeyboardInterrupt:
         logger.info("Shutting down gracefully...")
         await asyncio.gather(oo_consumer.shutdown(), decorator_consumer.shutdown(), return_exceptions=True)

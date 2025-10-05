@@ -17,10 +17,14 @@ from slack_mcp.backends.loader import load_backend
 from slack_mcp.events import SlackEvent
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
+from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
+
+# Create DecoratorHandler instance for decorator-style handlers
+slack_event = DecoratorHandler()
 
 # ----- 1. OO-Style Handler (Subclassing) -----
 
@@ -98,7 +102,7 @@ async def main() -> None:
     try:
         # Run the consumer indefinitely
         logger.info("Starting Slack event consumer...")
-        await consumer.run()
+        await consumer.run(handler.handle_event)
     except KeyboardInterrupt:
         # Handle graceful shutdown
         logger.info("Shutting down...")

@@ -14,7 +14,7 @@ This example shows how to:
 
 import asyncio
 import logging
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.events import SlackEvent
@@ -156,8 +156,8 @@ async def main() -> None:
     analytics_consumer = SlackEventConsumer(backend=backend, handler=analytics_handler)
 
     # Start the consumers in separate tasks
-    main_consumer_task = asyncio.create_task(main_consumer.run())
-    analytics_consumer_task = asyncio.create_task(analytics_consumer.run())
+    main_consumer_task = asyncio.create_task(main_consumer.run(slack_event.handle_event))
+    analytics_consumer_task = asyncio.create_task(analytics_consumer.run(analytics_handler.handle_event))
 
     # Give consumers a moment to start
     await asyncio.sleep(0.1)
@@ -184,7 +184,7 @@ async def main() -> None:
 
     # Publish events with a small delay between them
     for event in test_events:
-        await backend.publish(topic, event)
+        await backend.publish(topic, cast(dict[str, Any], event))
         await asyncio.sleep(0.1)  # Small delay to make logs more readable
 
     # Let consumers run for a bit to process all events
