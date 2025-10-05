@@ -55,6 +55,12 @@ async def handle_app_mention(event: Dict[str, Any]) -> None:
     # Your app mention handling logic here
 
 
+@slack_event(SlackEvent.REACTION_ADDED)
+async def handle_emoji_change(event: Dict[str, Any]) -> None:
+    """Handle emoji_changed events."""
+    logger.info(f"[Decorator-Enum] Emoji added event: {event.get('name', '')}")
+
+
 # ---- Advanced Usage Examples ----
 
 
