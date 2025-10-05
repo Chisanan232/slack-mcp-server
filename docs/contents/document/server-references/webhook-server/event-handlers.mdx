@@ -224,6 +224,13 @@ Ready to experience the full Slack event handler system? Follow this step-by-ste
 For a faster automated setup, you can skip the manual steps below and use the **[Quick Start](/docs/next/quick-start)** approach. You can also refer to the automated setup described at the bottom of this section by running `python quickstart.py --all` in the `examples/event_handler/` directory for guided installation, configuration, and running.
 :::
 
+:::note Package Manager Compatibility
+All command line examples in this workflow use standard `pip` and `python` commands. You can easily adapt these commands to use modern package managers:
+- **Poetry**: Replace `pip install` with `poetry add` and `python` with `poetry run python`
+- **UV**: Replace `pip install` with `uv add` and `python` with `uv run python`
+- **Pipenv**: Replace `pip install` with `pipenv install` and `python` with `pipenv run python`
+:::
+
 ### Step 1: Install the Slack MCP Server Library
 
 ```bash
