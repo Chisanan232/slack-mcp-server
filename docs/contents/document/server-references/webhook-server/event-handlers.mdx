@@ -3,7 +3,7 @@
 The Slack MCP server provides a powerful event handling system that allows you to process Slack events in your applications. This guide shows you how to get started with event handlers and basic configuration.
 
 :::info Architecture Details
-For comprehensive technical architecture, queue backend development, and advanced design patterns, see the **[Event Handler & Queue Architecture](/docs/development/architecture/event-handler-queue-architecture)** documentation in the Dev section.
+For comprehensive technical architecture, queue backend development, and advanced design patterns, see the **[Event Handler & Queue Architecture](/dev/next/architecture/event-handler-queue-architecture)** documentation in the Dev section.
 :::
 
 ## Getting Started
@@ -216,60 +216,118 @@ Complete working examples are available in the [`/examples/event_handler/`](http
 - [`slack_event_handlers.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/slack_event_handlers.py) - Multiple handler patterns  
 - [`advanced_slack_handlers.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/advanced_slack_handlers.py) - Production-ready examples
 
-## Complete Setup Workflow
+## Complete Test Features Workflow
 
-Ready to experience the full Slack event handler system? Follow this end-to-end workflow:
+Ready to experience the full Slack event handler system? Follow this step-by-step workflow:
 
-### 🚀 Quick Start (5 minutes)
+:::tip Quick Start Alternative
+For a faster automated setup, you can skip the manual steps below and use the **[Quick Start](/docs/next/quick-start)** approach. You can also refer to the automated setup described at the bottom of this section by running `python quickstart.py --all` in the `examples/event_handler/` directory for guided installation, configuration, and running.
+:::
+
+### Step 1: Install the Slack MCP Server Library
+
+```bash
+# Install from PyPI
+pip install slack-mcp-server
+
+# Or install from source
+git clone https://github.com/Chisanan232/slack-mcp-server.git
+cd slack-mcp-server
+pip install -e .
+```
+
+### Step 2: Configure Detail Settings
+
+Set up your environment configuration:
+
+```bash
+# Navigate to examples directory
+cd examples/event_handler
+
+# Option A: Interactive setup (recommended)
+python quickstart.py --setup-env
+
+# Option B: Manual setup
+cp .env.example .env
+# Edit .env file with your Slack tokens and settings
+```
+
+**Required Configuration:**
+- `SLACK_BOT_TOKEN`: Your Slack bot token (xoxb-...)
+- `SLACK_SIGNING_SECRET`: Your Slack signing secret
+- `QUEUE_BACKEND`: Queue backend type (memory, redis, kafka)
+
+See the **[Complete Setup Guide](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/setup_guide.md)** for detailed Slack app configuration.
+
+### Step 3: Set Up the Slack MCP Server
+
+Start the webhook server to receive Slack events:
+
+```bash
+# Start webhook server (in terminal 1)
+slack-events-server --host 0.0.0.0 --port 8000
+
+# Or use Docker
+docker run -p 8000:8000 --env-file .env chisanan232/slack-mcp-server
+```
+
+### Step 4: Make Sure the Server is Alive
+
+Verify the server is running and healthy:
+
+```bash
+# Check health endpoint
+curl http://localhost:8000/health
+
+# Test connection to Slack
+python quickstart.py --test-connection
+```
+
+### Step 5: Run the Consumer
+
+Start the event consumer to process Slack events (in a new terminal):
+
+```bash
+# Navigate to examples
+cd examples/event_handler
+
+# Run the core example scripts to experience project features:
+python slack_event_handlers.py         # Multiple handler patterns
+python advanced_slack_handlers.py      # Production-ready examples  
+python decorator_handler_example.py    # Decorator-based handlers
+```
+
+**Choose the example that matches your preferred approach:**
+- `slack_event_handlers.py` - Demonstrates multiple handler patterns and basic usage
+- `advanced_slack_handlers.py` - Shows production-ready patterns with error handling
+- `decorator_handler_example.py` - Uses the modern decorator-based approach
+
+### Step 6: Trigger Slack Webhook Features
+
+Test the complete system by performing actions in your Slack workspace:
+
+**Test Actions:**
+1. **Send messages** in channels where your app is added
+2. **Mention your app**: `@YourApp hello!`
+3. **Add reactions**: 👍 ❤️ 🎉 to messages
+4. **Create new channels** and invite your app
+5. **Pin messages**, upload files, edit messages
+
+**Watch the Logs:**
+- Check the webhook server logs for incoming events
+- Monitor the consumer logs for event processing
+- View real-time event handling in action!
+
+### 🚀 Quick Start (All Steps)
+
+For a complete automated setup:
 
 ```bash
 cd examples/event_handler
-
-# Interactive setup with guided configuration
 python quickstart.py --all
-
-# Or run individual steps
-python quickstart.py --setup-env      # Create .env file
-python quickstart.py --test-connection  # Test Slack API
-python quickstart.py --run-demo        # Run live demo
 ```
 
-### 📋 Manual Setup
-
-If you prefer step-by-step control:
-
-1. **[Setup Guide](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/setup_guide.md)** - Complete Slack app configuration
-2. **Environment Configuration** - Set up `.env` file with tokens
-3. **Run Examples** - Test with real Slack events
-
-### 🎯 Test Real Slack Events
-
-Once configured, test the complete system:
-
-```bash
-# Start the complete workflow example
-cd examples/event_handler
-python complete_workflow_example.py
-
-# In your Slack workspace:
-# 1. Send messages in channels where your app is added
-# 2. Mention your app: @YourApp hello!
-# 3. Add reactions: 👍 ❤️ 🎉
-# 4. Create new channels, pin messages, upload files
-
-# Watch the logs to see events being processed in real-time!
-```
-
-### 🔧 Production Deployment
-
-For production use:
-
-1. **External Queue Backend**: Use Redis or Kafka instead of memory
-2. **Multiple Consumers**: Scale with consumer groups for load balancing  
-3. **Monitoring**: Set up health checks and log aggregation
-4. **Error Handling**: Implement dead letter queues and retry logic
-
-See the [Production Setup Guide](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/setup_guide.md#-step-6-production-configuration) for details.
+This runs all steps automatically with guided configuration.
 
 ## Next Steps
 
