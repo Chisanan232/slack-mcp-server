@@ -199,7 +199,7 @@ async def handle_channel_archive_events(event: Dict[str, Any]) -> None:
 
 
 @slack_event(SlackEvent.REACTION_ADDED)
-async def handle_emoji_change(event: Dict[str, Any]) -> None:
+async def handle_emoji_add(event: Dict[str, Any]) -> None:
     """Handle emoji_changed events."""
     logger.info(f"[Decorator-Enum] Emoji added event: {event.get('name', '')}")
 
