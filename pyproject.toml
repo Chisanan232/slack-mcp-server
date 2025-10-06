@@ -30,11 +30,7 @@ classifiers = [
 #    "Programming Language :: Python :: 3.14",  # TODO: Because of PyO3's maximum supported version (3.13)
 ]
 dependencies = [
-    "mcp[cli]>=1.10.1",
-    "slack-sdk>=3.36.0",
-    "fastapi>=0.116.1",
-    "uvicorn>=0.35.0",
-    "pydantic>=2.11.7",
+    # Base installation only includes the base protocol rules of this project (no any feature for MCP, HTTP server, etc.)
 ]
 
 [project.urls]
@@ -50,6 +46,30 @@ slack-webhook-server = "slack_mcp.webhook.entry:main"
 
 [project.entry-points."slack_mcp.backends.queue"]
 memory = "slack_mcp.backends.queue.memory:MemoryBackend"
+
+[project.optional-dependencies]
+# MCP core feature set supports SSE/Streamable transports (but doesn't support integrated mode)
+mcp = [
+    "mcp[cli]>=1.10.1",
+    "slack-sdk>=3.36.0",
+    "pydantic>=2.11.7",
+]
+
+# HTTP server support for Slack webhook features (but doesn't support integrated mode)
+webhook = [
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
+    "pydantic>=2.11.7",
+]
+
+# Everything supported by this project
+all = [
+    "mcp[cli]>=1.10.1",
+    "slack-sdk>=3.36.0",
+    "pydantic>=2.11.7",
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
+]
 
 [dependency-groups]
 dev = [
