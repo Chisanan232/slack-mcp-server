@@ -167,7 +167,7 @@ const sidebars: SidebarsConfig = {
             {
               type: 'doc',
               id: 'server-references/webhook-server/event-handlers',
-              label: '⚡ Event Handlers & Queue Architecture',
+              label: '⚡ Event Handlers',
             },
             {
               type: 'category',
