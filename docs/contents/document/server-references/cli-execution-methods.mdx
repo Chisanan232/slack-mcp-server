@@ -13,6 +13,12 @@ import TabItem from '@theme/TabItem';
 
 Both the MCP server and webhook server can be executed using multiple methods depending on your development workflow and deployment preferences. This guide covers all available execution methods with their respective use cases and examples.
 
+:::note Installation Extras
+- [mcp]: installs the MCP server feature set.
+- [webhook]: installs the webhook server feature set.
+- [all]: installs everything.
+:::
+
 ## Available Execution Methods
 
 ### Overview
@@ -34,14 +40,14 @@ The console script method is the most straightforward and recommended approach f
   <TabItem value="mcp" label="MCP Server" default>
   ```bash
   # Install and run MCP server
-  pip install slack-mcp-server
+  pip install "slack-mcp[mcp]"
   slack-mcp-server [OPTIONS]
   ```
   </TabItem>
   <TabItem value="webhook" label="Webhook Server">
   ```bash
   # Install and run webhook server  
-  pip install slack-mcp-server
+  pip install "slack-mcp[webhook]"
   slack-webhook-server [OPTIONS]
   ```
   </TabItem>
@@ -86,7 +92,7 @@ Development workflow using Poetry for dependency management.
   <TabItem value="mcp" label="MCP Server" default>
   ```bash
   # Setup and run MCP server with Poetry
-  poetry install
+  poetry add slack-mcp -E mcp
   poetry run slack-mcp-server [OPTIONS]
   
   # Alternative: Run as module
@@ -96,7 +102,7 @@ Development workflow using Poetry for dependency management.
   <TabItem value="webhook" label="Webhook Server">
   ```bash
   # Setup and run webhook server with Poetry
-  poetry install  
+  poetry add slack-mcp -E webhook
   poetry run slack-webhook-server [OPTIONS]
   
   # Alternative: Run as module
@@ -119,7 +125,7 @@ Modern Python package management using UV for fast, reliable dependency resoluti
   <TabItem value="mcp" label="MCP Server" default>
   ```bash
   # Setup and run MCP server with UV
-  uv sync
+  uv add "slack-mcp[mcp]"
   uv run slack-mcp-server [OPTIONS]
   
   # Alternative: Run as module
@@ -129,7 +135,7 @@ Modern Python package management using UV for fast, reliable dependency resoluti
   <TabItem value="webhook" label="Webhook Server">
   ```bash
   # Setup and run webhook server with UV
-  uv sync
+  uv add "slack-mcp[webhook]"
   uv run slack-webhook-server [OPTIONS]
   
   # Alternative: Run as module  
@@ -150,39 +156,36 @@ Modern Python package management using UV for fast, reliable dependency resoluti
 
 ```bash
 # Install from PyPI
-pip install slack-mcp-server
+pip install "slack-mcp[mcp]"        # MCP server
+pip install "slack-mcp[webhook]"    # Webhook server
+pip install "slack-mcp[all]"        # Everything
 
 # Install development version
 pip install -e .
-
-# Install with specific extras
-pip install slack-mcp-server[redis,kafka]
 ```
 
 ### Poetry Installation
 
 ```bash
 # Add to existing Poetry project
-poetry add slack-mcp-server
+poetry add slack-mcp -E mcp        # MCP server
+poetry add slack-mcp -E webhook    # Webhook server
+poetry add slack-mcp -E all        # Everything
 
 # Development installation
 poetry install
-
-# Install with extras
-poetry add slack-mcp-server[redis,kafka]
 ```
 
 ### UV Installation
 
 ```bash
 # Add to UV project
-uv add slack-mcp-server
+uv add "slack-mcp[mcp]"        # MCP server
+uv add "slack-mcp[webhook]"    # Webhook server
+uv add "slack-mcp[all]"        # Everything
 
 # Development installation
 uv sync
-
-# Install with extras
-uv add slack-mcp-server[redis,kafka]
 ```
 
 ## Common Usage Patterns
@@ -222,7 +225,8 @@ uv add slack-mcp-server[redis,kafka]
   <TabItem value="console" label="Console Script" default>
   ```bash
   # Production deployment
-  pip install slack-mcp-server
+  pip install "slack-mcp[mcp]"
+  pip install "slack-mcp[webhook]"
   slack-mcp-server --log-level INFO
   slack-webhook-server --log-level INFO
   ```
@@ -243,7 +247,7 @@ uv add slack-mcp-server[redis,kafka]
   ```dockerfile
   # Dockerfile example
   FROM python:3.11-slim
-  RUN pip install slack-mcp-server
+  RUN pip install "slack-mcp[mcp]"
   CMD ["slack-mcp-server", "--log-level", "INFO"]
   ```
   </TabItem>
@@ -251,7 +255,7 @@ uv add slack-mcp-server[redis,kafka]
   ```dockerfile
   # Dockerfile with Python module
   FROM python:3.11-slim
-  RUN pip install slack-mcp-server
+  RUN pip install "slack-mcp[mcp]"
   CMD ["python", "-m", "slack_mcp.mcp", "--log-level", "INFO"]
   ```
   </TabItem>

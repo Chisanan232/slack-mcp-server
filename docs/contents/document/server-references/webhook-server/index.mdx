@@ -8,6 +8,12 @@ sidebar_position: 3
 
 The Slack MCP Server provides a comprehensive webhook server implementation that receives and processes Slack events through the Slack Events API. This webhook server can operate in standalone mode or integrated with the MCP server for complete Slack integration capabilities.
 
+:::note Installation extras
+- [mcp]: installs the MCP server feature set.
+- [webhook]: installs the webhook server feature set (this page).
+- [all]: installs everything.
+:::
+
 ## Overview
 
 The webhook server is built on FastAPI and provides secure, scalable handling of Slack events with the following key features:
@@ -152,8 +158,8 @@ For performance characteristics, deployment best practices, development workflow
 ## Quick Start
 
 ```bash
-# Install dependencies
-pip install slack-mcp-server
+# Install dependencies for webhook server
+pip install "slack-mcp[webhook]"
 
 # Set environment variables
 export SLACK_SIGNING_SECRET="your_signing_secret"
