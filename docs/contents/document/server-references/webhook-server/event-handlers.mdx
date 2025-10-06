@@ -148,6 +148,43 @@ export QUEUE_BACKEND=redis
 export REDIS_URL=redis://localhost:6379
 ```
 
+## Queue Backend Support
+
+The Slack MCP server supports multiple message queue backends for reliable event processing and scalability:
+
+### Currently Available
+
+- ✅ **Memory Queue** - Built-in in-memory queue for development and testing
+
+### Third-Party Queue Support
+
+The following message queue systems are planned for future releases:
+
+- 🚧 **Redis** - *Coming Soon* Redis backend with persistence
+- 🚧 **Apache Kafka** - *Coming Soon* - High-throughput distributed streaming platform
+- 🚧 **RabbitMQ** - *In Plan* - Robust message broker with advanced routing
+- 🚧 **Amazon SQS** - *Under Consideration* - AWS Simple Queue Service integration
+- 🚧 **Google Cloud Pub/Sub** - *Under Consideration* - Google Cloud messaging service
+- 🚧 **Azure Service Bus** - *Under Consideration* - Microsoft Azure messaging service
+- 🚧 **Apache Pulsar** - *Under Consideration* - Cloud-native distributed messaging
+- 🚧 **NATS** - *Under Consideration* - High-performance cloud native messaging system
+
+### Configuration Examples
+
+```bash
+# Currently supported
+export QUEUE_BACKEND=memory          # Default for development
+export QUEUE_BACKEND=redis           # Production-ready option
+export REDIS_URL=redis://localhost:6379
+
+# Future support (coming soon)
+# export QUEUE_BACKEND=kafka
+# export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+# 
+# export QUEUE_BACKEND=rabbitmq
+# export RABBITMQ_URL=amqp://localhost:5672
+```
+
 ## Error Handling
 
 ### Handler-Level Error Handling
