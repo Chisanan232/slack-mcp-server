@@ -22,7 +22,17 @@ Before installation, make sure you've met all the [requirements](./requirements.
 Slack MCP Server can be installed directly using pip, which is included with Python:
 
 ```bash
+# Minimal base (protocol only; no MCP runtime or webhook server)
 pip install slack-mcp
+
+# MCP server feature set
+pip install "slack-mcp[mcp]"
+
+# Webhook server feature set
+pip install "slack-mcp[webhook]"
+
+# Everything
+pip install "slack-mcp[all]"
 ```
 
 ## Install Using poetry
@@ -30,7 +40,17 @@ pip install slack-mcp
 For better dependency management and project isolation, we recommend installing Slack MCP Server using poetry:
 
 ```bash
+# Minimal base
 poetry add slack-mcp
+
+# MCP server feature set
+poetry add slack-mcp -E mcp
+
+# Webhook server feature set
+poetry add slack-mcp -E webhook
+
+# Everything
+poetry add slack-mcp -E all
 ```
 
 ## Install Using uv
@@ -38,7 +58,17 @@ poetry add slack-mcp
 For faster installation with advanced dependency resolution, another recommended approach is using uv:
 
 ```bash
+# Minimal base
 uv add slack-mcp
+
+# MCP server feature set
+uv add "slack-mcp[mcp]"
+
+# Webhook server feature set
+uv add "slack-mcp[webhook]"
+
+# Everything
+uv add "slack-mcp[all]"
 ```
 
 ## Install from Source
@@ -113,3 +143,25 @@ To verify that the installation was successful, run:
 </Tabs>
 
 You should see the current version of the Slack MCP Server displayed.
+
+:::note Installation Extras
+
+- [mcp]: Installs the MCP server feature set (SSE/Streamable transports; not the integrated webhook mode). Recommended if you only need the MCP server.
+- [webhook]: Installs FastAPI/Uvicorn and related parts for Slack webhook handling (not the integrated mode). Recommended if you only need the webhook server.
+- [all]: Installs everything in this project.
+- Base (no extra): Minimal install with only the base protocol rules of this project.
+
+Examples:
+
+```bash
+# MCP server only
+pip install "slack-mcp[mcp]"
+
+# Webhook server only
+pip install "slack-mcp[webhook]"
+
+# Everything
+pip install "slack-mcp[all]"
+```
+
+:::

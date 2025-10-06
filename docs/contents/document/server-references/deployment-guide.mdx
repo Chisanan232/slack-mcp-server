@@ -13,6 +13,12 @@ import TabItem from '@theme/TabItem';
 
 This guide covers common deployment patterns for both MCP server and webhook server implementations. Both servers share similar deployment requirements and can be deployed using the same infrastructure patterns.
 
+:::note Extras Overview
+- [mcp]: installs the MCP server feature set.
+- [webhook]: installs the webhook server feature set.
+- [all]: installs everything (MCP + webhook).
+:::
+
 ## Quick Start Deployment
 
 ### Local Development Setup
@@ -65,7 +71,7 @@ This guide covers common deployment patterns for both MCP server and webhook ser
   <TabItem value="mcp" label="MCP Server" default>
   ```bash
   # Install from PyPI
-  pip install slack-mcp-server
+  pip install "slack-mcp[mcp]"
   
   # Create production environment file
   cat > .env.production << EOF
@@ -81,7 +87,7 @@ This guide covers common deployment patterns for both MCP server and webhook ser
   <TabItem value="webhook" label="Webhook Server">
   ```bash
   # Install from PyPI
-  pip install slack-mcp-server
+  pip install "slack-mcp[webhook]"
   
   # Create production environment file
   cat > .env.production << EOF

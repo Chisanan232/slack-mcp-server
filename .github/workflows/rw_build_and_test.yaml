@@ -25,7 +25,6 @@ jobs:
     with:
       test_type: unit-test
       test_folder: './test/unit_test'
-      install_dependency_with_group: 'dev'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
@@ -35,7 +34,6 @@ jobs:
     with:
       test_type: integration-test
       test_folder: './test/integration_test'
-      install_dependency_with_group: 'dev'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
@@ -45,7 +43,6 @@ jobs:
     with:
       test_type: e2e-test
       test_folder: './test/e2e_test'
-      install_dependency_with_group: 'dev'
       max-parallel: 1
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest"]'
@@ -60,7 +57,6 @@ jobs:
     with:
       test_type: e2e-test
       test_folder: './test/e2e_test'
-      install_dependency_with_group: 'dev'
       max-parallel: 1
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
@@ -74,7 +70,6 @@ jobs:
     with:
       test_type: contract-test
       test_folder: './test/contract_test'
-      install_dependency_with_group: 'dev'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 
@@ -84,7 +79,6 @@ jobs:
     with:
       test_type: ci-script-test
       test_folder: './test/ci_script_test'
-      install_dependency_with_group: 'dev'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
 

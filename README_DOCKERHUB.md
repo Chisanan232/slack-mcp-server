@@ -181,16 +181,48 @@ The container includes a health check endpoint at `/health` that can be used to 
 
 Choose your preferred installation method:
 
+#### Using pip
 ```bash
-# Using pip (recommended)
+# Minimal base (protocol only)
 pip install slack-mcp
 
-# Using uv (fast)
+# MCP server feature set
+pip install "slack-mcp[mcp]"
+
+# Webhook server feature set
+pip install "slack-mcp[webhook]"
+
+# Everything
+pip install "slack-mcp[all]"
+```
+
+#### Using uv (recommended)
+```bash
+# Minimal base
 uv add slack-mcp
 
-# Using poetry (development)
-poetry add slack-mcp
+# MCP server / Webhook / All
+uv add "slack-mcp[mcp]"
+uv add "slack-mcp[webhook]"
+uv add "slack-mcp[all]"
 ```
+
+#### Using poetry
+```bash
+# Minimal base
+poetry add slack-mcp
+
+# MCP server / Webhook / All
+poetry add slack-mcp -E mcp
+poetry add slack-mcp -E webhook
+poetry add slack-mcp -E all
+```
+
+> Note: Installation extras
+> - [mcp]: Installs the MCP server feature set (SSE/Streamable transports; not the integrated webhook mode)
+> - [webhook]: Installs FastAPI/Uvicorn and related parts for Slack webhook handling (not the integrated mode)
+> - [all]: Installs everything in this project
+> - Base (no extra): Minimal install with only the base protocol rules of this project
 
 ### Configuration
 
