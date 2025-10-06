@@ -1,0 +1,381 @@
+# Event Handlers
+
+The Slack MCP server provides a powerful event handling system that allows you to process Slack events in your applications. This guide shows you how to get started with event handlers and basic configuration.
+
+:::info Architecture Details
+For comprehensive technical architecture, queue backend development, and advanced design patterns, see the **[Event Handler & Queue Architecture](/dev/next/architecture/event-handler-queue-architecture)** documentation in the Dev section.
+:::
+
+## Getting Started
+
+There are two main ways to create event handlers:
+
+### 1. Class-Based Handlers
+
+Inherit from [`BaseSlackEventHandler`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/webhook/event/handler/base.py#L41-L473) and override methods for specific events:
+
+```python
+from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
+from typing import Dict, Any
+
+class MySlackHandler(BaseSlackEventHandler):
+    async def on_message(self, event: Dict[str, Any]) -> None:
+        """Handle all message events."""
+        text = event.get('text', '')
+        print(f"Message received: {text}")
+    
+    async def on_message__channels(self, event: Dict[str, Any]) -> None:
+        """Handle message.channels events specifically."""
+        channel = event.get('channel')
+        text = event.get('text', '')
+        print(f"Channel message in {channel}: {text}")
+    
+    async def on_reaction_added(self, event: Dict[str, Any]) -> None:
+        """Handle reaction_added events."""
+        reaction = event.get('reaction', '')
+        print(f"Reaction added: :{reaction}:")
+    
+    async def on_unknown(self, event: Dict[str, Any]) -> None:
+        """Handle unknown event types."""
+        event_type = event.get('type', 'unknown')
+        print(f"Unknown event: {event_type}")
+```
+
+**Method Naming Convention:**
+- `on_{type}()` - Handle events by type (e.g., `on_message`)
+- `on_{type}__{subtype}()` - Handle events by type + subtype (e.g., `on_message__channels`)
+
+### 2. Decorator-Based Handlers
+
+Use the [`DecoratorHandler`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/webhook/event/handler/decorator.py) class with decorators:
+
+```python
+from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
+from slack_mcp.events import SlackEvent
+from typing import Dict, Any
+
+# Create handler instance
+handler = DecoratorHandler()
+
+# Attribute-style decorators
+@handler.message
+async def handle_message(event: Dict[str, Any]) -> None:
+    text = event.get('text', '')
+    print(f"Message: {text}")
+
+@handler.reaction_added
+async def handle_reaction(event: Dict[str, Any]) -> None:
+    reaction = event.get('reaction', '')
+    print(f"Reaction: :{reaction}:")
+
+# Enum-style decorators
+@handler(SlackEvent.APP_MENTION)
+async def handle_app_mention(event: Dict[str, Any]) -> None:
+    text = event.get('text', '')
+    print(f"App mentioned: {text}")
+
+# Subtype handling
+@handler("message.channels")
+async def handle_channel_message(event: Dict[str, Any]) -> None:
+    channel = event.get('channel')
+    print(f"Channel message in: {channel}")
+
+# Wildcard handler (receives all events)
+@handler
+async def log_all_events(event: Dict[str, Any]) -> None:
+    event_type = event.get('type')
+    print(f"Event received: {event_type}")
+```
+
+## Complete Setup Example
+
+```python
+import asyncio
+import logging
+from slack_mcp.backends.loader import load_backend
+from slack_mcp.webhook.event.consumer import SlackEventConsumer
+from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class MyEventHandler(BaseSlackEventHandler):
+    async def on_message(self, event):
+        logger.info(f"Message: {event.get('text', '')}")
+    
+    async def on_reaction_added(self, event):
+        logger.info(f"Reaction: {event.get('reaction', '')}")
+
+async def main():
+    # Load queue backend from environment
+    backend = load_backend()  # See: https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/backends/loader.py#L18-L70
+    
+    # Create event handler
+    handler = MyEventHandler()
+    
+    # Create and start consumer
+    consumer = SlackEventConsumer(backend, handler)
+    
+    try:
+        logger.info("Starting event consumer...")
+        await consumer.run()
+    except KeyboardInterrupt:
+        logger.info("Shutting down...")
+        await consumer.shutdown()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Basic Configuration
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `QUEUE_BACKEND` | Backend type (memory, redis, kafka, etc.) | `memory` |
+| `SLACK_EVENTS_TOPIC` | Queue topic for Slack events | `slack_events` |
+
+### Simple Setup
+
+```bash
+# For development (default)
+export QUEUE_BACKEND=memory
+
+# For production with Redis
+export QUEUE_BACKEND=redis
+export REDIS_URL=redis://localhost:6379
+```
+
+## Queue Backend Support
+
+The Slack MCP server supports multiple message queue backends for reliable event processing and scalability:
+
+### Currently Available
+
+- ✅ **Memory Queue** - Built-in in-memory queue for development and testing
+
+### Third-Party Queue Support
+
+The following message queue systems are planned for future releases:
+
+- 🚧 **Redis** - *Coming Soon* Redis backend with persistence
+- 🚧 **Apache Kafka** - *Coming Soon* - High-throughput distributed streaming platform
+- 🚧 **RabbitMQ** - *In Plan* - Robust message broker with advanced routing
+- 🚧 **Amazon SQS** - *Under Consideration* - AWS Simple Queue Service integration
+- 🚧 **Google Cloud Pub/Sub** - *Under Consideration* - Google Cloud messaging service
+- 🚧 **Azure Service Bus** - *Under Consideration* - Microsoft Azure messaging service
+- 🚧 **Apache Pulsar** - *Under Consideration* - Cloud-native distributed messaging
+- 🚧 **NATS** - *Under Consideration* - High-performance cloud native messaging system
+
+### Configuration Examples
+
+```bash
+# Currently supported
+export QUEUE_BACKEND=memory          # Default for development
+export QUEUE_BACKEND=redis           # Production-ready option
+export REDIS_URL=redis://localhost:6379
+
+# Future support (coming soon)
+# export QUEUE_BACKEND=kafka
+# export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+# 
+# export QUEUE_BACKEND=rabbitmq
+# export RABBITMQ_URL=amqp://localhost:5672
+```
+
+## Error Handling
+
+### Handler-Level Error Handling
+
+```python
+@handler.message
+async def handle_message_safely(event):
+    try:
+        # Your processing logic
+        process_message(event)
+    except Exception as e:
+        logger.error(f"Error processing message: {e}")
+        # Handle gracefully - don't re-raise
+```
+
+### Automatic Error Recovery
+
+The system automatically handles errors to ensure reliability:
+- Individual handler failures don't crash the consumer
+- Events that fail are logged for debugging
+- Processing continues with other handlers and events
+
+## Monitoring
+
+### Health Check
+
+Monitor your event processing:
+
+```bash
+curl http://localhost:8000/health
+```
+
+### Logging
+
+```python
+import logging
+
+# Enable event processing logs
+logging.getLogger('slack_mcp.webhook.event').setLevel(logging.INFO)
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Handler not receiving events:**
+- Check that the webhook server is running
+- Verify Slack app configuration and webhook URL
+- Check handler method names match event types
+
+**Events not processing:**
+- Check queue backend connection
+- Verify environment variables are set correctly
+- Look for errors in application logs
+
+**Performance issues:**
+- Consider using external queue backends (Redis, Kafka)
+- Implement consumer groups for load balancing
+- Monitor queue depth and processing latency
+
+## Examples
+
+Complete working examples are available in the [`/examples/event_handler/`](https://github.com/Chisanan232/slack-mcp-server/tree/master/examples/event_handler) directory:
+
+- [`decorator_handler_example.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/decorator_handler_example.py) - Decorator-based handlers
+- [`slack_event_handlers.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/slack_event_handlers.py) - Multiple handler patterns  
+- [`advanced_slack_handlers.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/advanced_slack_handlers.py) - Production-ready examples
+
+## Complete Test Features Workflow
+
+Ready to experience the full Slack event handler system? Follow this step-by-step workflow:
+
+:::tip Quick Start Alternative
+For a faster automated setup, you can skip the manual steps below and use the **[Quick Start](/docs/next/quick-start)** approach. You can also refer to the automated setup described at the bottom of this section by running `python quickstart.py --all` in the `examples/event_handler/` directory for guided installation, configuration, and running.
+:::
+
+:::note Package Manager Compatibility
+All command line examples in this workflow use standard `pip` and `python` commands. You can easily adapt these commands to use modern package managers:
+- **Poetry**: Replace `pip install` with `poetry add` and `python` with `poetry run python`
+- **UV**: Replace `pip install` with `uv add` and `python` with `uv run python`
+- **Pipenv**: Replace `pip install` with `pipenv install` and `python` with `pipenv run python`
+:::
+
+### Step 1: Install the Slack MCP Server Library
+
+```bash
+# Install from PyPI
+pip install slack-mcp-server
+
+# Or install from source
+git clone https://github.com/Chisanan232/slack-mcp-server.git
+cd slack-mcp-server
+pip install -e .
+```
+
+### Step 2: Configure Detail Settings
+
+Set up your environment configuration:
+
+```bash
+# Navigate to examples directory
+cd examples/event_handler
+
+# Option A: Interactive setup (recommended)
+python quickstart.py --setup-env
+
+# Option B: Manual setup
+cp .env.example .env
+# Edit .env file with your Slack tokens and settings
+```
+
+**Required Configuration:**
+- `SLACK_BOT_TOKEN`: Your Slack bot token (xoxb-...)
+- `SLACK_SIGNING_SECRET`: Your Slack signing secret
+- `QUEUE_BACKEND`: Queue backend type (memory, redis, kafka)
+
+See the **[Complete Setup Guide](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/setup_guide.md)** for detailed Slack app configuration.
+
+### Step 3: Set Up the Slack MCP Server
+
+Start the webhook server to receive Slack events:
+
+```bash
+# Start webhook server (in terminal 1)
+slack-events-server --host 0.0.0.0 --port 8000
+
+# Or use Docker
+docker run -p 8000:8000 --env-file .env chisanan232/slack-mcp-server
+```
+
+### Step 4: Make Sure the Server is Alive
+
+Verify the server is running and healthy:
+
+```bash
+# Check health endpoint
+curl http://localhost:8000/health
+
+# Test connection to Slack
+python quickstart.py --test-connection
+```
+
+### Step 5: Run the Consumer
+
+Start the event consumer to process Slack events (in a new terminal):
+
+```bash
+# Navigate to examples
+cd examples/event_handler
+
+# Run the core example scripts to experience project features:
+python slack_event_handlers.py         # Multiple handler patterns
+python advanced_slack_handlers.py      # Production-ready examples  
+python decorator_handler_example.py    # Decorator-based handlers
+```
+
+**Choose the example that matches your preferred approach:**
+- `slack_event_handlers.py` - Demonstrates multiple handler patterns and basic usage
+- `advanced_slack_handlers.py` - Shows production-ready patterns with error handling
+- `decorator_handler_example.py` - Uses the modern decorator-based approach
+
+### Step 6: Trigger Slack Webhook Features
+
+Test the complete system by performing actions in your Slack workspace:
+
+**Test Actions:**
+1. **Send messages** in channels where your app is added
+2. **Mention your app**: `@YourApp hello!`
+3. **Add reactions**: 👍 ❤️ 🎉 to messages
+4. **Create new channels** and invite your app
+5. **Pin messages**, upload files, edit messages
+
+**Watch the Logs:**
+- Check the webhook server logs for incoming events
+- Monitor the consumer logs for event processing
+- View real-time event handling in action!
+
+### 🚀 Quick Start (All Steps)
+
+For a complete automated setup:
+
+```bash
+cd examples/event_handler
+python quickstart.py --all
+```
+
+This runs all steps automatically with guided configuration.
+
+## Next Steps
+
+- **Quick Experience**: Run `python examples/event_handler/quickstart.py --all`
+- **Deep Dive**: Review the [Architecture Documentation](/docs/development/architecture/event-handler-queue-architecture)
+- **Advanced Patterns**: Explore the [example scripts](https://github.com/Chisanan232/slack-mcp-server/tree/master/examples/event_handler)
+- **Production**: Follow the [setup guide](https://github.com/Chisanan232/slack-mcp-server/blob/master/examples/event_handler/setup_guide.md) for deployment

@@ -103,6 +103,11 @@ const sidebars: SidebarsConfig = {
               label: '🔄 Server Modes',
             },
             {
+              type: 'doc',
+              id: 'server-references/mcp-server/mcp-client-examples',
+              label: '📱 Client Examples',
+            },
+            {
               type: 'category',
               label: '🛠️ Tools (End-points)',
               items: [
@@ -158,6 +163,11 @@ const sidebars: SidebarsConfig = {
               type: 'doc',
               id: 'server-references/webhook-server/server-modes',
               label: '🔄 Server Modes',
+            },
+            {
+              type: 'doc',
+              id: 'server-references/webhook-server/event-handlers',
+              label: '⚡ Event Handlers',
             },
             {
               type: 'category',
