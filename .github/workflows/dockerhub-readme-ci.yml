@@ -16,7 +16,7 @@ on:
       - "master"
     paths:
 #     For GitHub Action
-      - ".github/workflows/docker-update-readme.yml"
+      - ".github/workflows/dockerhub-readme-ci.yml"
 #     For the README file for the Docker Hub
       - "README_DOCKERHUB.md"
 
