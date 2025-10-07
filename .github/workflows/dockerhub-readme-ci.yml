@@ -42,4 +42,5 @@ jobs:
           # If your Docker Hub repo name matches this GitHub repo name, this will work:
           repository: chisanan232/slack-mcp-server
           short-description: ${{ vars.DOCKER_HUB_SHORT_DESCRIPTION }}
-          readme-filepath: ./README_DOCKERHUB.md
+          readme-filepath: ./TEST_README.md
+#          readme-filepath: ./README_DOCKERHUB.md
