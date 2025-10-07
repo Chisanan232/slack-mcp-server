@@ -32,6 +32,7 @@ jobs:
           echo "REPO=chisanan232/slack-mcp-server"   # 建議用一個新 secret 明寫 <namespace>/<repo>
           echo "USER=chisanan232"     # 你的 Docker ID（不是 email）
 
+      # Change token
       - name: Get JWT
         env:
           U: chisanan232
