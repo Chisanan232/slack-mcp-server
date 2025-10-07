@@ -32,64 +32,59 @@ jobs:
           echo "REPO=chisanan232/slack-mcp-server"   # 建議用一個新 secret 明寫 <namespace>/<repo>
           echo "USER=chisanan232"     # 你的 Docker ID（不是 email）
 
-      - name: Get JWT with username/token
+      - name: Get JWT
         env:
-          USERNAME: chisanan232
-          TOKEN:    ${{ secrets.DOCKERHUB_README_UPDATE_TOKEN }}
+          U: chisanan232
+          P: ${{ secrets.DOCKERHUB_README_UPDATE_TOKEN }}
         run: |
           set -euo pipefail
           JWT=$(curl -s -H 'Content-Type: application/json' \
-            -d "{\"username\":\"${USERNAME}\",\"password\":\"${TOKEN}\"}" \
+            -d "{\"username\":\"${U}\",\"password\":\"${P}\"}" \
             https://hub.docker.com/v2/users/login/ | jq -r .token)
-          if [ -z "$JWT" ] || [ "$JWT" = "null" ]; then
-            echo "❌ Cannot obtain JWT. Username or token is wrong."
-            exit 1
-          fi
-          echo "✅ Got JWT"
+          test -n "$JWT" -a "$JWT" != null || (echo "JWT empty"; exit 1)
           echo "JWT=$JWT" >> $GITHUB_ENV
+          echo "✅ Got JWT for user: $U"
 
-      - name: GET repository info (should be 200)
+      - name: GET repo info (print owner & your perms)
         env:
-          REPO: chisanan232/slack-mcp-server  # e.g. bryantliu/slack-mcp-server  (全部小寫)
+          REPO: chisanan232/slack-mcp-server  # e.g. chisanan232/slack-mcp-server
           JWT:  ${{ env.JWT }}
         run: |
           set -euo pipefail
-          CODE=$(curl -s -o resp.json -w '%{http_code}' \
-            -H "Authorization: JWT $JWT" \
-            "https://hub.docker.com/v2/repositories/${REPO}/")
-          echo "GET /v2/repositories/${REPO}/ -> HTTP $CODE"
-          jq -r '.namespace,.name' resp.json || true
-          cat resp.json | head -c 400 || true
-          if [ "$CODE" = "404" ]; then
-            echo "❌ Repository not found. REPO 字串不是實際的 <namespace>/<repo>。"
-            exit 1
-          fi
-          if [ "$CODE" = "403" ]; then
-            echo "❌ Forbidden. 這個 JWT 不是該 namespace 的擁有者/管理者。"
-            exit 1
-          fi
-          if [ "$CODE" != "200" ]; then
-            echo "❌ Unexpected status: $CODE"
-            exit 1
-          fi
-          echo "✅ Repo exists and token can read it."
+          curl -s -H "Authorization: JWT $JWT" \
+            "https://hub.docker.com/v2/repositories/${REPO}/" | tee repo.json
+          echo "---- parsed ----"
+          echo -n "namespace: " && jq -r .namespace repo.json
+          echo -n "name:      " && jq -r .name repo.json
+          echo -n "owner:     " && jq -r '.user|tostring' repo.json
+          echo -n "your perms:" && jq -r '.user_permissions|tostring' repo.json
 
-      - name: PATCH dry-run (expect 200 or 403)
+      - name: PATCH real field (write then revert)
         env:
           REPO: chisanan232/slack-mcp-server
           JWT:  ${{ env.JWT }}
         run: |
-          # 不去改 full_description，避免真的寫入；改一個不存在欄位，看權限反應
+          set -euo pipefail
+          ORIG=$(curl -s -H "Authorization: JWT $JWT" \
+            "https://hub.docker.com/v2/repositories/${REPO}/" | jq -r .full_description)
+          NEW="TEMP TEST $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
             -H "Authorization: JWT $JWT" -H "Content-Type: application/json" \
-            -d '{"_noop_test":"value"}' \
+            -d "{\"full_description\":\"${NEW}\"}" \
             "https://hub.docker.com/v2/repositories/${REPO}/")
-          echo "PATCH test -> HTTP $CODE"
-          if [ "$CODE" = "403" ]; then
-            echo "❌ Forbidden：權限/命名空間不匹配（最常見：repo 在 org，但你用個人 token）。"
+          echo "PATCH full_description -> $CODE"
+          # 若寫入成功，再把它改回去
+          if [ "$CODE" = "200" ]; then
+            curl -s -o /dev/null -w '%{http_code}' -X PATCH \
+              -H "Authorization: JWT $JWT" -H "Content-Type: application/json" \
+              -d "$(jq -n --arg v "$ORIG" '{full_description:$v}')" \
+              "https://hub.docker.com/v2/repositories/${REPO}/"
+            echo "✅ write succeeded (and reverted)"
+          else
+            echo "❌ write denied"
             exit 1
           fi
-          echo "✅ PATCH 通道可用，改 README 理應會成功。"
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
