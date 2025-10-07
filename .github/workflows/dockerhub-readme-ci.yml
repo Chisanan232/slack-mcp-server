@@ -68,12 +68,14 @@ jobs:
           set -euo pipefail
           ORIG=$(curl -s -H "Authorization: JWT $JWT" \
             "https://hub.docker.com/v2/repositories/${REPO}/" | jq -r .full_description)
-          NEW="TEMP README TEST $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          SHORT_NEW="TEMP TEST OF NEW SHORT DESCRIPTION $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          README_FILE="README_DOCKERHUB.md"
+          # Read README and encode as a JSON string (preserves newlines/special chars)
+          NEW=$(jq -Rs . < "$README_FILE")
+          SHORT_NEW="${{ vars.DOCKER_HUB_SHORT_DESCRIPTION }}"
 
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
             -H "Authorization: JWT $JWT" -H "Content-Type: application/json" \
-            -d "{\"description\":\"${SHORT_NEW}\", \"full_description\":\"${NEW}\"}" \
+            -d "{\"description\":\"${SHORT_NEW}\", \"full_description\": ${NEW} }" \
             "https://hub.docker.com/v2/repositories/${REPO}/")
           echo "PATCH full_description -> $CODE"
 #          # 若寫入成功，再把它改回去
