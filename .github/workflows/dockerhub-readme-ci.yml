@@ -20,11 +20,6 @@ on:
 #     For the README file for the Docker Hub
       - "README_DOCKERHUB.md"
 
-env:
-  # Optional short description shown on Docker Hub
-  DOCKER_IMAGE_NAME: slack-mcp-server
-  DOCKER_HUB_SHORT_DESCRIPTION: 🦾 A strong MCP server for Slack.
-
 jobs:
   update-readme:
     runs-on: ubuntu-latest
