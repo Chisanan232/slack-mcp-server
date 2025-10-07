@@ -40,6 +40,6 @@ jobs:
           password: ${{ secrets.DOCKERHUB_README_UPDATE_TOKEN }}
           # Set your Docker Hub repository in the form <namespace>/<name>
           # If your Docker Hub repo name matches this GitHub repo name, this will work:
-          repository: ${{ vars.DOCKERHUB_ORG }}/${{ vars.DOCKER_IMAGE_NAME }}
+          repository: chisanan232/${{ vars.DOCKER_IMAGE_NAME }}
           short-description: ${{ vars.DOCKER_HUB_SHORT_DESCRIPTION }}
           readme-filepath: ./README_DOCKERHUB.md
