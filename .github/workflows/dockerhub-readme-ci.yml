@@ -69,10 +69,11 @@ jobs:
           ORIG=$(curl -s -H "Authorization: JWT $JWT" \
             "https://hub.docker.com/v2/repositories/${REPO}/" | jq -r .full_description)
           NEW="TEMP TEST $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          SHORT_NEW="TEMP TEST OF SHORT DESCRIPTION $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
           CODE=$(curl -s -o /dev/null -w '%{http_code}' -X PATCH \
             -H "Authorization: JWT $JWT" -H "Content-Type: application/json" \
-            -d "{\"full_description\":\"${NEW}\"}" \
+            -d "{\"short_description\":\"${SHORT_NEW}\", \"full_description\":\"${NEW}\"}" \
             "https://hub.docker.com/v2/repositories/${REPO}/")
           echo "PATCH full_description -> $CODE"
 #          # 若寫入成功，再把它改回去
