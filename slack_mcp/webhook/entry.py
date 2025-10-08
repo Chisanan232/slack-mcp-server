@@ -4,12 +4,10 @@ This module provides a standalone server that integrates with the Slack Events A
 and handles events like mentions and emoji reactions.
 """
 
-from __future__ import annotations
-
 import asyncio
 import logging
 import pathlib
-from typing import Any, Final
+from typing import Any, Dict, Final, Optional
 
 from dotenv import load_dotenv
 from mcp.server import FastMCP
@@ -41,20 +39,20 @@ def register_mcp_tools(mcp_instance: FastMCP) -> None:
     @mcp_instance.tool("slack_listen_events")
     async def start_listening(
         port: int = 3000,
-        token: str | None = None,
-    ) -> dict[str, Any]:
+        token: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Start listening for Slack events.
 
         Parameters
         ----------
         port : int
             The port to listen on
-        token : str | None
+        token : Optional[str]
             The Slack bot token to use. If None, will use environment variables.
 
         Returns
         -------
-        dict[str, Any]
+        Dict[str, Any]
             Information about the server
         """
         # This isn't actually starting the server, just informing that it should be started separately
@@ -84,7 +82,7 @@ def register_mcp_tools(mcp_instance: FastMCP) -> None:
 async def run_slack_server(
     host: str = "0.0.0.0",
     port: int = 3000,
-    token: str | None = None,
+    token: Optional[str] = None,
     retry: int = 3,
 ) -> None:
     """Run the Slack events server.
@@ -95,7 +93,7 @@ async def run_slack_server(
         The host to listen on
     port : int
         The port to listen on
-    token : str | None
+    token : Optional[str]
         The Slack bot token to use. If None, will use environment variables.
     retry : int
         Number of retry attempts for network operations (default: 3)
@@ -119,9 +117,9 @@ async def run_slack_server(
 async def run_integrated_server(
     host: str = "0.0.0.0",
     port: int = 3000,
-    token: str | None = None,
+    token: Optional[str] = None,
     mcp_transport: str = "sse",
-    mcp_mount_path: str | None = "/mcp",
+    mcp_mount_path: Optional[str] = "/mcp",
     retry: int = 3,
 ) -> None:
     """Run the integrated server with both MCP and webhook functionalities.
@@ -132,11 +130,11 @@ async def run_integrated_server(
         The host to listen on
     port : int
         The port to listen on
-    token : str | None
+    token : Optional[str]
         The Slack bot token to use. If None, will use environment variables.
     mcp_transport : str
         The transport to use for the MCP server. Either "sse" or "streamable-http".
-    mcp_mount_path : str | None
+    mcp_mount_path : Optional[str]
         The mount path for the MCP server. Only used for sse transport.
     retry : int
         Number of retry attempts for network operations (default: 3)
@@ -161,7 +159,7 @@ async def run_integrated_server(
     await server.serve()
 
 
-def main(argv: list[str] | None = None) -> None:
+def main(argv: Optional[list[str]] = None) -> None:
     """Run the Slack events server as a standalone application."""
     args = _parse_args(argv)
 
