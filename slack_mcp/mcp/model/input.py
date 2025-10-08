@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from abc import ABC
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 __all__: list[str] = [
     "SlackPostMessageInput",
@@ -68,8 +68,8 @@ class SlackReadChannelMessagesInput(_BaseInput):
 
     channel: str
     limit: int = 100
-    oldest: str | None = None
-    latest: str | None = None
+    oldest: Optional[str] = None
+    latest: Optional[str] = None
     inclusive: bool = False
 
 

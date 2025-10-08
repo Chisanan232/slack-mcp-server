@@ -1,11 +1,9 @@
 """Command-line entry point to launch the Slack MCP server."""
 
-from __future__ import annotations
-
 import logging
 import os
 import pathlib
-from typing import Final
+from typing import Final, Optional
 
 import uvicorn
 from dotenv import load_dotenv
@@ -19,7 +17,7 @@ from .server import set_slack_client_retry_count
 _LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
 
 
-def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry
+def main(argv: Optional[list[str]] = None) -> None:  # noqa: D401 – CLI entry
     args = _parse_args(argv)
 
     logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
