@@ -6,11 +6,9 @@ PEP 484/585 typing conventions and can be imported directly so that external
 applications or test-suites may interact with the exported ``mcp`` instance.
 """
 
-from __future__ import annotations
-
 import logging
 import os
-from typing import Any, Final, Optional
+from typing import Any, Dict, Final, Optional
 
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -177,7 +175,7 @@ def _get_default_client() -> AsyncWebClient:
 @mcp.tool("slack_post_message")
 async def send_slack_message(
     input_params: SlackPostMessageInput,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Send *text* to the given Slack *channel*.
 
     Parameters
@@ -187,7 +185,7 @@ async def send_slack_message(
 
     Returns
     -------
-    dict[str, Any]
+    Dict[str, Any]
         The raw JSON response returned by Slack.  This is intentionally kept
         flexible so FastMCP can serialise it to the client as-is.
 
@@ -207,7 +205,7 @@ async def send_slack_message(
 @mcp.tool("slack_read_thread_messages")
 async def read_thread_messages(
     input_params: SlackReadThreadMessagesInput,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Read messages from a specific thread in a given Slack channel.
 
     Parameters
@@ -217,7 +215,7 @@ async def read_thread_messages(
 
     Returns
     -------
-    dict[str, Any]
+    Dict[str, Any]
         The raw JSON response returned by Slack.  This is intentionally kept
         flexible so FastMCP can serialise it to the client as-is.
 
@@ -241,7 +239,7 @@ async def read_thread_messages(
 @mcp.tool("slack_read_channel_messages")
 async def read_slack_channel_messages(
     input_params: SlackReadChannelMessagesInput,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Read messages from the given Slack *channel*.
 
     Parameters
@@ -251,7 +249,7 @@ async def read_slack_channel_messages(
 
     Returns
     -------
-    dict[str, Any]
+    Dict[str, Any]
         The raw JSON response returned by Slack.  This is intentionally kept
         flexible so FastMCP can serialise it to the client as-is.
 
@@ -285,7 +283,7 @@ async def read_slack_channel_messages(
 @mcp.tool("slack_thread_reply")
 async def send_slack_thread_reply(
     input_params: SlackThreadReplyInput,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Send one or more messages as replies to a specific thread in a Slack channel.
 
     Parameters
@@ -295,7 +293,7 @@ async def send_slack_thread_reply(
 
     Returns
     -------
-    dict[str, Any]
+    Dict[str, Any]
         A dictionary containing a list of responses under the 'responses' key.
         Each response is the raw JSON returned by Slack for each message posted.
 
@@ -322,7 +320,7 @@ async def send_slack_thread_reply(
 @mcp.tool("slack_read_emojis")
 async def read_slack_emojis(
     input_params: SlackReadEmojisInput,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Get all emojis (both built-in and custom) available in the Slack workspace.
 
     Parameters
@@ -332,7 +330,7 @@ async def read_slack_emojis(
 
     Returns
     -------
-    dict[str, Any]
+    Dict[str, Any]
         The raw JSON response returned by Slack. This contains a mapping of emoji
         names to their URLs or aliases.
 
@@ -352,7 +350,7 @@ async def read_slack_emojis(
 @mcp.tool("slack_add_reactions")
 async def add_slack_reactions(
     input_params: SlackAddReactionsInput,
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """Add one or more emoji reactions to a specific message in a Slack channel.
 
     Parameters
@@ -362,7 +360,7 @@ async def add_slack_reactions(
 
     Returns
     -------
-    dict[str, Any]
+    Dict[str, Any]
         A dictionary containing a list of responses under the 'responses' key.
         Each response is the raw JSON returned by Slack for each emoji reaction added.
 
