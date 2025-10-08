@@ -26,7 +26,7 @@ __all__: list[str] = [
     "run_integrated_server",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.webhook.entry")
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def register_mcp_tools(mcp_instance: FastMCP) -> None:

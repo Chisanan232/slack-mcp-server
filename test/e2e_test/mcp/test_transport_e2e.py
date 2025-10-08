@@ -12,7 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("transport_e2e_test")
+logger = logging.getLogger(__name__)
 
 
 class _DummyServer:

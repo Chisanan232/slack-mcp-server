@@ -16,7 +16,7 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
 
-logger = logging.getLogger("http_test_utils")
+logger = logging.getLogger(__name__)
 
 
 class HttpServerManager:

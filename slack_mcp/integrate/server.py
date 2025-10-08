@@ -22,7 +22,7 @@ __all__: list[str] = [
     "health_check_router",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.integrate.server")
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def health_check_router(

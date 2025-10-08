@@ -16,7 +16,7 @@ from .app import mcp_factory
 from .cli import _parse_args
 from .server import set_slack_client_retry_count
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.entry")
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 def main(argv: list[str] | None = None) -> None:  # noqa: D401 – CLI entry

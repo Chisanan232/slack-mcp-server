@@ -9,7 +9,7 @@ from typing import Any, Awaitable, Callable, TypeVar
 from slack_sdk.errors import SlackApiError
 
 # Set up logging
-logger = logging.getLogger("slack_retry_utils")
+logger = logging.getLogger(__name__)
 
 # Type variables for decorator
 T = TypeVar("T")
