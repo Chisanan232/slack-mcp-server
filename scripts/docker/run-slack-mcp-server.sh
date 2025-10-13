@@ -7,6 +7,9 @@ set -e
 # MCP_TRANSPORT → --transport
 # MCP_MOUNT_PATH → --mount-path
 # MCP_LOG_LEVEL → --log-level
+# MCP_LOG_FILE → --log-file
+# MCP_LOG_DIR → --log-dir
+# MCP_LOG_FORMAT → --log-format
 # MCP_HOST → --host
 # MCP_PORT → --port
 # SLACK_BOT_TOKEN → --slack-token
@@ -31,11 +34,26 @@ if [ -n "${MCP_MOUNT_PATH}" ]; then
   CMD_ARGS+=(--mount-path "${MCP_MOUNT_PATH}")
 fi
 
-# LOG_LEVEL: Python logging level
+# LOG_LEVEL: Python logging level (case-insensitive)
 if [ -n "${MCP_LOG_LEVEL}" ]; then
-  # Convert to lowercase to ensure compatibility with CLI parser
+  # Note: CLI now accepts case-insensitive values, but we keep lowercase for consistency
   LOG_LEVEL_LOWER=$(echo "${MCP_LOG_LEVEL}" | tr '[:upper:]' '[:lower:]')
   CMD_ARGS+=(--log-level "${LOG_LEVEL_LOWER}")
+fi
+
+# LOG_FILE: Path to log file (enables file logging with automatic rotation)
+if [ -n "${MCP_LOG_FILE}" ]; then
+  CMD_ARGS+=(--log-file "${MCP_LOG_FILE}")
+fi
+
+# LOG_DIR: Directory for log files
+if [ -n "${MCP_LOG_DIR}" ]; then
+  CMD_ARGS+=(--log-dir "${MCP_LOG_DIR}")
+fi
+
+# LOG_FORMAT: Custom log format string
+if [ -n "${MCP_LOG_FORMAT}" ]; then
+  CMD_ARGS+=(--log-format "${MCP_LOG_FORMAT}")
 fi
 
 # HOST: Host for FastAPI HTTP transports (used for sse or streamable-http)

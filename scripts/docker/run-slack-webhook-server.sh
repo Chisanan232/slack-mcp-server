@@ -7,6 +7,9 @@ set -e
 # SLACK_WEBHOOK_HOST → --host
 # SLACK_WEBHOOK_PORT → --port
 # SLACK_WEBHOOK_LOG_LEVEL → --log-level
+# SLACK_WEBHOOK_LOG_FILE → --log-file
+# SLACK_WEBHOOK_LOG_DIR → --log-dir
+# SLACK_WEBHOOK_LOG_FORMAT → --log-format
 # SLACK_BOT_TOKEN → --slack-token
 # SLACK_WEBHOOK_ENV_FILE → --env-file
 # SLACK_WEBHOOK_NO_ENV_FILE → --no-env-file
@@ -31,9 +34,25 @@ if [ -n "${SLACK_WEBHOOK_PORT}" ]; then
   CMD_ARGS+=(--port "${SLACK_WEBHOOK_PORT}")
 fi
 
-# LOG_LEVEL: Python logging level
+# LOG_LEVEL: Python logging level (case-insensitive)
 if [ -n "${SLACK_WEBHOOK_LOG_LEVEL}" ]; then
+  # Note: CLI now accepts case-insensitive values
   CMD_ARGS+=(--log-level "${SLACK_WEBHOOK_LOG_LEVEL}")
+fi
+
+# LOG_FILE: Path to log file (enables file logging with automatic rotation)
+if [ -n "${SLACK_WEBHOOK_LOG_FILE}" ]; then
+  CMD_ARGS+=(--log-file "${SLACK_WEBHOOK_LOG_FILE}")
+fi
+
+# LOG_DIR: Directory for log files
+if [ -n "${SLACK_WEBHOOK_LOG_DIR}" ]; then
+  CMD_ARGS+=(--log-dir "${SLACK_WEBHOOK_LOG_DIR}")
+fi
+
+# LOG_FORMAT: Custom log format string
+if [ -n "${SLACK_WEBHOOK_LOG_FORMAT}" ]; then
+  CMD_ARGS+=(--log-format "${SLACK_WEBHOOK_LOG_FORMAT}")
 fi
 
 # SLACK_BOT_TOKEN: Slack bot token
