@@ -9,6 +9,7 @@ import uvicorn
 from dotenv import load_dotenv
 
 from slack_mcp.integrate.app import integrated_factory
+from slack_mcp.logging.config import setup_logging_from_args
 
 from .app import mcp_factory
 from .cli import _parse_args
@@ -20,7 +21,8 @@ _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 def main(argv: Optional[list[str]] = None) -> None:  # noqa: D401 – CLI entry
     args = _parse_args(argv)
 
-    logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
+    # Use centralized logging configuration
+    setup_logging_from_args(args)
 
     # Load environment variables from .env file if not disabled
     if not args.no_env_file:

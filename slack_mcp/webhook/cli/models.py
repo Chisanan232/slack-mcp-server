@@ -11,6 +11,9 @@ class WebhookServerCliOptions(BaseModel):
     host: str = "0.0.0.0"
     port: int = Field(3000, ge=1, le=65535)
     log_level: str = "INFO"
+    log_file: str | None = None
+    log_dir: str | None = None
+    log_format: str | None = None
 
     slack_token: str | None = None
 

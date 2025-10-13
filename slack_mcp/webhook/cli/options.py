@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+from slack_mcp.logging.config import add_logging_arguments
+
 from .models import WebhookServerCliOptions
 
 
@@ -17,11 +19,6 @@ def _parse_args(argv: list[str] | None = None) -> WebhookServerCliOptions:
         type=int,
         default=3000,
         help="Port to listen on (default: 3000)",
-    )
-    parser.add_argument(
-        "--log-level",
-        default="INFO",
-        help="Python logging level (e.g., DEBUG, INFO)",
     )
     parser.add_argument(
         "--slack-token",
@@ -60,5 +57,9 @@ def _parse_args(argv: list[str] | None = None) -> WebhookServerCliOptions:
         default=3,
         help="Number of retry attempts for network operations (default: 3)",
     )
+    
+    # Add centralized logging arguments
+    parser = add_logging_arguments(parser)
+    
     args = WebhookServerCliOptions.deserialize(parser.parse_args(argv))
     return args

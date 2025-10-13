@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from mcp.server import FastMCP
 
 from slack_mcp.integrate.app import integrated_factory
+from slack_mcp.logging.config import setup_logging_from_args
 from slack_mcp.mcp.app import mcp_factory
 
 from .cli.options import _parse_args
@@ -163,7 +164,8 @@ def main(argv: Optional[list[str]] = None) -> None:
     """Run the Slack events server as a standalone application."""
     args = _parse_args(argv)
 
-    logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)8s] %(message)s")
+    # Use centralized logging configuration
+    setup_logging_from_args(args)
 
     # Load environment variables from .env file if not disabled
     if not args.no_env_file:
