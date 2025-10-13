@@ -6,7 +6,7 @@ import argparse
 
 from slack_mcp.logging.config import add_logging_arguments
 
-from .models import LogLevel, MCPServerCliOptions, MCPTransportType
+from .models import MCPServerCliOptions, MCPTransportType
 
 
 def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: D401 – helper
@@ -61,8 +61,8 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
         default=3,
         help="Number of retry attempts for network operations (default: 3)",
     )
-    
+
     # Add centralized logging arguments
     parser = add_logging_arguments(parser)
-    
+
     return MCPServerCliOptions.deserialize(parser.parse_args(argv))

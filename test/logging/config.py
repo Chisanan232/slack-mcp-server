@@ -27,7 +27,7 @@ def setup_test_logging(level: Optional[str] = None, verbose: bool = False) -> No
             level = "INFO"
         else:
             level = os.getenv("TEST_LOG_LEVEL", DEFAULT_TEST_LOG_LEVEL)
-    
+
     level = level.upper()
 
     # Simple test logging configuration

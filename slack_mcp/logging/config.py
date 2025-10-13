@@ -7,9 +7,8 @@ It supports both programmatic configuration and command-line integration.
 import logging
 import logging.config
 import os
-import sys
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional
 
 # Default log format
 DEFAULT_LOG_FORMAT = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
@@ -36,7 +35,7 @@ def get_log_file_path(log_dir: Optional[str] = None, log_file: Optional[str] = N
     """
     log_dir = log_dir or DEFAULT_LOG_DIR
     log_file = log_file or DEFAULT_LOG_FILE
-    
+
     # Create log directory if it doesn't exist
     os.makedirs(log_dir, exist_ok=True)
     return str(Path(log_dir) / log_file)
@@ -72,10 +71,9 @@ def get_logging_config(
             "style": "%",
         },
     }
-    
+
     # Add JSON formatter only if pythonjsonlogger is available
     try:
-        import pythonjsonlogger.jsonlogger
         formatters["json"] = {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
             "format": "%(asctime)s %(name)s %(levelname)s %(message)s",
@@ -164,7 +162,7 @@ def setup_logging(
 
     # Set asyncio logger level to WARNING to reduce noise
     logging.getLogger("asyncio").setLevel(logging.WARNING)
-    
+
     # Set up root logger
     root_logger = logging.getLogger()
     root_logger.setLevel(level)
@@ -172,12 +170,12 @@ def setup_logging(
 
 def add_logging_arguments(parser):
     """Add logging-related command line arguments to an argument parser.
-    
+
     Args:
         parser: Argument parser to add logging options to.
     """
     log_group = parser.add_argument_group("Logging Options")
-    
+
     log_group.add_argument(
         "--log-level",
         dest="log_level",
@@ -186,45 +184,45 @@ def add_logging_arguments(parser):
         choices=LOG_LEVELS,
         help=f"Set the logging level (default: {DEFAULT_LEVEL})",
     )
-    
+
     log_group.add_argument(
         "--log-file",
         dest="log_file",
         default=os.getenv("LOG_FILE"),
         help="Path to log file. If not set, logs to console only.",
     )
-    
+
     log_group.add_argument(
         "--log-dir",
         dest="log_dir",
         default=os.getenv("LOG_DIR", DEFAULT_LOG_DIR),
         help=f"Directory to store log files (default: {DEFAULT_LOG_DIR})",
     )
-    
+
     log_group.add_argument(
         "--log-format",
         dest="log_format",
         default=os.getenv("LOG_FORMAT", DEFAULT_LOG_FORMAT),
         help="Log message format (default: '%%(asctime)s [%%(levelname)8s] %%(name)s: %%(message)s')",
     )
-    
+
     return parser
 
 
 def setup_logging_from_args(args):
     """Set up logging from command-line arguments.
-    
+
     Args:
         args: Parsed command-line arguments (from add_logging_arguments).
     """
     log_file = None
-    if hasattr(args, 'log_file') and args.log_file:
+    if hasattr(args, "log_file") and args.log_file:
         log_file = args.log_file
-    elif hasattr(args, 'log_dir') and args.log_dir:
+    elif hasattr(args, "log_dir") and args.log_dir:
         log_file = get_log_file_path(args.log_dir)
-    
+
     setup_logging(
-        level=getattr(args, 'log_level', DEFAULT_LEVEL),
+        level=getattr(args, "log_level", DEFAULT_LEVEL),
         log_file=log_file,
-        log_format=getattr(args, 'log_format', DEFAULT_LOG_FORMAT),
+        log_format=getattr(args, "log_format", DEFAULT_LOG_FORMAT),
     )

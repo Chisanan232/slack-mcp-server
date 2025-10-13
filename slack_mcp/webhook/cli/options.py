@@ -57,9 +57,9 @@ def _parse_args(argv: list[str] | None = None) -> WebhookServerCliOptions:
         default=3,
         help="Number of retry attempts for network operations (default: 3)",
     )
-    
+
     # Add centralized logging arguments
     parser = add_logging_arguments(parser)
-    
+
     args = WebhookServerCliOptions.deserialize(parser.parse_args(argv))
     return args
