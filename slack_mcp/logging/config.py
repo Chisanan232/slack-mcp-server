@@ -74,6 +74,7 @@ def get_logging_config(
 
     # Add JSON formatter only if pythonjsonlogger is available
     try:
+        import pythonjsonlogger.jsonlogger  # noqa: F401
         formatters["json"] = {
             "()": "pythonjsonlogger.jsonlogger.JsonFormatter",
             "format": "%(asctime)s %(name)s %(levelname)s %(message)s",
