@@ -53,6 +53,11 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'server-references/logging-configuration',
+          label: '📋 Logging Configuration',
+        },
+        {
+          type: 'doc',
           id: 'server-references/cli-execution-methods',
           label: '⌨️ CLI Execution Methods',
         },
