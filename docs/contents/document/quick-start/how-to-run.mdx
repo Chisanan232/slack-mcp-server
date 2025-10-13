@@ -218,50 +218,60 @@ docker run -d -p 8000:8000 \
 
 The Docker container uses the `SERVICE_TYPE` environment variable to determine which server to run:
 
-| SERVICE_TYPE | Description | Entry Point |
-|--------------|-------------|-------------|
-| `mcp` (default) | MCP server only | `slack-mcp-server` |
-| `webhook` | Webhook server only | `slack-events-server` |
-| `integrated` | Combined MCP + webhook via MCP entry | `slack-mcp-server --integrated` |
+| SERVICE_TYPE         | Description                              | Entry Point                        |
+|----------------------|------------------------------------------|------------------------------------|
+| `mcp` (default)      | MCP server only                          | `slack-mcp-server`                 |
+| `webhook`            | Webhook server only                      | `slack-events-server`              |
+| `integrated`         | Combined MCP + webhook via MCP entry     | `slack-mcp-server --integrated`    |
 | `integrated-webhook` | Combined MCP + webhook via webhook entry | `slack-events-server --integrated` |
 
 ### Environment Variables by Mode
 
 #### 🎯 Main Control Variable
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `SERVICE_TYPE` | Server mode: `mcp`, `webhook`, `integrated`, `integrated-webhook` | `mcp` |
+| Environment Variable | Description                                                       | Default |
+|----------------------|-------------------------------------------------------------------|---------|
+| `SERVICE_TYPE`       | Server mode: `mcp`, `webhook`, `integrated`, `integrated-webhook` | `mcp`   |
 
 #### 🤖 MCP Server Variables (SERVICE_TYPE=mcp or integrated)
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `SLACK_BOT_TOKEN` | Slack bot token (required) - format: xoxb-... | - |
-| `MCP_TRANSPORT` | Transport mode: `stdio`, `sse`, `streamable-http` | `stdio` |
-| `MCP_HOST` | Host for HTTP transports | - |
-| `MCP_PORT` | Port for HTTP transports | - |
-| `MCP_MOUNT_PATH` | Mount path for HTTP transports | - |
-| `MCP_LOG_LEVEL` | Logging level: `debug`, `info`, `warning`, `error` | - |
-| `MCP_ENV_FILE` | Path to custom .env file | - |
-| `MCP_NO_ENV_FILE` | Disable .env file loading (set to `true`) | - |
-| `MCP_INTEGRATED` | Enable integrated mode (set to `true`) | - |
-| `MCP_RETRY` | Number of retry attempts for network operations | - |
+**Core Configuration:**
+
+| Environment Variable | Description                                                                       | Default |
+|----------------------|-----------------------------------------------------------------------------------|---------|
+| `SLACK_BOT_TOKEN`    | Slack bot token (required) - format: xoxb-...                                     | -       |
+| `MCP_TRANSPORT`      | Transport mode: `stdio`, `sse`, `streamable-http`                                 | `stdio` |
+| `MCP_HOST`           | Host for HTTP transports                                                          | -       |
+| `MCP_PORT`           | Port for HTTP transports                                                          | -       |
+| `MCP_MOUNT_PATH`     | Mount path for HTTP transports                                                    | -       |
+| `MCP_LOG_LEVEL`      | Logging level (case-insensitive): `debug`, `info`, `warning`, `error`, `critical` | `info`  |
+| `MCP_LOG_FILE`       | Path to log file (enables file logging with auto-rotation)                        | -       |
+| `MCP_LOG_DIR`        | Directory for log files                                                           | `logs`  |
+| `MCP_LOG_FORMAT`     | Custom log format string                                                          | -       |
+| `MCP_ENV_FILE`       | Path to custom .env file                                                          | -       |
+| `MCP_NO_ENV_FILE`    | Disable .env file loading (set to `true`)                                         | -       |
+| `MCP_INTEGRATED`     | Enable integrated mode (set to `true`)                                            | -       |
+| `MCP_RETRY`          | Number of retry attempts for network operations                                   | -       |
 
 #### 🪝 Webhook Server Variables (SERVICE_TYPE=webhook or integrated-webhook)
 
-| Environment Variable | Description | Default |
-|---------------------|-------------|---------|
-| `SLACK_BOT_TOKEN` | Slack bot token (required) - format: xoxb-... | - |
-| `SLACK_WEBHOOK_HOST` | Host to listen on | - |
-| `SLACK_WEBHOOK_PORT` | Port to listen on | - |
-| `SLACK_WEBHOOK_LOG_LEVEL` | Logging level: `debug`, `info`, `warning`, `error` | - |
-| `SLACK_WEBHOOK_ENV_FILE` | Path to custom .env file | - |
-| `SLACK_WEBHOOK_NO_ENV_FILE` | Disable .env file loading (set to `true`) | - |
-| `SLACK_WEBHOOK_INTEGRATED` | Enable integrated mode (set to `true`) | - |
-| `SLACK_WEBHOOK_MCP_TRANSPORT` | MCP transport for integrated mode | - |
-| `SLACK_WEBHOOK_MCP_MOUNT_PATH` | MCP mount path for integrated mode | - |
-| `SLACK_WEBHOOK_RETRY` | Number of retry attempts | - |
+**Core Configuration:**
+
+| Environment Variable           | Description                                                                       | Default |
+|--------------------------------|-----------------------------------------------------------------------------------|---------|
+| `SLACK_BOT_TOKEN`              | Slack bot token (required) - format: xoxb-...                                     | -       |
+| `SLACK_WEBHOOK_HOST`           | Host to listen on                                                                 | -       |
+| `SLACK_WEBHOOK_PORT`           | Port to listen on                                                                 | -       |
+| `SLACK_WEBHOOK_LOG_LEVEL`      | Logging level (case-insensitive): `debug`, `info`, `warning`, `error`, `critical` | `info`  |
+| `SLACK_WEBHOOK_LOG_FILE`       | Path to log file (enables file logging with auto-rotation)                        | -       |
+| `SLACK_WEBHOOK_LOG_DIR`        | Directory for log files                                                           | `logs`  |
+| `SLACK_WEBHOOK_LOG_FORMAT`     | Custom log format string                                                          | -       |
+| `SLACK_WEBHOOK_ENV_FILE`       | Path to custom .env file                                                          | -       |
+| `SLACK_WEBHOOK_NO_ENV_FILE`    | Disable .env file loading (set to `true`)                                         | -       |
+| `SLACK_WEBHOOK_INTEGRATED`     | Enable integrated mode (set to `true`)                                            | -       |
+| `SLACK_WEBHOOK_MCP_TRANSPORT`  | MCP transport for integrated mode                                                 | -       |
+| `SLACK_WEBHOOK_MCP_MOUNT_PATH` | MCP mount path for integrated mode                                                | -       |
+| `SLACK_WEBHOOK_RETRY`          | Number of retry attempts                                                          | -       |
 
 ### Docker Examples by Mode
 
@@ -278,6 +288,19 @@ The Docker container uses the `SERVICE_TYPE` environment variable to determine w
   ```
   </TabItem>
   
+  <TabItem value="stdio-logging" label="stdio with logging">
+  ```bash
+  # MCP server with stdio transport and file logging
+  docker run -d \
+    -e SERVICE_TYPE=mcp \
+    -e MCP_LOG_LEVEL=debug \
+    -e MCP_LOG_FILE=/app/logs/mcp.log \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    -v $(pwd)/logs:/app/logs \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+  
   <TabItem value="sse" label="SSE">
   ```bash
   # MCP server with SSE transport
@@ -287,6 +310,23 @@ The Docker container uses the `SERVICE_TYPE` environment variable to determine w
     -e MCP_HOST=0.0.0.0 \
     -e MCP_PORT=8000 \
     -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+  
+  <TabItem value="sse-logging" label="SSE with logging">
+  ```bash
+  # MCP server with SSE transport and comprehensive logging
+  docker run -d -p 8000:8000 \
+    -e SERVICE_TYPE=mcp \
+    -e MCP_TRANSPORT=sse \
+    -e MCP_HOST=0.0.0.0 \
+    -e MCP_PORT=8000 \
+    -e MCP_LOG_LEVEL=debug \
+    -e MCP_LOG_FILE=/app/logs/mcp-server.log \
+    -e MCP_LOG_DIR=/app/logs \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    -v $(pwd)/logs:/app/logs \
     chisanan232/slack-mcp-server
   ```
   </TabItem>
@@ -307,15 +347,34 @@ The Docker container uses the `SERVICE_TYPE` environment variable to determine w
 
 #### 🪝 Webhook Server Mode
 
-```bash
-# Standalone webhook server
-docker run -d -p 3000:3000 \
-  -e SERVICE_TYPE=webhook \
-  -e SLACK_WEBHOOK_HOST=0.0.0.0 \
-  -e SLACK_WEBHOOK_PORT=3000 \
-  -e SLACK_BOT_TOKEN=xoxb-your-token \
-  chisanan232/slack-mcp-server
-```
+<Tabs>
+  <TabItem value="basic" label="Basic" default>
+  ```bash
+  # Standalone webhook server
+  docker run -d -p 3000:3000 \
+    -e SERVICE_TYPE=webhook \
+    -e SLACK_WEBHOOK_HOST=0.0.0.0 \
+    -e SLACK_WEBHOOK_PORT=3000 \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+  
+  <TabItem value="logging" label="With Logging">
+  ```bash
+  # Webhook server with file logging
+  docker run -d -p 3000:3000 \
+    -e SERVICE_TYPE=webhook \
+    -e SLACK_WEBHOOK_HOST=0.0.0.0 \
+    -e SLACK_WEBHOOK_PORT=3000 \
+    -e SLACK_WEBHOOK_LOG_LEVEL=debug \
+    -e SLACK_WEBHOOK_LOG_FILE=/app/logs/webhook.log \
+    -e SLACK_BOT_TOKEN=xoxb-your-token \
+    -v $(pwd)/logs:/app/logs \
+    chisanan232/slack-mcp-server
+  ```
+  </TabItem>
+</Tabs>
 
 #### 🔗 Integrated Server Mode
 
@@ -346,6 +405,52 @@ docker run -d -p 3000:3000 \
   ```
   </TabItem>
 </Tabs>
+
+### 📋 Logging Configuration
+
+The server provides comprehensive logging features for both production and development:
+
+#### Logging Features
+
+- ✅ **Case-Insensitive Log Levels**: Use `debug`, `DEBUG`, or `Debug` - all work!
+- ✅ **File Logging**: Automatic log rotation at 10MB with 5 backup files
+- ✅ **Custom Formats**: Customize log output format for your needs
+- ✅ **Directory Management**: Organize logs in custom directories
+
+#### Log Levels
+
+| Level      | Description                               | Use Case                        |
+|------------|-------------------------------------------|---------------------------------|
+| `DEBUG`    | Detailed diagnostic information (verbose) | Development and troubleshooting |
+| `INFO`     | General informational messages (default)  | Production monitoring           |
+| `WARNING`  | Warning messages for potential issues     | Production monitoring           |
+| `ERROR`    | Error messages for serious problems       | Production error tracking       |
+| `CRITICAL` | Critical error messages for fatal issues  | Production critical alerts      |
+
+#### Complete Logging Example
+
+```bash
+# MCP Server with all logging options
+docker run -d -p 8000:8000 \
+  -e SERVICE_TYPE=mcp \
+  -e MCP_TRANSPORT=sse \
+  -e MCP_HOST=0.0.0.0 \
+  -e MCP_PORT=8000 \
+  -e MCP_LOG_LEVEL=debug \
+  -e MCP_LOG_FILE=/app/logs/mcp-server.log \
+  -e MCP_LOG_DIR=/app/logs \
+  -e MCP_LOG_FORMAT="%(asctime)s [%(levelname)s] %(name)s: %(message)s" \
+  -e SLACK_BOT_TOKEN=xoxb-your-token \
+  -v $(pwd)/logs:/app/logs \
+  chisanan232/slack-mcp-server
+```
+
+#### Log Rotation Behavior
+
+- Automatically rotates when log file reaches **10MB**
+- Keeps **5 backup files** (e.g., `mcp.log.1`, `mcp.log.2`, ..., `mcp.log.5`)
+- Oldest backup is deleted on next rotation
+- Uses UTF-8 encoding by default
 
 ### Using Environment Files with Docker
 
@@ -397,7 +502,11 @@ services:
       - MCP_TRANSPORT=sse
       - MCP_HOST=0.0.0.0
       - MCP_PORT=8000
+      - MCP_LOG_LEVEL=info
+      - MCP_LOG_FILE=/app/logs/mcp.log
       - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+    volumes:
+      - ./logs:/app/logs
     env_file:
       - .env
     restart: unless-stopped
@@ -486,13 +595,25 @@ docker-compose down
      chisanan232/slack-mcp-server
    ```
 
-2. **Log Management**:
+2. **Application Log Management**:
    ```bash
-   # Configure log driver
+   # Enable file logging with rotation
+   docker run -d -p 8000:8000 \
+     -e MCP_LOG_LEVEL=info \
+     -e MCP_LOG_FILE=/app/logs/mcp.log \
+     -e MCP_LOG_DIR=/app/logs \
+     -v $(pwd)/logs:/app/logs \
+     chisanan232/slack-mcp-server
+   ```
+
+3. **Docker Log Driver Configuration**:
+   ```bash
+   # Configure Docker's log driver for container logs
    docker run -d \
      --log-driver=json-file \
      --log-opt max-size=10m \
      --log-opt max-file=3 \
+     -e MCP_LOG_LEVEL=warning \
      chisanan232/slack-mcp-server
    ```
 
