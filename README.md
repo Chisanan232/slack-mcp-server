@@ -241,7 +241,7 @@ Want to add support for additional message queue systems? Create custom queue ba
 
 **[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/Slack-MCP-Server-Backend-MQ-Template)** - Quick-start template for developing queue backend plugins
 - Complete project structure with best practices
-- Pre-configured CI/CD workflows  
+- Pre-configured CI/CD workflows
 - Comprehensive documentation
 
 📚 **Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
