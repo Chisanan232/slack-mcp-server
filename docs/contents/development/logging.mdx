@@ -1,0 +1,602 @@
+---
+id: logging
+title: Logging System
+sidebar_position: 6
+---
+
+# Logging System
+
+This guide covers the centralized logging system architecture, programmatic usage, and best practices for developers contributing to the Slack MCP Server project.
+
+## Architecture Overview
+
+The logging system is split into two separate configurations:
+
+### Source Code Logging (`slack_mcp/logging/`)
+
+For production application logging with features like:
+- Console and file logging
+- Automatic log rotation
+- Hierarchical configuration
+- Environment variable support
+- Case-insensitive log levels
+
+### Test Logging (`test/logging/`)
+
+For test execution logging with:
+- Clean output (WARNING level by default)
+- Verbose mode for debugging
+- Simple format for test readability
+- External library silencing
+
+## Programmatic Usage
+
+### Basic Setup
+
+```python
+from slack_mcp.logging import setup_logging
+import logging
+
+# Basic setup (console only)
+setup_logging(level="INFO")
+
+# Get logger for your module
+logger = logging.getLogger(__name__)
+
+# Use logger
+logger.info("Application started")
+logger.debug("Debug information")
+logger.error("Error occurred")
+```
+
+### With File Logging
+
+```python
+from slack_mcp.logging import setup_logging
+
+# Setup with file logging
+setup_logging(
+    level="DEBUG",
+    log_file="/path/to/app.log"
+)
+```
+
+### Full Custom Configuration
+
+```python
+from slack_mcp.logging import setup_logging
+
+setup_logging(
+    level="INFO",
+    log_file="/var/log/slack-mcp.log",
+    log_format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    date_format="%Y-%m-%d %H:%M:%S"
+)
+```
+
+### CLI Integration
+
+The logging system provides helper functions for argparse integration:
+
+```python
+import argparse
+from slack_mcp.logging import add_logging_arguments, setup_logging_from_args
+
+# Create parser
+parser = argparse.ArgumentParser()
+
+# Add your arguments
+parser.add_argument("--port", type=int, default=8000)
+
+# Add logging arguments (--log-level, --log-file, --log-dir, --log-format)
+parser = add_logging_arguments(parser)
+
+# Parse arguments
+args = parser.parse_args()
+
+# Setup logging from arguments
+setup_logging_from_args(args)
+```
+
+## Module-Level Logging
+
+### Best Practice
+
+Always use `__name__` for module-level loggers:
+
+```python
+import logging
+
+# At module level
+logger = logging.getLogger(__name__)
+
+def my_function():
+    logger.info("Function called")
+    logger.debug("Processing data...")
+```
+
+This creates a hierarchical logger structure:
+- `slack_mcp.mcp.server` → Logs from MCP server
+- `slack_mcp.webhook.server` → Logs from webhook server
+- `slack_mcp.client.manager` → Logs from client manager
+
+### Logger Hierarchy
+
+The logging configuration automatically manages logger hierarchy:
+
+```python
+# Root logger
+logging.getLogger()  # Catches everything
+
+# Package logger
+logging.getLogger("slack_mcp")  # All slack_mcp logs
+
+# Module logger
+logging.getLogger("slack_mcp.mcp.server")  # Specific module logs
+```
+
+## Available Functions and Constants
+
+### Functions
+
+#### `setup_logging(level, log_file, log_format, date_format)`
+
+Configure application logging.
+
+**Parameters**:
+- `level` (str): Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- `log_file` (str, optional): Path to log file
+- `log_format` (str, optional): Custom log format
+- `date_format` (str, optional): Custom date format
+
+```python
+setup_logging(
+    level="INFO",
+    log_file="app.log",
+    log_format="%(asctime)s %(message)s"
+)
+```
+
+#### `setup_logging_from_args(args)`
+
+Setup logging from parsed command-line arguments.
+
+**Parameters**:
+- `args`: Namespace from argparse with logging attributes
+
+```python
+args = parser.parse_args()
+setup_logging_from_args(args)
+```
+
+#### `add_logging_arguments(parser)`
+
+Add logging arguments to argparse parser.
+
+**Parameters**:
+- `parser`: ArgumentParser instance
+
+**Returns**: Modified parser with logging arguments
+
+**Added Arguments**:
+- `--log-level`: Case-insensitive log level
+- `--log-file`: Log file path
+- `--log-dir`: Log directory
+- `--log-format`: Custom log format
+
+```python
+parser = add_logging_arguments(parser)
+```
+
+#### `get_logging_config(level, log_file, log_format, date_format)`
+
+Get logging configuration dictionary for `logging.config.dictConfig()`.
+
+```python
+from slack_mcp.logging import get_logging_config
+import logging.config
+
+config = get_logging_config(level="DEBUG", log_file="app.log")
+logging.config.dictConfig(config)
+```
+
+#### `get_log_file_path(log_dir, log_file)`
+
+Get absolute log file path from directory and filename.
+
+```python
+from slack_mcp.logging import get_log_file_path
+
+path = get_log_file_path(
+    log_dir="/var/log/slack-mcp",
+    log_file="server.log"
+)
+# Returns: /var/log/slack-mcp/server.log
+```
+
+### Constants
+
+```python
+from slack_mcp.logging import (
+    DEFAULT_LOG_FORMAT,
+    DEFAULT_DATE_FORMAT,
+    DEFAULT_LEVEL,
+    LOG_LEVELS,
+    DEFAULT_LOG_DIR,
+    DEFAULT_LOG_FILE,
+)
+
+# Default values
+DEFAULT_LOG_FORMAT = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+DEFAULT_LEVEL = "INFO"
+DEFAULT_LOG_DIR = "logs"
+DEFAULT_LOG_FILE = "slack_mcp.log"
+LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+```
+
+## Test Logging
+
+### Setup Test Logging
+
+```python
+from test.logging import setup_test_logging
+
+# Basic test logging (WARNING level to reduce noise)
+setup_test_logging()
+
+# Verbose test logging (INFO level for debugging)
+setup_test_logging(verbose=True)
+
+# Custom log level
+setup_test_logging(level="DEBUG")
+```
+
+### Get Test Logger
+
+```python
+from test.logging import get_test_logger
+
+logger = get_test_logger(__name__)
+logger.info("Test started")
+```
+
+### Pytest Configuration
+
+Control test logging with pytest flags:
+
+```bash
+# Verbose test output
+pytest -v --log-cli-level=DEBUG
+
+# With environment variable
+TEST_LOG_LEVEL=DEBUG pytest -v
+```
+
+## Log File Configuration
+
+### Rotation Settings
+
+Automatic rotation is configured with:
+
+```python
+{
+    "class": "logging.handlers.RotatingFileHandler",
+    "filename": log_file_path,
+    "maxBytes": 10 * 1024 * 1024,  # 10MB
+    "backupCount": 5,
+    "formatter": "default",
+}
+```
+
+**Behavior**:
+- Rotates at 10MB
+- Keeps 5 backup files
+- Oldest file deleted on rotation
+
+### Custom Handlers
+
+Add custom handlers to the logging configuration:
+
+```python
+import logging
+from slack_mcp.logging import get_logging_config
+
+# Get base config
+config = get_logging_config(level="INFO")
+
+# Add custom handler
+config["handlers"]["custom"] = {
+    "class": "logging.StreamHandler",
+    "formatter": "default",
+    "stream": "ext://sys.stderr",
+}
+
+# Apply configuration
+logging.config.dictConfig(config)
+```
+
+## Case-Insensitive Log Levels
+
+The logging system uses `type=str.upper` in argparse to automatically convert log level input:
+
+```python
+log_group.add_argument(
+    "--log-level",
+    dest="log_level",
+    type=str.upper,  # Converts to uppercase automatically
+    default=os.getenv("LOG_LEVEL", DEFAULT_LEVEL),
+    choices=LOG_LEVELS,
+    help=f"Set the logging level (default: {DEFAULT_LEVEL})",
+)
+```
+
+This allows users to type:
+- `--log-level debug` → Converted to `DEBUG`
+- `--log-level INFO` → Stays `INFO`
+- `--log-level Warning` → Converted to `WARNING`
+
+## Migration Guide
+
+### From Old `logging.basicConfig()`
+
+**Old Code**:
+```python
+import logging
+logging.basicConfig(level=logging.INFO)
+```
+
+**New Code**:
+```python
+from slack_mcp.logging import setup_logging
+setup_logging(level="INFO")
+```
+
+### From Manual CLI Parsing
+
+**Old Code**:
+```python
+args = parse_args()
+logging.basicConfig(level=args.log_level.upper())
+```
+
+**New Code**:
+```python
+from slack_mcp.logging import setup_logging_from_args
+args = parse_args()
+setup_logging_from_args(args)
+```
+
+## External Library Management
+
+The logging system automatically reduces noise from external libraries:
+
+```python
+"loggers": {
+    "uvicorn": {
+        "handlers": ["console"],
+        "level": "ERROR",
+        "propagate": False,
+    },
+    "httpx": {
+        "handlers": ["console"],
+        "level": "ERROR",
+        "propagate": False,
+    },
+    "asyncio": {
+        "handlers": ["console"],
+        "level": "WARNING",
+        "propagate": False,
+    },
+}
+```
+
+This keeps logs clean while still capturing critical errors.
+
+## Best Practices
+
+### 1. Always Use `__name__`
+
+```python
+# Good
+logger = logging.getLogger(__name__)
+
+# Bad - hardcoded name
+logger = logging.getLogger("my_module")
+```
+
+### 2. Log at Appropriate Levels
+
+```python
+# DEBUG - Detailed diagnostic info
+logger.debug(f"Processing request with params: {params}")
+
+# INFO - General information
+logger.info("Server started successfully")
+
+# WARNING - Potentially problematic
+logger.warning("Rate limit approaching threshold")
+
+# ERROR - Serious problems
+logger.error(f"Failed to connect: {error}")
+
+# CRITICAL - Fatal problems
+logger.critical("Database connection lost, shutting down")
+```
+
+### 3. Use Lazy Formatting
+
+```python
+# Good - only formats if logged
+logger.debug("Processing %s items", len(items))
+
+# Bad - always formats
+logger.debug(f"Processing {len(items)} items")
+```
+
+### 4. Include Context
+
+```python
+# Good - includes context
+logger.error(f"Failed to process message {message_id}: {error}")
+
+# Bad - missing context
+logger.error("Processing failed")
+```
+
+### 5. Don't Log Sensitive Data
+
+```python
+# Bad - logs sensitive token
+logger.info(f"Using token: {slack_token}")
+
+# Good - masks sensitive data
+logger.info(f"Using token: {slack_token[-4:]}")
+```
+
+### 6. Test Logging Configuration
+
+Write tests for logging behavior:
+
+```python
+def test_logging_setup(caplog):
+    """Test that logging is configured correctly."""
+    from slack_mcp.logging import setup_logging
+    
+    setup_logging(level="DEBUG")
+    
+    logger = logging.getLogger("test_module")
+    logger.debug("Test message")
+    
+    assert "Test message" in caplog.text
+```
+
+## Environment-Specific Configuration
+
+### Development
+
+```python
+from slack_mcp.logging import setup_logging
+
+if os.getenv("ENV") == "development":
+    setup_logging(level="DEBUG")
+else:
+    setup_logging(
+        level="INFO",
+        log_file="/var/log/slack-mcp/production.log"
+    )
+```
+
+### Testing
+
+```python
+# In test fixtures
+@pytest.fixture(autouse=True)
+def setup_test_logs():
+    """Setup logging for tests."""
+    from test.logging import setup_test_logging
+    setup_test_logging(verbose=False)
+```
+
+### Production
+
+```python
+from slack_mcp.logging import setup_logging
+
+setup_logging(
+    level=os.getenv("LOG_LEVEL", "INFO"),
+    log_file=os.getenv("LOG_FILE", "/var/log/slack-mcp/server.log"),
+)
+```
+
+## Troubleshooting
+
+### Logs Not Appearing
+
+1. **Check logger name**: Ensure using `__name__`
+2. **Verify log level**: Message level must be >= configured level
+3. **Check configuration**: Ensure `setup_logging()` was called
+
+### Duplicate Logs
+
+If seeing duplicate log messages:
+
+```python
+# Ensure propagate=False in logger config
+"loggers": {
+    "slack_mcp": {
+        "handlers": ["console"],
+        "level": level,
+        "propagate": False,  # Prevents duplicate logs
+    }
+}
+```
+
+### Performance Issues
+
+High log volume impacting performance:
+
+1. Increase log level (INFO → WARNING)
+2. Disable DEBUG logging in hot code paths
+3. Use lazy formatting
+4. Consider async logging for high-throughput
+
+## Advanced Usage
+
+### Custom Formatter
+
+```python
+import logging
+from slack_mcp.logging import setup_logging
+
+# Custom formatter class
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        # Add custom logic
+        return super().format(record)
+
+# Apply after setup
+setup_logging(level="INFO")
+handler = logging.getLogger().handlers[0]
+handler.setFormatter(CustomFormatter("%(message)s"))
+```
+
+### Structured Logging
+
+For JSON logging:
+
+```python
+import json
+import logging
+
+class JSONFormatter(logging.Formatter):
+    def format(self, record):
+        return json.dumps({
+            "timestamp": self.formatTime(record),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        })
+```
+
+### Context Logging
+
+Add context to all logs:
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Add context to logger
+logger = logging.LoggerAdapter(logger, {"request_id": "abc123"})
+logger.info("Processing request")
+# Output: Processing request [request_id=abc123]
+```
+
+## Related Documentation
+
+- [User Logging Guide](/docs/next/server-references/logging-configuration) - End-user logging configuration
+- [MCP Server CLI Reference](/docs/next/server-references/mcp-server/mcp-server-cli-reference) - MCP server command-line options
+- [Coding Style](./coding-style) - Code style guidelines
+- [Architecture](./architecture/) - System architecture overview
