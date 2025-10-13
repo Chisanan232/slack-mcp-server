@@ -149,7 +149,7 @@ def test_main(
     with (
         patch("sys.argv", ["entry.py"] + cmd_args),
         patch("slack_mcp.webhook.entry.asyncio.run") as mock_run,
-        patch("slack_mcp.webhook.entry.logging.basicConfig") as mock_logging,
+        patch("slack_mcp.webhook.entry.setup_logging_from_args") as mock_setup_logging,
         patch("slack_mcp.webhook.entry.load_dotenv") as mock_load_dotenv,
         patch("slack_mcp.webhook.entry.pathlib.Path") as mock_path,
         patch("slack_mcp.webhook.entry.register_mcp_tools") as mock_register_mcp_tools,
@@ -170,13 +170,15 @@ def test_main(
         # Run the main function
         main()
 
-        # Verify logging was configured
+        # Verify logging was configured with setup_logging_from_args
+        mock_setup_logging.assert_called_once()
+        # The args object is passed to setup_logging_from_args
+        args = mock_setup_logging.call_args[0][0]
         if "--log-level" in cmd_args:
-            log_level = cmd_args[cmd_args.index("--log-level") + 1].upper()
+            expected_log_level = cmd_args[cmd_args.index("--log-level") + 1].upper()
         else:
-            log_level = "INFO"
-        mock_logging.assert_called_once()
-        assert mock_logging.call_args[1]["level"] == log_level
+            expected_log_level = "INFO"
+        assert args.log_level.upper() == expected_log_level
 
         # Verify env file handling
         if "--no-env-file" not in cmd_args:

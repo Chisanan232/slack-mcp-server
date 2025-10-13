@@ -32,7 +32,7 @@ __all__: list[str] = [
     "get_queue_backend",
 ]
 
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.webhook.server")
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 # Global Slack client for common usage outside of this module
 slack_client: Optional[AsyncWebClient] = None

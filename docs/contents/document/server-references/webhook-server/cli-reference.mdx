@@ -229,30 +229,74 @@ python -m slack_mcp.webhook --no-env-file --host 0.0.0.0 --port ${PORT}
 
 #### `--log-level`
 **Type**: `String`  
-**Choices**: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`  
+**Choices**: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` (case-insensitive)  
 **Default**: `INFO`  
-**Description**: Sets the logging verbosity level.
+**Description**: Sets the logging verbosity level. Accepts both uppercase and lowercase values (e.g., `debug`, `DEBUG`, `Debug` all work).
 
 <Tabs>
   <TabItem value="development" label="Development">
   ```bash
-  # Detailed debug information
+  # Case-insensitive - all these work the same way
+  python -m slack_mcp.webhook --log-level debug
   python -m slack_mcp.webhook --log-level DEBUG
   
   # Development with integrated mode
-  python -m slack_mcp.webhook --integrated --log-level DEBUG
+  python -m slack_mcp.webhook --integrated --log-level debug
   ```
   </TabItem>
   <TabItem value="production" label="Production">
   ```bash
-  # Production logging
+  # Production logging (case-insensitive)
+  python -m slack_mcp.webhook --log-level info
   python -m slack_mcp.webhook --log-level INFO
   
   # Reduced verbosity for production
-  python -m slack_mcp.webhook --log-level WARNING
+  python -m slack_mcp.webhook --log-level warning
   ```
   </TabItem>
 </Tabs>
+
+**Log Level Details**:
+- **DEBUG**: Detailed diagnostic information. Use for development and troubleshooting.
+- **INFO**: General informational messages. Good for production monitoring.
+- **WARNING**: Warning messages for potentially problematic situations.
+- **ERROR**: Error messages for serious problems.
+- **CRITICAL**: Critical error messages for fatal problems.
+
+:::tip Case-Insensitive Input
+The `--log-level` option accepts any case variation (`debug`, `DEBUG`, `Debug`, etc.), making it more user-friendly and compatible with different scripting conventions.
+:::
+
+#### `--log-file`
+**Type**: `String`  
+**Default**: None (console only)  
+**Description**: Path to log file. When specified, logs are written to both console and file with automatic rotation.
+
+```bash
+slack-webhook-server --log-file /var/log/slack-webhook.log
+```
+
+#### `--log-dir`
+**Type**: `String`  
+**Default**: `logs`  
+**Description**: Directory for log files when `--log-file` is a relative path.
+
+```bash
+slack-webhook-server --log-dir /var/log/slack-webhook
+```
+
+#### `--log-format`
+**Type**: `String`  
+**Default**: `%(asctime)s [%(levelname)8s] %(name)s: %(message)s`  
+**Description**: Custom log message format using Python logging format syntax.
+
+```bash
+slack-webhook-server --log-format "%(asctime)s %(levelname)s: %(message)s"
+```
+
+:::info Logging Configuration
+For detailed logging configuration including file rotation, environment variables, and programmatic usage, see the [Logging Configuration Guide](../logging-configuration).
+:::
 
 #### `--retry`
 **Type**: `Integer`  
@@ -285,7 +329,7 @@ python -m slack_mcp.webhook --retry 5
   python -m slack_mcp.webhook \
     --host 0.0.0.0 \
     --port 3000 \
-    --log-level INFO
+    --log-level info
   ```
   </TabItem>
   <TabItem value="development" label="Development">
@@ -294,7 +338,7 @@ python -m slack_mcp.webhook --retry 5
   python -m slack_mcp.webhook \
     --host 127.0.0.1 \
     --port 3000 \
-    --log-level DEBUG \
+    --log-level debug \
     --env-file .env.development
   ```
   </TabItem>
@@ -304,7 +348,7 @@ python -m slack_mcp.webhook --retry 5
   python -m slack_mcp.webhook \
     --host 0.0.0.0 \
     --port 8080 \
-    --log-level INFO \
+    --log-level info \
     --env-file .env.production \
     --retry 5
   ```
@@ -345,7 +389,7 @@ python -m slack_mcp.webhook --retry 5
     --mcp-mount-path /api/mcp \
     --host 0.0.0.0 \
     --port 8080 \
-    --log-level INFO \
+    --log-level info \
     --env-file .env.production
   ```
   </TabItem>
@@ -360,7 +404,7 @@ python -m slack_mcp.webhook --retry 5
   python -m slack_mcp.webhook \
     --host 0.0.0.0 \
     --port 3000 \
-    --log-level INFO \
+    --log-level info \
     --no-env-file
   
   # Integrated mode in container
@@ -426,7 +470,7 @@ echo "Starting webhook server in development mode..."
 python -m slack_mcp.webhook \
   --host 127.0.0.1 \
   --port 3000 \
-  --log-level DEBUG \
+  --log-level debug \
   --env-file .env.development
 ```
 
@@ -587,20 +631,21 @@ Enable maximum verbosity for troubleshooting:
 ```bash
 # Maximum debug output
 python -m slack_mcp.webhook \
-  --log-level DEBUG \
+  --log-level debug \
   --retry 0
 
 # Debug integrated mode
 python -m slack_mcp.webhook \
   --integrated \
   --mcp-transport sse \
-  --log-level DEBUG
+  --log-level debug
 ```
 
 ## Related Documentation
 
 For comprehensive webhook server setup:
-- [Environment Configuration](../environment-configuration.mdx) - Authentication and environment setup
-- [CLI Execution Methods](../cli-execution-methods.mdx) - Different ways to run the servers
-- [Server Modes](./server-modes.mdx) - Standalone vs integrated mode details
-- [Deployment Guide](../deployment-guide.mdx) - Production deployment patterns
+- [Logging Configuration](../logging-configuration) - Detailed logging configuration guide
+- [Environment Configuration](../environment-configuration) - Authentication and environment setup
+- [CLI Execution Methods](../cli-execution-methods) - Different ways to run the servers
+- [Server Modes](./server-modes) - Standalone vs integrated mode details
+- [Deployment Guide](../deployment-guide) - Production deployment patterns

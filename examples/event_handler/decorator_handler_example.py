@@ -23,7 +23,7 @@ from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger = logging.getLogger("decorator_handler_example")
+logger = logging.getLogger(__name__)
 
 # Create a DecoratorHandler instance
 slack_event = DecoratorHandler()

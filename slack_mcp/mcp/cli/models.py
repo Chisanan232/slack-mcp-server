@@ -32,7 +32,10 @@ class MCPServerCliOptions(BaseModel):
         default=MCPTransportType.SSE, description="Type of server to run (studio, sse or http-streaming)"
     )
     mount_path: str | None = None
-    log_level: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
+    log_level: str = "INFO"  # Changed to str to accept from add_logging_arguments
+    log_file: str | None = None
+    log_dir: str | None = None
+    log_format: str | None = None
     env_file: str = ".env"
     no_env_file: bool = False
     slack_token: str | None = None

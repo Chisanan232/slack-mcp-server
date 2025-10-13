@@ -26,6 +26,11 @@ const sidebars: SidebarsConfig = {
       label: '🎨 Coding Styles and Rules',
     },
     {
+      type: 'doc',
+      id: 'logging',
+      label: '📋 Logging System',
+    },
+    {
       type: 'category',
       label: '🏗️ Architecture',
       collapsed: false,

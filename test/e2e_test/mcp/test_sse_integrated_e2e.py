@@ -27,7 +27,7 @@ pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("e2e_test_sse_integrated")
+logger = logging.getLogger(__name__)
 
 
 def load_env() -> None:  # noqa: D401 – fixture
