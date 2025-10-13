@@ -58,7 +58,7 @@ Both servers support multiple queue backend options for handling asynchronous op
 
 ```bash
 # Queue backend selection
-QUEUE_BACKEND="memory"    # Options: memory | redis | kafka
+QUEUE_BACKEND="memory"    # Options: memory | redis | kafka | custom_backend_name
 
 # Redis backend settings (when QUEUE_BACKEND=redis)
 REDIS_URL="redis://localhost:6379/0"
@@ -71,6 +71,15 @@ KAFKA_BOOTSTRAP="broker1:9092,broker2:9092"
 - **memory**: In-memory queue (default, good for development)
 - **redis**: Redis-based queue (recommended for production)
 - **kafka**: Apache Kafka (for high-throughput scenarios)
+- **custom plugins**: Any custom queue backend plugin you develop
+
+:::tip Develop Custom Queue Backend Plugins
+You can extend the system with custom queue backends (e.g., RabbitMQ, AWS SQS, Google Pub/Sub) by implementing the `QueueBackend` protocol. 
+
+Use the **[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/Slack-MCP-Server-Backend-MQ-Template)** to quickly create your own queue backend plugins with best practices and complete project structure.
+
+📚 **Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
+:::
 
 ## Environment File Examples
 

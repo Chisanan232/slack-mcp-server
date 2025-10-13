@@ -235,6 +235,17 @@ We welcome contributions! Please see our [Contributing Guide](https://chisanan23
 3. **[Join Discussions](https://chisanan232.github.io/slack-mcp-server/docs/next/contribute/discuss)** - Connect with the community
 4. **[Development Setup](https://chisanan232.github.io/slack-mcp-server/dev/next/workflow)** - Start contributing code
 
+### Extend with Custom Queue Backend Plugins
+
+Want to add support for additional message queue systems? Create custom queue backend plugins using our template:
+
+**[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/Slack-MCP-Server-Backend-MQ-Template)** - Quick-start template for developing queue backend plugins
+- Complete project structure with best practices
+- Pre-configured CI/CD workflows  
+- Comprehensive documentation
+
+📚 **Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
+
 ## License
 
 [MIT License](./LICENSE)
