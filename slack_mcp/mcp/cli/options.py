@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 
-from .models import LogLevel, MCPServerCliOptions, MCPTransportType
+from slack_mcp.logging.config import add_logging_arguments
+
+from .models import MCPServerCliOptions, MCPTransportType
 
 
 def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: D401 – helper
@@ -34,13 +36,6 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
         help="Mount path for HTTP transports (unused for streamable-http transport)",
     )
     parser.add_argument(
-        "--log-level",
-        type=str,
-        default="info",
-        choices=[level.value for level in LogLevel],
-        help="Logging level",
-    )
-    parser.add_argument(
         "--env-file",
         default=".env",
         help="Path to .env file (default: .env in current directory)",
@@ -66,4 +61,8 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
         default=3,
         help="Number of retry attempts for network operations (default: 3)",
     )
+
+    # Add centralized logging arguments
+    parser = add_logging_arguments(parser)
+
     return MCPServerCliOptions.deserialize(parser.parse_args(argv))

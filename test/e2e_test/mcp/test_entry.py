@@ -81,8 +81,8 @@ def _patch_entry(monkeypatch: pytest.MonkeyPatch) -> Generator[SimpleNamespace, 
     # Replace uvicorn.run with a non-blocking stub
     monkeypatch.setattr("uvicorn.run", lambda *args, **kwargs: None)
 
-    # Replace logging with a no-op function
-    monkeypatch.setattr(logging, "basicConfig", lambda *args, **kwargs: None)
+    # Replace setup_logging_from_args with a no-op function (new centralized logging)
+    monkeypatch.setattr("slack_mcp.mcp.entry.setup_logging_from_args", lambda *args, **kwargs: None)
 
     # Replace integrated app creation with a mock - now using IntegratedServerFactory
     mock_integrated_app = SimpleNamespace()

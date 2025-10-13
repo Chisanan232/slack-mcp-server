@@ -27,7 +27,7 @@ __all__: list[str] = [
 ]
 
 # Logger for this module
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.client.manager")
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 
 class SlackClientManager:

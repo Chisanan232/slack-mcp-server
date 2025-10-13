@@ -205,33 +205,36 @@ The MCP server can be started using multiple execution methods:
 
 #### `--log-level`
 **Type**: `String`  
-**Choices**: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`  
+**Choices**: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL` (case-insensitive)  
 **Default**: `INFO`  
-**Description**: Sets the logging verbosity level.
+**Description**: Sets the logging verbosity level. Accepts both uppercase and lowercase values (e.g., `debug`, `DEBUG`, `Debug` all work).
 
 <Tabs>
   <TabItem value="console" label="Console Script" default>
   ```bash
+  # Case-insensitive - all these work the same way
+  slack-mcp-server --log-level debug
   slack-mcp-server --log-level DEBUG
-  slack-mcp-server --log-level INFO
+  slack-mcp-server --log-level info
   slack-mcp-server --log-level ERROR
   ```
   </TabItem>
   <TabItem value="python" label="Python Module">
   ```bash
-  python -m slack_mcp.mcp --log-level DEBUG
+  # Case-insensitive
+  python -m slack_mcp.mcp --log-level debug
   python -m slack_mcp.mcp --log-level INFO
-  python -m slack_mcp.mcp --log-level ERROR
+  python -m slack_mcp.mcp --log-level warning
   ```
   </TabItem>
   <TabItem value="poetry" label="Poetry">
   ```bash
-  poetry run slack-mcp-server --log-level DEBUG
+  poetry run slack-mcp-server --log-level debug
   ```
   </TabItem>
   <TabItem value="uv" label="UV">
   ```bash
-  uv run slack-mcp-server --log-level DEBUG
+  uv run slack-mcp-server --log-level debug
   ```
   </TabItem>
 </Tabs>
@@ -242,6 +245,41 @@ The MCP server can be started using multiple execution methods:
 - **WARNING**: Warning messages for potentially problematic situations.
 - **ERROR**: Error messages for serious problems.
 - **CRITICAL**: Critical error messages for fatal problems.
+
+:::tip Case-Insensitive Input
+The `--log-level` option accepts any case variation (`debug`, `DEBUG`, `Debug`, etc.), making it more user-friendly and compatible with different scripting conventions.
+:::
+
+#### `--log-file`
+**Type**: `String`  
+**Default**: None (console only)  
+**Description**: Path to log file. When specified, logs are written to both console and file with automatic rotation.
+
+```bash
+slack-mcp-server --log-file /var/log/slack-mcp.log
+```
+
+#### `--log-dir`
+**Type**: `String`  
+**Default**: `logs`  
+**Description**: Directory for log files when `--log-file` is a relative path.
+
+```bash
+slack-mcp-server --log-dir /var/log/slack-mcp
+```
+
+#### `--log-format`
+**Type**: `String`  
+**Default**: `%(asctime)s [%(levelname)8s] %(name)s: %(message)s`  
+**Description**: Custom log message format using Python logging format syntax.
+
+```bash
+slack-mcp-server --log-format "%(asctime)s %(levelname)s: %(message)s"
+```
+
+:::info Logging Configuration
+For detailed logging configuration including file rotation, environment variables, and programmatic usage, see the [Logging Configuration Guide](../logging-configuration).
+:::
 
 ### Connection Options
 

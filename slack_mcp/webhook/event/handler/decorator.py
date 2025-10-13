@@ -30,7 +30,7 @@ from .base import EventHandler
 
 __all__ = ["DecoratorHandler"]
 
-_LOG = logging.getLogger("slack_mcp.handler.decorator")
+_LOG = logging.getLogger(__name__)
 
 # Type for event handlers - can be sync or async functions
 # F = TypeVar("F", bound=Callable[[Dict[str, Any]], Any])

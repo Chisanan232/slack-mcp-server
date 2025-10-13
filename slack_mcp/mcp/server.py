@@ -39,7 +39,7 @@ __all__: list[str] = [
 ]
 
 # Logger for this module
-_LOG: Final[logging.Logger] = logging.getLogger("slack_mcp.server")
+_LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
 # Default token from environment
 _DEFAULT_TOKEN = os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")

@@ -20,7 +20,7 @@ from typing import (
 
 __all__ = ["BaseSlackEventHandler", "EventHandler"]
 
-_LOG = logging.getLogger("slack_mcp.handler.base")
+_LOG = logging.getLogger(__name__)
 
 
 @runtime_checkable

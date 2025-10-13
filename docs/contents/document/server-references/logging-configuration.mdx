@@ -1,0 +1,432 @@
+---
+id: logging-configuration
+title: Logging Configuration
+sidebar_position: 4
+---
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+# Logging Configuration
+
+This guide covers how to configure logging for both the **Slack MCP Server** and **Slack Webhook Server**, including command-line options, environment variables, and file logging.
+
+## Quick Start
+
+### Basic Logging
+
+By default, both servers log to console with INFO level:
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Using UV
+  uv run slack-mcp-server
+  
+  # Using console script
+  slack-mcp-server
+  
+  # Using Python module
+  python -m slack_mcp.mcp
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Using UV
+  uv run slack-webhook-server
+  
+  # Using console script
+  slack-webhook-server
+  
+  # Using Python module
+  python -m slack_mcp.webhook
+  ```
+  </TabItem>
+</Tabs>
+
+### Debug Logging
+
+Enable detailed logging for troubleshooting (works for both servers):
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Case-insensitive - all these work
+  uv run slack-mcp-server --log-level debug
+  uv run slack-mcp-server --log-level DEBUG
+  slack-mcp-server --log-level info
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Case-insensitive - all these work
+  uv run slack-webhook-server --log-level debug
+  uv run slack-webhook-server --log-level DEBUG
+  slack-webhook-server --log-level info
+  ```
+  </TabItem>
+</Tabs>
+
+### File Logging
+
+Write logs to a file with automatic rotation (works for both servers):
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  slack-mcp-server \
+    --log-level info \
+    --log-file /var/log/slack-mcp.log
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  slack-webhook-server \
+    --log-level info \
+    --log-file /var/log/slack-webhook.log
+  ```
+  </TabItem>
+</Tabs>
+
+## Command-Line Options
+
+### Log Level
+
+Control the verbosity of log output:
+
+```bash
+# Case-insensitive - all these work
+slack-mcp-server --log-level debug    # Most verbose
+slack-mcp-server --log-level info     # General information
+slack-mcp-server --log-level warning  # Warnings only
+slack-mcp-server --log-level error    # Errors only
+slack-mcp-server --log-level critical # Critical errors only
+```
+
+:::tip Case-Insensitive
+You can use any case: `debug`, `DEBUG`, `Debug`, `DeBuG` - they all work the same way!
+:::
+
+**Available Log Levels**:
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| `DEBUG` | Detailed diagnostic information | Development and troubleshooting |
+| `INFO` | General informational messages | Production monitoring |
+| `WARNING` | Warning messages | Potentially problematic situations |
+| `ERROR` | Error messages | Serious problems |
+| `CRITICAL` | Critical error messages | Fatal problems |
+
+### Log File
+
+Specify a log file to write logs alongside console output:
+
+```bash
+# Absolute path
+slack-mcp-server --log-file /var/log/slack-mcp.log
+
+# Relative path (uses --log-dir)
+slack-mcp-server --log-file slack-mcp.log
+```
+
+**Features**:
+- **Automatic Rotation**: Files rotate at 10MB
+- **Backup Files**: Keeps 5 backup files
+- **Dual Output**: Logs to both console and file simultaneously
+
+### Log Directory
+
+Set the directory for log files when using relative paths:
+
+```bash
+slack-mcp-server \
+  --log-dir /var/log/slack-mcp \
+  --log-file server.log
+# Logs to: /var/log/slack-mcp/server.log
+```
+
+**Default**: `logs/` in current working directory
+
+### Log Format
+
+Customize the log message format:
+
+```bash
+slack-mcp-server \
+  --log-format "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+```
+
+**Default Format**: `%(asctime)s [%(levelname)8s] %(name)s: %(message)s`
+
+**Format Variables**:
+- `%(asctime)s` - Timestamp
+- `%(levelname)s` - Log level (DEBUG, INFO, etc.)
+- `%(name)s` - Logger name (module path)
+- `%(message)s` - Log message
+- `%(lineno)d` - Line number
+- `%(funcName)s` - Function name
+
+## Environment Variables
+
+Configure logging via environment variables:
+
+```bash
+# Set log level
+export LOG_LEVEL=debug
+
+# Set log file
+export LOG_FILE=/var/log/slack-mcp.log
+
+# Set log directory
+export LOG_DIR=/var/log
+
+# Set log format
+export LOG_FORMAT="%(asctime)s %(levelname)s: %(message)s"
+
+# Run server (uses environment variables)
+slack-mcp-server
+```
+
+:::info Priority
+Command-line arguments override environment variables.
+:::
+
+## Common Use Cases
+
+### Development
+
+Enable verbose logging for development:
+
+<Tabs>
+  <TabItem value="cli" label="Command Line" default>
+  ```bash
+  uv run slack-mcp-server \
+    --transport stdio \
+    --log-level debug
+  ```
+  </TabItem>
+  <TabItem value="env" label="Environment Variables">
+  ```bash
+  export LOG_LEVEL=debug
+  uv run slack-mcp-server --transport stdio
+  ```
+  </TabItem>
+</Tabs>
+
+### Production
+
+Production configuration with file logging:
+
+```bash
+slack-mcp-server \
+  --transport sse \
+  --host 0.0.0.0 \
+  --port 3001 \
+  --log-level info \
+  --log-file /var/log/slack-mcp/server.log \
+  --log-dir /var/log/slack-mcp
+```
+
+### Docker Container
+
+Configure logging for containerized deployments:
+
+```dockerfile
+# Dockerfile
+ENV LOG_LEVEL=info
+ENV LOG_FORMAT="%(asctime)s %(levelname)s: %(message)s"
+
+CMD ["slack-mcp-server", "--transport", "sse"]
+```
+
+```bash
+# Docker run
+docker run -e LOG_LEVEL=debug slack-mcp-server
+```
+
+### Systemd Service
+
+Configure logging in a systemd service:
+
+```ini
+[Unit]
+Description=Slack MCP Server
+After=network.target
+
+[Service]
+Type=simple
+User=slack-mcp
+Environment="LOG_LEVEL=info"
+Environment="LOG_FILE=/var/log/slack-mcp/server.log"
+ExecStart=/usr/local/bin/slack-mcp-server --transport sse --host 0.0.0.0
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+```
+
+### Testing
+
+Enable verbose logging for test troubleshooting:
+
+```bash
+# Temporary verbose logging
+slack-mcp-server --log-level debug --transport stdio
+
+# Or with environment variable
+LOG_LEVEL=debug slack-mcp-server --transport stdio
+```
+
+## Log File Management
+
+### Rotation Behavior
+
+Log files automatically rotate when they reach **10MB**:
+
+```
+slack-mcp.log           # Current log
+slack-mcp.log.1         # Most recent backup
+slack-mcp.log.2         # Second most recent
+slack-mcp.log.3
+slack-mcp.log.4
+slack-mcp.log.5         # Oldest backup (deleted on next rotation)
+```
+
+### Custom Log Location
+
+Organize logs by environment or server type:
+
+```bash
+# Development
+slack-mcp-server \
+  --log-file /var/log/slack-mcp/dev-server.log \
+  --log-level debug
+
+# Production
+slack-mcp-server \
+  --log-file /var/log/slack-mcp/prod-server.log \
+  --log-level info
+
+# By date
+slack-mcp-server \
+  --log-file "/var/log/slack-mcp/server-$(date +%Y%m%d).log"
+```
+
+## External Libraries
+
+The logging system automatically reduces noise from external libraries:
+
+**Silenced Libraries** (ERROR level only):
+- `uvicorn` - ASGI server logs
+- `httpx` - HTTP client logs
+- `asyncio` - Async event loop logs
+
+This keeps your logs clean and focused on your application logic.
+
+## Monitoring and Analysis
+
+### Log Patterns
+
+Common log patterns to monitor:
+
+```bash
+# Watch for errors
+tail -f /var/log/slack-mcp.log | grep ERROR
+
+# Monitor specific module
+tail -f /var/log/slack-mcp.log | grep "slack_mcp.mcp"
+
+# Count log levels
+cat /var/log/slack-mcp.log | grep -o '\[.*\]' | sort | uniq -c
+```
+
+### Integration with Log Aggregators
+
+The structured log format works well with log aggregation tools:
+
+**Fluentd**:
+```xml
+<source>
+  @type tail
+  path /var/log/slack-mcp/*.log
+  tag slack.mcp
+  format /^(?<time>[^ ]*) \[(?<level>[^\]]*)\] (?<logger>[^:]*): (?<message>.*)$/
+</source>
+```
+
+**Logstash**:
+```ruby
+filter {
+  grok {
+    match => { "message" => "%{TIMESTAMP_ISO8601:timestamp} \[%{LOGLEVEL:level}\] %{DATA:logger}: %{GREEDYDATA:message}" }
+  }
+}
+```
+
+## Troubleshooting
+
+### No Log Output
+
+If logs aren't appearing:
+
+1. **Check log level**: Ensure messages match the configured level
+   ```bash
+   slack-mcp-server --log-level debug  # Most verbose
+   ```
+
+2. **Verify file permissions**: Ensure write permissions for log files
+   ```bash
+   chmod 755 /var/log/slack-mcp
+   touch /var/log/slack-mcp/server.log
+   chmod 644 /var/log/slack-mcp/server.log
+   ```
+
+3. **Check environment variables**: Command-line args override env vars
+   ```bash
+   # Clear environment variables
+   unset LOG_LEVEL LOG_FILE
+   slack-mcp-server --log-level debug
+   ```
+
+### Log File Not Rotating
+
+If log rotation isn't working:
+
+1. **Check file size**: Rotation occurs at 10MB
+   ```bash
+   ls -lh /var/log/slack-mcp/
+   ```
+
+2. **Verify write permissions**: Server needs permission to create backup files
+
+3. **Check disk space**: Ensure sufficient space for rotation
+   ```bash
+   df -h /var/log
+   ```
+
+### Performance Impact
+
+High log levels can impact performance:
+
+- **DEBUG**: Use only in development or troubleshooting
+- **INFO**: Good for production with moderate traffic
+- **WARNING**: Minimal impact, recommended for high-traffic production
+
+## Best Practices
+
+1. **Use INFO in production**: Balances detail with performance
+2. **Enable file logging**: Always log to files in production
+3. **Monitor log files**: Set up alerts for ERROR and CRITICAL logs
+4. **Use case-insensitive**: Write `--log-level debug` for better readability
+5. **Rotate logs**: Let the automatic rotation handle file management
+6. **Structured formats**: Use consistent log formats for parsing
+7. **Environment-specific levels**: DEBUG for dev, INFO for production
+
+## Next Steps
+
+- [MCP Server CLI Reference](./mcp-server/mcp-server-cli-reference) - MCP server command-line options
+- [Webhook Server CLI Reference](./webhook-server/webhook-server-cli-reference) - Webhook server command-line options
+- [Deployment Guide](./deployment-guide) - Production deployment patterns
+- [Environment Configuration](./environment-configuration) - Environment variables reference

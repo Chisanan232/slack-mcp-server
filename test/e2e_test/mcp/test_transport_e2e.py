@@ -12,7 +12,7 @@ pytestmark = pytest.mark.asyncio
 
 # Set up logging for better diagnostics
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("transport_e2e_test")
+logger = logging.getLogger(__name__)
 
 
 class _DummyServer:
@@ -74,6 +74,7 @@ async def test_server_http_transports(transport, mount_path, warning_expected, c
     with (
         patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server),
         patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server),
+        patch("slack_mcp.mcp.entry.setup_logging_from_args"),
         patch("uvicorn.run") as mock_uvicorn_run,
     ):
 
@@ -124,6 +125,7 @@ async def test_server_stdio_transport():
     with (
         patch("slack_mcp.mcp.app.mcp_factory.get", return_value=mock_server),
         patch("slack_mcp.mcp.entry.mcp_factory.get", return_value=mock_server),
+        patch("slack_mcp.mcp.entry.setup_logging_from_args"),
     ):
         # Run the main entry point
         entry.main(argv)
