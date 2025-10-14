@@ -28,6 +28,27 @@ The release system follows modern DevOps practices with:
 
 ## Release Workflows
 
+:::info Reusable Workflow Architecture
+
+The release workflows in this project leverage **centralized reusable workflows** from the Template-Python-UV-Project repository. This architecture provides:
+
+- **Centralized Logic**: Core release logic maintained in the template repository
+- **Consistency**: All projects using the template benefit from the same battle-tested workflows
+- **Easy Updates**: Workflow improvements automatically available to all child projects
+- **Reduced Maintenance**: No need to duplicate complex workflow logic in each project
+
+**Reusable Workflows Used:**
+- [`rw_release_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_complete.yaml) - Production release logic
+- [`rw_release_validation_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_validation_complete.yaml) - Validation logic
+- [`rw_release_staging_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_staging_complete.yaml) - Staging release logic
+
+**Template Repository Resources:**
+- 🏛️ **Repository**: [Chisanan232/Template-Python-UV-Project](https://github.com/Chisanan232/Template-Python-UV-Project)
+- 📖 **Documentation**: [Template Project Documentation](https://chisanan232.github.io/Template-Python-UV-Project)
+- 🔄 **Workflows Directory**: [`.github/workflows/`](https://github.com/Chisanan232/Template-Python-UV-Project/tree/master/.github/workflows)
+
+:::
+
 ### 1. Production Release Workflow ([`release.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/release.yml))
 
 [![Release](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release.yml)
