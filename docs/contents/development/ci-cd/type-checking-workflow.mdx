@@ -82,6 +82,7 @@ uv build --sdist --wheel
 - [PEP 484](https://peps.python.org/pep-0484/) - Type Hints
 - [PEP 585](https://peps.python.org/pep-0585/) - Type Hinting Generics
 - [PEP 544](https://peps.python.org/pep-0544/) - Protocols (Structural Subtyping)
+- [PEP 695](https://peps.python.org/pep-0695/) - Type Parameter Syntax (Python 3.12+)
 
 ### 2. Type Import Testing (`test-type-imports`)
 
@@ -182,9 +183,102 @@ Aggregates results from all validation jobs and provides a comprehensive status 
 - PEP 484: Type Hints
 - PEP 585: Type Hinting Generics
 - PEP 544: Protocols (Structural Subtyping)
+- PEP 695: Type Parameter Syntax (Python 3.12+)
 ```
 
 **Failure Handling**: The workflow fails if any validation job does not succeed, ensuring type distribution compliance is maintained.
+
+---
+
+## Type Definition Standards
+
+The Slack MCP Server follows modern Python typing standards with comprehensive type definitions in `slack_mcp/types.py`.
+
+### PEP 695 Type Aliases (Python 3.12+)
+
+All type aliases use the modern `type` statement syntax introduced in [PEP 695](https://peps.python.org/pep-0695/):
+
+**Modern Syntax (PEP 695):**
+```python
+# Simple type aliases
+type SlackChannelID = str
+type SlackUserID = str
+
+# Generic type aliases
+type JSONDict = Dict[str, JSONValue]
+type JSONList = List[JSONValue]
+
+# Union type aliases
+type JSONPrimitive = Union[str, int, float, bool, None]
+type EventHandlerFunc = Union[SyncEventHandlerFunc, AsyncEventHandlerFunc]
+
+# Literal type aliases
+type TransportType = Literal["stdio", "sse", "streamable-http"]
+```
+
+**Benefits over TypeAlias annotation:**
+- ✅ **Cleaner syntax** - More concise and readable
+- ✅ **Better type inference** - Type checkers understand it natively
+- ✅ **No forward reference quotes** - Automatic resolution of forward references
+- ✅ **SonarQube compliant** - Resolves python:S6794 rule violations
+- ✅ **Modern standard** - Recommended for Python 3.12+
+
+### Type Categories
+
+**JSON Types:**
+```python
+type JSONPrimitive = Union[str, int, float, bool, None]
+type JSONValue = Union[JSONPrimitive, JSONDict, JSONList]
+type JSONDict = Dict[str, JSONValue]
+type JSONList = List[JSONValue]
+```
+
+**Slack Types:**
+```python
+type SlackChannelID = str
+type SlackUserID = str
+type SlackTimestamp = str
+type SlackToken = str
+type SlackEventPayload = Dict[str, Any]
+```
+
+**Handler Types:**
+```python
+type SyncEventHandlerFunc = Callable[[SlackEventPayload], None]
+type AsyncEventHandlerFunc = Callable[[SlackEventPayload], Awaitable[None]]
+type EventHandlerFunc = Union[SyncEventHandlerFunc, AsyncEventHandlerFunc]
+```
+
+**Protocol Types (PEP 544):**
+```python
+@runtime_checkable
+class EventHandlerProtocol(Protocol):
+    async def handle_event(self, event: SlackEventPayload) -> None: ...
+
+@runtime_checkable
+class QueueBackendProtocol(Protocol):
+    async def publish(self, key: QueueKey, payload: QueuePayload) -> None: ...
+    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[QueueMessage]: ...
+```
+
+### Type Guards
+
+Runtime type validation functions for Slack-specific types:
+
+```python
+def is_slack_channel_id(value: str) -> bool:
+    """Check if string is a valid Slack channel ID."""
+    return value.startswith(("C", "G", "D", "#"))
+
+def is_slack_user_id(value: str) -> bool:
+    """Check if string is a valid Slack user ID."""
+    return value.startswith(("U", "W", "B"))
+
+def is_slack_timestamp(value: str) -> bool:
+    """Check if string is a valid Slack timestamp."""
+    parts = value.split(".")
+    return len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit()
+```
 
 ---
 
@@ -316,6 +410,20 @@ This script performs all validation steps automatically and provides a detailed 
   ```bash
   uv sync --all-extras
   ```
+
+**SonarQube python:S6794 Violations**
+- **Symptom**: SonarQube reports "Use PEP 695 type aliases" for `TypeAlias` usage
+- **Solution**: Use modern `type` statement syntax instead of `TypeAlias` annotation
+- **Migration**:
+  ```python
+  # ❌ Old style (triggers S6794)
+  from typing import TypeAlias
+  MyType: TypeAlias = str
+  
+  # ✅ New style (PEP 695)
+  type MyType = str
+  ```
+- **Requirement**: Python 3.12+ (already required by this project)
 
 ### Debug Configuration
 

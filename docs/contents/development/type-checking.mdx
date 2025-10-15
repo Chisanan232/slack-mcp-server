@@ -15,10 +15,11 @@ This project follows these Python Enhancement Proposals:
 - **[PEP 484](https://peps.python.org/pep-0484/)**: Type Hints
 - **[PEP 585](https://peps.python.org/pep-0585/)**: Type Hinting Generics In Standard Collections
 - **[PEP 544](https://peps.python.org/pep-0544/)**: Protocols: Structural subtyping (static duck typing)
+- **[PEP 695](https://peps.python.org/pep-0695/)**: Type Parameter Syntax (Python 3.12+)
 
 ## Type Module
 
-The `slack_mcp.types` module provides centralized type definitions for the entire package:
+The `slack_mcp.types` module provides centralized type definitions for the entire package using modern **PEP 695** type alias syntax:
 
 ```python
 from slack_mcp import types
@@ -28,6 +29,31 @@ def handle_event(event: types.SlackEventPayload) -> None:
     channel: types.SlackChannelID = event.get("channel", "")
     timestamp: types.SlackTimestamp = event.get("ts", "")
     print(f"Event in {channel} at {timestamp}")
+```
+
+### Modern Type Alias Syntax (PEP 695)
+
+All type aliases in `slack_mcp/types.py` use the modern `type` statement introduced in Python 3.12:
+
+```python
+# Modern PEP 695 syntax
+type SlackChannelID = str
+type SlackUserID = str
+type JSONDict = Dict[str, JSONValue]
+type TransportType = Literal["stdio", "sse", "streamable-http"]
+```
+
+**Benefits:**
+- ✅ **Cleaner syntax** - More concise than `TypeAlias` annotation
+- ✅ **Better type inference** - Native support in type checkers
+- ✅ **No forward references** - Automatic resolution without quotes
+- ✅ **SonarQube compliant** - Resolves python:S6794 violations
+
+**Old style (deprecated):**
+```python
+# ❌ Avoid - triggers SonarQube python:S6794
+from typing import TypeAlias
+SlackChannelID: TypeAlias = str
 ```
 
 ### Available Type Definitions
@@ -308,4 +334,6 @@ When contributing to the project:
 - [PEP 484 – Type Hints](https://peps.python.org/pep-0484/)
 - [PEP 585 – Type Hinting Generics](https://peps.python.org/pep-0585/)
 - [PEP 544 – Protocols](https://peps.python.org/pep-0544/)
+- [PEP 695 – Type Parameter Syntax](https://peps.python.org/pep-0695/)
 - [MyPy Documentation](https://mypy.readthedocs.io/)
+- [SonarQube python:S6794 Rule](https://rules.sonarsource.com/python/RSPEC-6794/)
