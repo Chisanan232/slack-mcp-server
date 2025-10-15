@@ -28,9 +28,30 @@ The release system follows modern DevOps practices with:
 
 ## Release Workflows
 
+:::info Reusable Workflow Architecture
+
+The release workflows in this project leverage **centralized reusable workflows** from the Template-Python-UV-Project repository. This architecture provides:
+
+- **Centralized Logic**: Core release logic maintained in the template repository
+- **Consistency**: All projects using the template benefit from the same battle-tested workflows
+- **Easy Updates**: Workflow improvements automatically available to all child projects
+- **Reduced Maintenance**: No need to duplicate complex workflow logic in each project
+
+**Reusable Workflows Used:**
+- [`rw_release_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_complete.yaml) - Production release logic
+- [`rw_release_validation_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_validation_complete.yaml) - Validation logic
+- [`rw_release_staging_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_staging_complete.yaml) - Staging release logic
+
+**Template Repository Resources:**
+- 🏛️ **Repository**: [Chisanan232/Template-Python-UV-Project](https://github.com/Chisanan232/Template-Python-UV-Project)
+- 📖 **Documentation**: [Template Project Documentation](https://chisanan232.github.io/Template-Python-UV-Project)
+- 🔄 **Workflows Directory**: [`.github/workflows/`](https://github.com/Chisanan232/Template-Python-UV-Project/tree/master/.github/workflows)
+
+:::
+
 ### 1. Production Release Workflow ([`release.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/release.yml))
 
-[![Release](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release.yml/badge.svg)](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release.yml)
+[![Release](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release.yml)
 
 **Purpose**: Production releases to PyPI, Docker registries, and documentation deployment
 
@@ -46,25 +67,32 @@ graph TD
     A --> C[Parse Release Intent]
     B --> C
     
-    C --> D[Version Bump]
-    B --> E[Config Outputs]
-    E --> F[Docker Registry URLs]
-    E --> G[Git Commit Settings]  
-    E --> H[Documentation Paths]
+    C --> D[Check Dockerfile]
+    D -->|Exists| E[Enable Docker Jobs]
+    D -->|Missing| F[Skip Docker Jobs]
     
-    D --> I[Python Package]
-    D --> J[Docker Images]
-    D --> K[Documentation]
+    C --> G[Version Bump]
+    B --> H[Config Outputs]
+    H --> I[Docker Registry URLs]
+    H --> J[Git Commit Settings]  
+    H --> K[Documentation Paths]
     
-    I --> L[PyPI via OIDC]
-    J --> M[Docker Hub - Config Based]
-    J --> N[GitHub Container Registry - Config Based]
-    K --> O[Docusaurus Versioning - Config Based]
+    G --> L[Python Package]
+    G --> M[Docker Images]
+    G --> N[Documentation]
     
-    I & J & K --> P[Supply Chain Security]
-    P --> Q[SBOM Generation]
-    P --> R[Cosign Signing]  
-    P --> S[SLSA Attestation]
+    E --> M
+    F -.->|Skipped| M
+    
+    L --> O[PyPI via OIDC]
+    M --> P[Docker Hub - Config Based]
+    M --> Q[GitHub Container Registry - Config Based]
+    N --> R[Docusaurus Versioning - Config Based]
+    
+    L & M & N --> S[Supply Chain Security]
+    S --> T[SBOM Generation]
+    S --> U[Cosign Signing]  
+    S --> V[SLSA Attestation]
 ```
 
 #### Enhanced Workflow Steps
@@ -85,7 +113,23 @@ config:
 - Auto-detects project name and package name from repository and [`pyproject.toml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/pyproject.toml)
 - Applies smart defaults for missing configuration sections
 
-**Step 2: Release Intent Analysis** 
+**Step 2: Dockerfile Detection** 🆕
+```yaml
+check-dockerfile:
+  name: Check Dockerfile Exists
+  runs-on: ubuntu-latest
+  outputs:
+    has_dockerfile: ${{ steps.check.outputs.has_dockerfile }}
+```
+
+> 📋 **Template Workflow**: Integrated into [`rw_release_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_complete.yaml)
+
+- Checks for `Dockerfile` in repository root
+- Sets `has_dockerfile` output for downstream Docker jobs
+- Enables conditional execution of all Docker-related processes
+- Provides clear logging for Docker availability
+
+**Step 3: Release Intent Analysis** 
 ```yaml
 intent:
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_release_intent.yaml@master
@@ -97,6 +141,29 @@ intent:
 - Validates release intent against enhanced JSON schema
 - Compatible with both legacy and enhanced configuration formats
 - Determines release artifacts (python, docker, docs) based on configuration
+
+#### Automatic Dockerfile Detection 🆕
+
+All release workflows now automatically detect the presence of a `Dockerfile` in the repository root:
+
+- ✅ **Dockerfile exists**: Docker processes run based on configuration (`auto`, `force`, `skip`)
+- ⚠️ **No Dockerfile**: Docker processes are automatically skipped with clear logging
+- 📋 **Summary output**: Workflow summaries clearly indicate when Docker was skipped
+
+**Affected Workflows:**
+- **Production Release**: Skips Docker Hub and GHCR publishing
+- **Validation**: Skips Docker build validation and security scanning  
+- **Staging**: Skips Docker Hub and GHCR RC image publishing
+
+**Example Output:**
+```
+=== Release Summary ===
+Dockerfile Check: ⚠️ Not Found (Docker skipped)
+DockerHub Build: ⏭️ Skipped (no Dockerfile)
+GHCR Build: ⏭️ Skipped (no Dockerfile)
+```
+
+This allows the template workflows to work seamlessly for Python-only projects.
 
 #### Multi-Target Deployments
 
@@ -110,15 +177,16 @@ intent:
    - Builds from correct bumped version (e.g., 0.0.1, not 0.0.0)
 
 2. **Docker Image** (`GHCR` & `DockerHub`) - **Config Enhanced**:
+   - **Automatic Dockerfile Detection**: Conditionally executes based on Dockerfile presence
    - **Config-Based Registry URLs**: 
      - **Docker Hub**: Uses `${{ needs.config.outputs.docker_registry_dockerhub }}`
      - **GHCR**: Uses `${{ needs.config.outputs.docker_registry_ghcr }}`
    - **Health Check Configuration**: Uses config-based `${{ needs.config.outputs.docker_health_check_path }}` and `${{ needs.config.outputs.docker_health_check_port }}`
    - **Application Environment**: Uses `${{ needs.config.outputs.docker_app_env_name }}` and `${{ needs.config.outputs.docker_app_env_value }}`
-   - **Dual Registry Publishing**: Publishes to both registries simultaneously
+   - **Dual Registry Publishing**: Publishes to both registries simultaneously (when Dockerfile exists)
    - **Parallel Publishing Jobs**: Separate jobs ensure isolated registry operations
    - **Multi-architecture builds**: amd64, arm64 support for both registries
-   - **Supply Chain Security**: SBOM generation, Cosign signing, SLSA attestation
+   - **Supply Chain Security**: SBOM generation, Cosign signing, SLSA attestation (when Dockerfile exists)
    - **Registry-Specific Authentication**: GHCR uses GitHub token, Docker Hub uses dedicated credentials
    - **Consistent Tagging**: Same version tags applied to both registries
    - **Fixed**: Uses correct version tags from git sync fix
@@ -149,7 +217,7 @@ intent:
 
 ### 2. Release Validation Workflow (`release-validate.yml`)
 
-[![Release Validation](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release-validate.yml/badge.svg)](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release-validate.yml)
+[![Release Validation](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release-validate.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release-validate.yml)
 
 **Purpose**: Pre-release validation without publishing artifacts
 
@@ -165,21 +233,30 @@ graph TD
     A --> C[Parse Release Intent]
     B --> C
     
-    C --> D[Python Build Check]
-    C --> E[Docker Build & Test - Config Based]
-    C --> F[Docs Build Test - Config Based]
-    C --> G[Supply Chain Security]
+    C --> D[Check Dockerfile]
+    D -->|Exists| E[Enable Docker Validation]
+    D -->|Missing| F[Skip Docker Validation]
     
-    B --> H[Config Validation]
-    H --> I[Registry URL Validation]
-    H --> J[Documentation Path Validation]
-    H --> K[Git Config Validation]
+    C --> G[Python Build Check]
+    C --> H[Docker Build & Test - Config Based]
+    C --> I[Docs Build Test - Config Based]
+    C --> J[Supply Chain Security]
     
-    G --> L[SBOM Generation]
-    G --> M[Vulnerability Scanning]
-    G --> N[Security Attestation]
+    E --> H
+    E --> J
+    F -.->|Skipped| H
+    F -.->|Skipped| J
     
-    D & E & F & G & H --> O[Enhanced Validation Summary]
+    B --> K[Config Validation]
+    K --> L[Registry URL Validation]
+    K --> M[Documentation Path Validation]
+    K --> N[Git Config Validation]
+    
+    J --> O[SBOM Generation]
+    J --> P[Vulnerability Scanning]
+    J --> Q[Security Attestation]
+    
+    G & H & I & J & K --> R[Enhanced Validation Summary]
 ```
 
 **Step-by-Step Enhanced Validation:**
@@ -199,7 +276,22 @@ config:
 - Validates Docker registry URLs and health check configurations
 - Confirms documentation path accessibility
 
-**Step 2: Release Intent Validation**
+**Step 2: Dockerfile Detection**
+```yaml
+check-dockerfile:
+  name: Check Dockerfile Exists
+  runs-on: ubuntu-latest
+  outputs:
+    has_dockerfile: ${{ steps.check.outputs.has_dockerfile }}
+```
+
+> 📋 **Template Workflow**: Integrated into [`rw_release_validation_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_validation_complete.yaml)
+
+- Validates Dockerfile presence before Docker validation steps
+- Prevents validation failures for Python-only projects
+- Provides clear skip messages when no Dockerfile found
+
+**Step 3: Release Intent Validation**
 ```yaml
 intent-parse:
   uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_parse_release_intent.yaml@master
@@ -214,14 +306,15 @@ intent-parse:
 
 #### Enhanced Security Validation
 
+- **Dockerfile Detection**: Automatically skips Docker security scans when no Dockerfile present
 - **Defensive Checks**: Pre-flight image existence validation
-- **Vulnerability Scanning**: Grype integration for CVE detection
+- **Vulnerability Scanning**: Grype integration for CVE detection (when Dockerfile exists)
 - **Fallback SBOM**: Workspace scanning if Docker image scan fails
-- **Supply Chain Security**: Full SBOM, signing, and attestation testing
+- **Supply Chain Security**: Full SBOM, signing, and attestation testing (when Dockerfile exists)
 
 ### 3. Staging Release Workflow ([`release-staging.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/release-staging.yml))
 
-[![Release Staging](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release-staging.yml/badge.svg)](https://github.com/Chisanan232/Template-Python-UV-Project/actions/workflows/release-staging.yml)
+[![Release Staging](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release-staging.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/release-staging.yml)
 
 **Purpose**: Deploy to staging environments for testing with enhanced config-based customization
 
@@ -236,18 +329,25 @@ graph TD
     A --> C[Compute Staging Version]
     B --> C
     
-    C --> D[Staging Python Package]
-    C --> E[Staging Docker Images]
-    C --> F[Staging Documentation]
+    C --> D[Check Dockerfile]
+    D -->|Exists| E[Enable Docker Staging]
+    D -->|Missing| F[Skip Docker Staging]
     
-    D --> G[TestPyPI - Config Based]
-    E --> H[GHCR Staging - Config Based]
-    F --> I[Preview Branch - Config Based]
+    C --> G[Staging Python Package]
+    C --> H[Staging Docker Images]
+    C --> I[Staging Documentation]
     
-    B --> J[Config Outputs]
-    J --> K[Validation Version Settings]
-    J --> L[Custom Preview Branch]
-    J --> M[Registry URLs]
+    E --> H
+    F -.->|Skipped| H
+    
+    G --> J[TestPyPI - Config Based]
+    H --> K[GHCR Staging - Config Based]
+    I --> L[Preview Branch - Config Based]
+    
+    B --> M[Config Outputs]
+    M --> N[Validation Version Settings]
+    M --> O[Custom Preview Branch]
+    M --> P[Registry URLs]
 ```
 
 **Enhanced Staging Steps:**
@@ -265,7 +365,21 @@ config:
 - Provides validation version settings: `${{ needs.config.outputs.validation_version }}` and `${{ needs.config.outputs.validation_test_version }}`
 - Configures preview documentation branch: `${{ needs.config.outputs.docs_preview_branch }}`
 
-**Step 2: Staging Version Computation**
+**Step 2: Dockerfile Detection**
+```yaml
+check-dockerfile:
+  name: Check Dockerfile Exists
+  runs-on: ubuntu-latest
+  outputs:
+    has_dockerfile: ${{ steps.check.outputs.has_dockerfile }}
+```
+
+> 📋 **Template Workflow**: Integrated into [`rw_release_staging_complete.yaml`](https://github.com/Chisanan232/Template-Python-UV-Project/blob/master/.github/workflows/rw_release_staging_complete.yaml)
+
+- Checks Dockerfile presence before staging Docker operations
+- Ensures staging workflow works for Python-only projects
+
+**Step 3: Staging Version Computation**
 - Uses config-based validation version format
 - Creates release candidate versions with config-provided settings
 - Integrates with git configuration from config outputs
@@ -277,9 +391,10 @@ config:
    - Git commits with `${{ needs.config.outputs.git_commit_name }}` and `${{ needs.config.outputs.git_commit_email }}`
 
 2. **GHCR Staging** - **Config Enhanced**: 
-   - Docker images with `-rc` tags using `${{ needs.config.outputs.docker_registry_ghcr }}`
+   - Docker images with `-rc` tags using `${{ needs.config.outputs.docker_registry_ghcr }}` (when Dockerfile exists)
    - Health check validation using config-based `${{ needs.config.outputs.docker_health_check_path }}` and `${{ needs.config.outputs.docker_health_check_port }}`
    - Application environment testing with `${{ needs.config.outputs.docker_app_env_name }}` and `${{ needs.config.outputs.docker_app_env_value }}`
+   - Automatically skipped when no Dockerfile present
 
 3. **Documentation Preview** - **Config Enhanced**: 
    - Staging documentation branch using `${{ needs.config.outputs.docs_preview_branch }}`
@@ -347,6 +462,7 @@ graph LR
 ✅ **Validated**: Comprehensive pre-release validation  
 ✅ **Staged**: Safe staging environment testing  
 ✅ **Multi-Target**: Python, Docker, and docs deployment  
+✅ **Flexible**: Automatic Dockerfile detection - works for both Docker-based and Python-only projects  
 ✅ **Efficient**: Matrix-based concurrent processing  
 ✅ **Robust**: Fallback mechanisms and defensive checks
 
@@ -1369,6 +1485,10 @@ artifacts:
   docker: skip    # Skips both registries
 ```
 
+:::tip Automatic Dockerfile Detection
+The `docker` configuration setting is now enhanced with automatic Dockerfile detection. Even if you set `docker: force`, the workflow will gracefully skip Docker processes if no Dockerfile is found in the repository root. This ensures the same workflows work for both Docker-based and Python-only projects.
+:::
+
 :::info Dual Registry Publishing Details
 When `docker: auto` or `docker: force`, the workflow creates **two parallel jobs**:
 
@@ -1485,6 +1605,19 @@ notes: "Documentation update release"
 
 ### Behavioral Matrix
 
+#### Docker Configuration Behavior
+
+The `docker` setting now works in conjunction with automatic Dockerfile detection:
+
+| Dockerfile Exists | Config: `docker: auto` | Config: `docker: force` | Config: `docker: skip` |
+|-------------------|------------------------|-------------------------|------------------------|
+| ✅ Yes            | Publishes if changed   | Always publishes        | Always skips           |
+| ❌ No             | Skips (no Dockerfile)  | Skips (no Dockerfile)   | Always skips           |
+
+**Note**: Docker processes are automatically skipped when no Dockerfile is present, regardless of the configuration setting.
+
+#### Python and Documentation Behavior
+
 | Configuration | Changed Files | Behavior |
 |---------------|---------------|----------|
 | `python: auto` | Python files changed | ✅ Publishes to PyPI |
@@ -1585,6 +1718,14 @@ gh workflow run release-staging.yml
 5. **Release**: Merge to master for automatic release
 
 #### Troubleshooting
+
+**Q: Why are Docker jobs being skipped even though I have `docker: force` configured?**
+
+A: The workflows now automatically detect if a `Dockerfile` exists in your repository root. If no Dockerfile is found, all Docker-related processes are gracefully skipped regardless of configuration. This is intentional to support Python-only projects. If you expect Docker jobs to run:
+
+1. Verify a `Dockerfile` exists in your repository root
+2. Check the "Dockerfile Check" step in the workflow logs
+3. Ensure the Dockerfile is committed to your branch
 
 **Git Synchronization Issues:**
 - **Fixed**: Critical issue where artifacts built with old version (0.0.0) instead of bumped version (0.0.1)
