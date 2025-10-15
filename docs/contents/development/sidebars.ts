@@ -31,6 +31,11 @@ const sidebars: SidebarsConfig = {
       label: '📋 Logging System',
     },
     {
+      type: 'doc',
+      id: 'type-checking',
+      label: '🔍 Type Checking with MyPy',
+    },
+    {
       type: 'category',
       label: '🏗️ Architecture',
       collapsed: false,
@@ -106,6 +111,11 @@ const sidebars: SidebarsConfig = {
           type: 'doc',
           id: 'ci-cd/additional-ci-workflows',
           label: '🛠️ Additional CI Workflows',
+        },
+        {
+          type: 'doc',
+          id: 'ci-cd/type-checking-workflow',
+          label: '🔍 Type Checking Workflow',
         },
         {
           type: 'doc',

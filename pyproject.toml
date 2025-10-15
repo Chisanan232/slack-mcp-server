@@ -97,6 +97,10 @@ default-groups = [
 
 [tool.hatch.build.targets.sdist]
 include = ["slack_mcp/"]
+packages = ["slack_mcp"]
+artifacts = ["slack_mcp/py.typed"]
 
 [tool.hatch.build.targets.wheel]
 include = ["slack_mcp/"]
+packages = ["slack_mcp"]
+artifacts = ["slack_mcp/py.typed"]
