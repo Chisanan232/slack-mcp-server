@@ -1,0 +1,370 @@
+name: Type Checking
+
+on:
+  # Run on push to master and pull requests
+  push:
+    branches:
+      - "master"
+    paths:
+      # GitHub Action workflow files
+      - ".github/workflows/type-check.yml"
+      # Source code files
+      - "slack_mcp/**/*.py"
+      - "!**/__pkg_info__.py"
+      # Type definition files
+      - "slack_mcp/types.py"
+      - "slack_mcp/py.typed"
+      # Configuration files
+      - "mypy.ini"
+      - "pyproject.toml"
+      - "uv.lock"
+
+  pull_request:
+    branches:
+      - "master"
+    paths:
+      # GitHub Action workflow files
+      - ".github/workflows/type-check.yml"
+      # Source code files
+      - "slack_mcp/**/*.py"
+      - "!**/__pkg_info__.py"
+      # Type definition files
+      - "slack_mcp/types.py"
+      - "slack_mcp/py.typed"
+      # Configuration files
+      - "mypy.ini"
+      - "pyproject.toml"
+      - "uv.lock"
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  mypy-type-check:
+    name: MyPy Type Checking
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12", "3.13"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Activate the uv virtual environment
+        run: |
+          uv venv
+          . .venv/bin/activate
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+
+      - name: Run MyPy on types module
+        run: |
+          echo "::group::Type checking types.py"
+          uv run mypy slack_mcp/types.py --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on package __init__
+        run: |
+          echo "::group::Type checking __init__.py"
+          uv run mypy slack_mcp/__init__.py --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on events module
+        run: |
+          echo "::group::Type checking events.py"
+          uv run mypy slack_mcp/events.py --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on core modules
+        run: |
+          echo "::group::Type checking core modules"
+          uv run mypy slack_mcp/backends/ slack_mcp/client/ --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on MCP server
+        run: |
+          echo "::group::Type checking MCP server"
+          uv run mypy slack_mcp/mcp/ --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on webhook server
+        run: |
+          echo "::group::Type checking webhook server"
+          uv run mypy slack_mcp/webhook/ --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on integrated server
+        run: |
+          echo "::group::Type checking integrated server"
+          uv run mypy slack_mcp/integrate/ --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Run MyPy on entire package
+        run: |
+          echo "::group::Type checking entire package"
+          uv run mypy slack_mcp/ --show-error-codes --pretty
+          echo "::endgroup::"
+
+  verify-pep561-compliance:
+    name: Verify PEP 561 Compliance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: 3.13
+
+      - name: Verify py.typed marker exists
+        run: |
+          if [ ! -f "slack_mcp/py.typed" ]; then
+            echo "❌ Error: py.typed marker file not found!"
+            echo "PEP 561 requires a py.typed file in the package directory."
+            exit 1
+          fi
+          echo "✅ py.typed marker file exists"
+
+      - name: Verify types.py module exists
+        run: |
+          if [ ! -f "slack_mcp/types.py" ]; then
+            echo "❌ Error: types.py module not found!"
+            exit 1
+          fi
+          echo "✅ types.py module exists"
+
+      - name: Check types.py has __all__ export
+        run: |
+          if ! grep -q "__all__" slack_mcp/types.py; then
+            echo "❌ Error: types.py missing __all__ export!"
+            exit 1
+          fi
+          echo "✅ types.py has __all__ export"
+
+      - name: Verify pyproject.toml includes py.typed
+        run: |
+          if ! grep -q "py.typed" pyproject.toml; then
+            echo "❌ Error: pyproject.toml does not include py.typed in artifacts!"
+            exit 1
+          fi
+          echo "✅ pyproject.toml includes py.typed in artifacts"
+
+      - name: Build package and verify py.typed inclusion
+        run: |
+          uv build --sdist --wheel
+          
+          # Check sdist
+          echo "Checking source distribution..."
+          if tar -tzf dist/*.tar.gz | grep -q "slack_mcp/py.typed"; then
+            echo "✅ py.typed found in source distribution"
+          else
+            echo "❌ Error: py.typed not found in source distribution!"
+            exit 1
+          fi
+          
+          # Check wheel
+          echo "Checking wheel distribution..."
+          if unzip -l dist/*.whl | grep -q "slack_mcp/py.typed"; then
+            echo "✅ py.typed found in wheel distribution"
+          else
+            echo "❌ Error: py.typed not found in wheel distribution!"
+            exit 1
+          fi
+          
+          # Check types.py in distributions
+          echo "Checking types.py in distributions..."
+          if tar -tzf dist/*.tar.gz | grep -q "slack_mcp/types.py"; then
+            echo "✅ types.py found in source distribution"
+          else
+            echo "❌ Error: types.py not found in source distribution!"
+            exit 1
+          fi
+          
+          if unzip -l dist/*.whl | grep -q "slack_mcp/types.py"; then
+            echo "✅ types.py found in wheel distribution"
+          else
+            echo "❌ Error: types.py not found in wheel distribution!"
+            exit 1
+          fi
+
+  test-type-imports:
+    name: Test Type Imports
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: 3.13
+
+      - name: Install package
+        run: |
+          uv sync --all-extras
+
+      - name: Test importing types module
+        run: |
+          uv run python -c "
+          from slack_mcp import types
+          print('✅ Successfully imported types module')
+          print(f'✅ Available types: {len(types.__all__)} exports')
+          "
+
+      - name: Test importing SlackEvent
+        run: |
+          uv run python -c "
+          from slack_mcp import SlackEvent
+          print('✅ Successfully imported SlackEvent')
+          print(f'✅ Total events: {len(SlackEvent)}')
+          "
+
+      - name: Test type definitions are accessible
+        run: |
+          uv run python -c "
+          from slack_mcp import types
+          
+          # Test JSON types
+          assert hasattr(types, 'JSONValue')
+          assert hasattr(types, 'JSONDict')
+          assert hasattr(types, 'JSONList')
+          assert hasattr(types, 'JSONPrimitive')
+          print('✅ JSON types accessible')
+          
+          # Test Slack types
+          assert hasattr(types, 'SlackChannelID')
+          assert hasattr(types, 'SlackUserID')
+          assert hasattr(types, 'SlackTimestamp')
+          assert hasattr(types, 'SlackToken')
+          assert hasattr(types, 'SlackEventPayload')
+          print('✅ Slack types accessible')
+          
+          # Test Protocol types
+          assert hasattr(types, 'EventHandlerProtocol')
+          assert hasattr(types, 'QueueBackendProtocol')
+          print('✅ Protocol types accessible')
+          
+          # Test type guards
+          assert hasattr(types, 'is_slack_channel_id')
+          assert hasattr(types, 'is_slack_user_id')
+          assert hasattr(types, 'is_slack_timestamp')
+          print('✅ Type guards accessible')
+          "
+
+      - name: Test type guards functionality
+        run: |
+          uv run python -c "
+          from slack_mcp import types
+          
+          # Test channel ID validation
+          assert types.is_slack_channel_id('C1234567890') == True
+          assert types.is_slack_channel_id('#general') == True
+          assert types.is_slack_channel_id('invalid') == False
+          print('✅ Channel ID type guard works')
+          
+          # Test user ID validation
+          assert types.is_slack_user_id('U1234567890') == True
+          assert types.is_slack_user_id('W1234567890') == True
+          assert types.is_slack_user_id('invalid') == False
+          print('✅ User ID type guard works')
+          
+          # Test timestamp validation
+          assert types.is_slack_timestamp('1234567890.123456') == True
+          assert types.is_slack_timestamp('invalid') == False
+          print('✅ Timestamp type guard works')
+          "
+
+  type-check-examples:
+    name: Type Check Examples
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: 3.13
+
+      - name: Install dependencies
+        run: |
+          uv sync --all-extras
+
+      - name: Run MyPy on type checking examples
+        if: hashFiles('examples/type_checking/*.py') != ''
+        run: |
+          echo "::group::Type checking examples"
+          uv run mypy examples/type_checking/ --show-error-codes --pretty
+          echo "::endgroup::"
+
+      - name: Execute type checking example
+        if: hashFiles('examples/type_checking/type_checking_example.py') != ''
+        run: |
+          echo "::group::Running type checking example"
+          uv run python examples/type_checking/type_checking_example.py
+          echo "::endgroup::"
+
+  summary:
+    name: Type Checking Summary
+    runs-on: ubuntu-latest
+    needs: [mypy-type-check, verify-pep561-compliance, test-type-imports, type-check-examples]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          echo "## Type Checking Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ needs.mypy-type-check.result }}" == "success" ]; then
+            echo "✅ MyPy type checking: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ MyPy type checking: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.verify-pep561-compliance.result }}" == "success" ]; then
+            echo "✅ PEP 561 compliance: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ PEP 561 compliance: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.test-type-imports.result }}" == "success" ]; then
+            echo "✅ Type imports: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Type imports: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ "${{ needs.type-check-examples.result }}" == "success" ]; then
+            echo "✅ Example type checking: **PASSED**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Example type checking: **FAILED**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### PEP Standards Verified" >> $GITHUB_STEP_SUMMARY
+          echo "- PEP 561: Distributing and Packaging Type Information" >> $GITHUB_STEP_SUMMARY
+          echo "- PEP 484: Type Hints" >> $GITHUB_STEP_SUMMARY
+          echo "- PEP 585: Type Hinting Generics" >> $GITHUB_STEP_SUMMARY
+          echo "- PEP 544: Protocols (Structural Subtyping)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any job failed
+        if: |
+          needs.mypy-type-check.result != 'success' ||
+          needs.verify-pep561-compliance.result != 'success' ||
+          needs.test-type-imports.result != 'success' ||
+          needs.type-check-examples.result != 'success'
+        run: |
+          echo "❌ One or more type checking jobs failed!"
+          exit 1
