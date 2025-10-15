@@ -46,6 +46,19 @@ Our CI/CD system is organized into focused, developer-friendly sections:
 - **Workflow integration patterns and architecture**
 - **Standardized operations and DRY principles**
 
+### **🔍 [PEP 561 Type Distribution](/dev/next/ci-cd/type-checking-workflow)**
+
+[![PEP 561 Type Distribution](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml)
+
+- **PEP 561 compliance validation** - Ensures proper type information packaging
+- **Type distribution verification** - Validates `py.typed` marker and type file inclusion
+- **Type import testing** - Confirms type definitions are accessible after installation
+- **Modern PEP 695 syntax** - Uses Python 3.12+ `type` statement for type aliases
+
+:::info MyPy Type Checking
+MyPy source code checking is handled by **pre-commit hooks**. This workflow focuses on **PEP 561 compliance** for type distribution.
+:::
+
 ### **⚙️ [Additional CI Workflows](/dev/next/ci-cd/additional-ci-workflows)**
 
 [![Validate Slack Event Types](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/validate_slack_event_types.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/validate_slack_event_types.yml)
@@ -79,6 +92,7 @@ We use **GitHub Actions** to automate testing, code quality checks, and deployme
 ✅ **Comprehensive CI**: Multi-Python testing, code quality, coverage reporting  
 ✅ **Intelligent Releases**: Intent-based configuration with supply chain security  
 ✅ **Advanced Documentation**: workflow_run pattern with DOCS_UPDATED flag logic  
+✅ **Type Distribution**: PEP 561 compliance with modern PEP 695 type aliases  
 ✅ **Reusable Architecture**: DRY workflows with standardized operations  
 ✅ **Developer-Friendly**: Extensive validation, staging, and troubleshooting guidance  
 
@@ -95,5 +109,6 @@ We use **GitHub Actions** to automate testing, code quality checks, and deployme
 **Need specific information?**
 - **Configuring releases:** → [Release System](/dev/next/ci-cd/release-system)
 - **Documentation not deploying:** → [Documentation Deployment](/dev/next/ci-cd/documentation-deployment)  
+- **Type checking and PEP 561:** → [PEP 561 Type Distribution](/dev/next/ci-cd/type-checking-workflow)
 - **Understanding workflow patterns:** → [Reusable Workflows](/dev/next/ci-cd/reusable-workflows)
 - **Troubleshooting issues:** → [Developer Guide](/dev/next/ci-cd/developer-guide)
