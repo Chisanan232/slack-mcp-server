@@ -61,6 +61,16 @@ jobs:
           cache: 'pnpm'
           cache-dependency-path: docs/pnpm-lock.yaml
 
+      - name: Cache Docusaurus build
+        uses: actions/cache@v4
+        with:
+          path: |
+            docs/.docusaurus
+            docs/node_modules/.cache
+          key: ${{ runner.os }}-docusaurus-${{ hashFiles('docs/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-docusaurus-
+
       - name: Install dependencies
         working-directory: ./docs
         run: pnpm install --frozen-lockfile
