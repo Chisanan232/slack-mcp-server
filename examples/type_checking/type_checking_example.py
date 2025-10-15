@@ -59,9 +59,7 @@ def register_handler(handler: types.EventHandlerProtocol) -> None:
 
 
 # Example 3: Using type guards
-def validate_slack_identifiers(
-    channel: str, user: str, timestamp: str
-) -> tuple[bool, bool, bool]:
+def validate_slack_identifiers(channel: str, user: str, timestamp: str) -> tuple[bool, bool, bool]:
     """Validate Slack identifiers using type guards."""
     is_valid_channel = types.is_slack_channel_id(channel)
     is_valid_user = types.is_slack_user_id(user)
