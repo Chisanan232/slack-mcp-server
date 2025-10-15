@@ -18,7 +18,7 @@ Main Components:
 Example:
     >>> from slack_mcp import types
     >>> from slack_mcp.events import SlackEvent
-    >>> 
+    >>>
     >>> # Use type annotations
     >>> def handle_message(event: types.SlackEventPayload) -> None:
     ...     print(f"Received event: {event['type']}")

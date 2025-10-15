@@ -109,7 +109,7 @@ SlackMessagePayload: TypeAlias = Dict[str, Any]
 if TYPE_CHECKING:
     SlackClient: TypeAlias = WebClient
     """Type alias for Slack SDK WebClient."""
-    
+
     SlackAPIResponse: TypeAlias = SlackResponse
     """Type alias for Slack SDK API response."""
 else:
@@ -160,21 +160,21 @@ QueueMessage: TypeAlias = Dict[str, Any]
 @runtime_checkable
 class EventHandlerProtocol(Protocol):
     """Protocol for objects that can handle Slack events.
-    
+
     This protocol defines the interface that all event handlers must implement.
     It follows PEP 544 for structural subtyping.
-    
+
     Example:
         >>> class MyHandler:
         ...     async def handle_event(self, event: Dict[str, Any]) -> None:
         ...         print(f"Handling event: {event['type']}")
-        >>> 
+        >>>
         >>> handler: EventHandlerProtocol = MyHandler()
     """
 
     async def handle_event(self, event: SlackEventPayload) -> None:
         """Handle a Slack event.
-        
+
         Args:
             event: The Slack event payload
         """
@@ -184,11 +184,11 @@ class EventHandlerProtocol(Protocol):
 @runtime_checkable
 class QueueBackendProtocol(Protocol):
     """Protocol for queue backend implementations.
-    
+
     This protocol defines the interface that all queue backends must implement
     for publishing and consuming messages. It follows PEP 544 for structural
     subtyping.
-    
+
     Example:
         >>> class MyQueueBackend:
         ...     async def publish(self, key: str, payload: Dict[str, Any]) -> None:
@@ -198,28 +198,26 @@ class QueueBackendProtocol(Protocol):
         ...     @classmethod
         ...     def from_env(cls) -> "MyQueueBackend":
         ...         return cls()
-        >>> 
+        >>>
         >>> backend: QueueBackendProtocol = MyQueueBackend()
     """
 
     async def publish(self, key: QueueKey, payload: QueuePayload) -> None:
         """Publish a message to the queue.
-        
+
         Args:
             key: The routing key or topic for the message
             payload: The message payload as a dictionary
         """
         ...
 
-    async def consume(
-        self, *, group: Optional[str] = None
-    ) -> AsyncIterator[QueueMessage]:
+    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[QueueMessage]:
         """Consume messages from the queue.
-        
+
         Args:
             group: Optional consumer group name for group-based consumption
                   patterns such as those in Kafka or Redis Streams
-        
+
         Yields:
             Message payloads from the queue
         """
@@ -228,10 +226,10 @@ class QueueBackendProtocol(Protocol):
     @classmethod
     def from_env(cls) -> QueueBackendProtocol:
         """Create a backend instance from environment variables.
-        
+
         This method should read any required configuration from environment
         variables and create a properly configured backend instance.
-        
+
         Returns:
             A configured instance of the backend
         """
@@ -245,13 +243,13 @@ class QueueBackendProtocol(Protocol):
 
 def is_slack_channel_id(value: str) -> bool:
     """Type guard to check if a string is a valid Slack channel ID.
-    
+
     Args:
         value: The string to check
-        
+
     Returns:
         True if the value is a valid Slack channel ID format
-        
+
     Example:
         >>> is_slack_channel_id("C1234567890")
         True
@@ -265,13 +263,13 @@ def is_slack_channel_id(value: str) -> bool:
 
 def is_slack_user_id(value: str) -> bool:
     """Type guard to check if a string is a valid Slack user ID.
-    
+
     Args:
         value: The string to check
-        
+
     Returns:
         True if the value is a valid Slack user ID format
-        
+
     Example:
         >>> is_slack_user_id("U1234567890")
         True
@@ -285,13 +283,13 @@ def is_slack_user_id(value: str) -> bool:
 
 def is_slack_timestamp(value: str) -> bool:
     """Type guard to check if a string is a valid Slack timestamp.
-    
+
     Args:
         value: The string to check
-        
+
     Returns:
         True if the value is a valid Slack timestamp format
-        
+
     Example:
         >>> is_slack_timestamp("1234567890.123456")
         True

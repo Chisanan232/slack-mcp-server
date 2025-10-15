@@ -76,10 +76,10 @@ Structural type for queue backends:
 class MyBackend:
     async def publish(self, key: str, payload: dict[str, Any]) -> None:
         pass
-    
+
     async def consume(self, *, group: str | None = None):
         yield {}
-    
+
     @classmethod
     def from_env(cls) -> "MyBackend":
         return cls()
@@ -123,11 +123,11 @@ class RedisBackend:
     async def publish(self, key: str, payload: QueuePayload) -> None:
         # Implementation here
         pass
-    
+
     async def consume(self, *, group: str | None = None):
         # Implementation here
         yield {}
-    
+
     @classmethod
     def from_env(cls) -> "RedisBackend":
         return cls()
