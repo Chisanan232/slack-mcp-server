@@ -31,6 +31,11 @@ const sidebars: SidebarsConfig = {
       label: '📋 Logging System',
     },
     {
+      type: 'doc',
+      id: 'type-checking',
+      label: '🔍 Type Checking with MyPy',
+    },
+    {
       type: 'category',
       label: '🏗️ Architecture',
       collapsed: false,

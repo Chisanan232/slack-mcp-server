@@ -6,6 +6,7 @@ include=./slack_mcp/
 omit =
 #    */__init__.py
     ./slack_mcp/*/__main__.py
+    ./slack_mcp/types.py
 
 [paths]
 source =
