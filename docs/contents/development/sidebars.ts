@@ -114,6 +114,11 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
+          id: 'ci-cd/type-checking-workflow',
+          label: '🔍 Type Checking Workflow',
+        },
+        {
+          type: 'doc',
           id: 'ci-cd/developer-guide',
           label: '👨‍💻 Developer Guide',
         },
