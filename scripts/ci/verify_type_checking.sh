@@ -47,21 +47,21 @@ echo ""
 echo "Test 2: Checking types.py module..."
 if [ -f "slack_mcp/types.py" ]; then
     pass "types.py module exists"
-    
+
     # Check for __all__ export
     if grep -q "__all__" slack_mcp/types.py; then
         pass "types.py has __all__ export"
     else
         fail "types.py missing __all__ export"
     fi
-    
+
     # Check for key type definitions
     if grep -q "SlackEventPayload" slack_mcp/types.py; then
         pass "types.py contains SlackEventPayload"
     else
         fail "types.py missing SlackEventPayload"
     fi
-    
+
     if grep -q "EventHandlerProtocol" slack_mcp/types.py; then
         pass "types.py contains EventHandlerProtocol"
     else
@@ -100,7 +100,7 @@ echo ""
 echo "Test 5: Checking CI workflow..."
 if [ -f ".github/workflows/type-check.yml" ]; then
     pass "Type checking workflow exists"
-    
+
     # Validate YAML syntax
     if command -v python3 &> /dev/null; then
         if python3 -c "import yaml; yaml.safe_load(open('.github/workflows/type-check.yml'))" 2>/dev/null; then
@@ -125,14 +125,14 @@ if command -v uv &> /dev/null; then
     else
         fail "types.py has MyPy errors"
     fi
-    
+
     echo "Checking __init__.py..."
     if uv run mypy slack_mcp/__init__.py --show-error-codes 2>&1 | grep -q "Success"; then
         pass "__init__.py passes MyPy"
     else
         fail "__init__.py has MyPy errors"
     fi
-    
+
     echo "Checking events.py..."
     if uv run mypy slack_mcp/events.py --show-error-codes 2>&1 | grep -q "Success"; then
         pass "events.py passes MyPy"
@@ -152,13 +152,13 @@ if command -v uv &> /dev/null; then
     else
         fail "Failed to import types module"
     fi
-    
+
     if uv run python -c "from slack_mcp import SlackEvent; assert len(SlackEvent) > 0" 2>/dev/null; then
         pass "SlackEvent imports successfully"
     else
         fail "Failed to import SlackEvent"
     fi
-    
+
     # Test type guards
     if uv run python -c "from slack_mcp import types; assert types.is_slack_channel_id('C1234567890')" 2>/dev/null; then
         pass "Type guards work correctly"
@@ -195,7 +195,7 @@ echo ""
 echo "Test 9: Checking examples..."
 if [ -f "examples/type_checking/type_checking_example.py" ]; then
     pass "Type checking example exists"
-    
+
     if command -v uv &> /dev/null; then
         if uv run mypy examples/type_checking/type_checking_example.py 2>&1 | grep -q "Success"; then
             pass "Example passes MyPy"
@@ -220,33 +220,33 @@ if command -v uv &> /dev/null; then
     echo "Building package..."
     if uv build --sdist --wheel > /dev/null 2>&1; then
         pass "Package builds successfully"
-        
+
         # Check sdist
         if tar -tzf dist/*.tar.gz 2>/dev/null | grep -q "slack_mcp/py.typed"; then
             pass "py.typed included in source distribution"
         else
             fail "py.typed not in source distribution"
         fi
-        
+
         if tar -tzf dist/*.tar.gz 2>/dev/null | grep -q "slack_mcp/types.py"; then
             pass "types.py included in source distribution"
         else
             fail "types.py not in source distribution"
         fi
-        
+
         # Check wheel
         if unzip -l dist/*.whl 2>/dev/null | grep -q "slack_mcp/py.typed"; then
             pass "py.typed included in wheel"
         else
             fail "py.typed not in wheel"
         fi
-        
+
         if unzip -l dist/*.whl 2>/dev/null | grep -q "slack_mcp/types.py"; then
             pass "types.py included in wheel"
         else
             fail "types.py not in wheel"
         fi
-        
+
         # Cleanup
         rm -rf dist/ build/ 2>/dev/null
     else
