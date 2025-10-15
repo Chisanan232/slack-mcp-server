@@ -2,7 +2,10 @@
 Type definitions for the Slack MCP server package.
 
 This module provides centralized type aliases and type definitions following
-PEP 561, PEP 484, and PEP 585 standards for static type checking with MyPy.
+PEP 561, PEP 484, PEP 585, and PEP 695 standards for static type checking with MyPy.
+
+Type aliases use the modern `type` statement (PEP 695) introduced in Python 3.12,
+which provides better type inference and cleaner syntax compared to TypeAlias.
 
 Type Hierarchy:
     - JSON types: Basic JSON-compatible types
@@ -24,7 +27,6 @@ from typing import (
     Literal,
     Optional,
     Protocol,
-    TypeAlias,
     Union,
     runtime_checkable,
 )
@@ -66,90 +68,90 @@ __all__ = [
 ]
 
 # ============================================================================
-# JSON Type Definitions (PEP 484/585)
+# JSON Type Definitions (PEP 484/585/695)
 # ============================================================================
 
-JSONPrimitive: TypeAlias = Union[str, int, float, bool, None]
+type JSONPrimitive = Union[str, int, float, bool, None]
 """Primitive JSON-compatible types."""
 
-JSONValue: TypeAlias = Union[JSONPrimitive, "JSONDict", "JSONList"]
+type JSONValue = Union[JSONPrimitive, JSONDict, JSONList]
 """Any valid JSON value type."""
 
-JSONDict: TypeAlias = Dict[str, JSONValue]
+type JSONDict = Dict[str, JSONValue]
 """JSON object represented as a dictionary."""
 
-JSONList: TypeAlias = List[JSONValue]
+type JSONList = List[JSONValue]
 """JSON array represented as a list."""
 
 # ============================================================================
 # Slack Type Definitions
 # ============================================================================
 
-SlackChannelID: TypeAlias = str
+type SlackChannelID = str
 """Slack channel ID (e.g., 'C1234567890' or '#general')."""
 
-SlackUserID: TypeAlias = str
+type SlackUserID = str
 """Slack user ID (e.g., 'U1234567890')."""
 
-SlackTimestamp: TypeAlias = str
+type SlackTimestamp = str
 """Slack message timestamp (e.g., '1234567890.123456')."""
 
-SlackToken: TypeAlias = str
+type SlackToken = str
 """Slack API token (e.g., 'xoxb-...' for bot tokens, 'xoxp-...' for user tokens)."""
 
-SlackEventType: TypeAlias = str
+type SlackEventType = str
 """Slack event type string (e.g., 'message', 'reaction_added')."""
 
-SlackEventPayload: TypeAlias = Dict[str, Any]
+type SlackEventPayload = Dict[str, Any]
 """Slack event payload as received from the Events API."""
 
-SlackMessagePayload: TypeAlias = Dict[str, Any]
+type SlackMessagePayload = Dict[str, Any]
 """Slack message payload structure."""
 
 if TYPE_CHECKING:
-    SlackClient: TypeAlias = WebClient
+    type SlackClient = WebClient
     """Type alias for Slack SDK WebClient."""
 
-    SlackAPIResponse: TypeAlias = SlackResponse
+    type SlackAPIResponse = SlackResponse
     """Type alias for Slack SDK API response."""
 else:
-    SlackClient: TypeAlias = Any
-    SlackAPIResponse: TypeAlias = Any
+    type SlackClient = Any
+    type SlackAPIResponse = Any
 
 # ============================================================================
 # Transport Type Definitions
 # ============================================================================
 
-TransportType: TypeAlias = Literal["stdio", "sse", "streamable-http"]
+type TransportType = Literal["stdio", "sse", "streamable-http"]
 """MCP transport types supported by the server."""
 
-MCPTransport: TypeAlias = Literal["stdio", "sse", "streamable-http"]
+type MCPTransport = Literal["stdio", "sse", "streamable-http"]
 """Alias for TransportType for backward compatibility."""
 
 # ============================================================================
 # Event Handler Type Definitions
 # ============================================================================
 
-SyncEventHandlerFunc: TypeAlias = Callable[[SlackEventPayload], None]
+type SyncEventHandlerFunc = Callable[[SlackEventPayload], None]
 """Synchronous event handler function signature."""
 
-AsyncEventHandlerFunc: TypeAlias = Callable[[SlackEventPayload], Awaitable[None]]
+type AsyncEventHandlerFunc = Callable[[SlackEventPayload], Awaitable[None]]
 """Asynchronous event handler function signature."""
 
-EventHandlerFunc: TypeAlias = Union[SyncEventHandlerFunc, AsyncEventHandlerFunc]
+type EventHandlerFunc = Union[SyncEventHandlerFunc, AsyncEventHandlerFunc]
 """Event handler function that can be sync or async."""
 
 # ============================================================================
 # Queue Type Definitions
 # ============================================================================
 
-QueueKey: TypeAlias = str
+type QueueKey = str
 """Queue routing key or topic name."""
 
-QueuePayload: TypeAlias = Dict[str, Any]
+type QueuePayload = Dict[str, Any]
 """Queue message payload."""
 
-QueueMessage: TypeAlias = Dict[str, Any]
+type QueueMessage = Dict[str, Any]
 """Complete queue message including metadata."""
 
 # ============================================================================
