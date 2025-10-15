@@ -1,68 +1,38 @@
 ---
-title: Type Checking Workflow
+title: PEP 561 Type Distribution Workflow
 sidebar_position: 7
 ---
 
-# Type Checking Workflow
+# PEP 561 Type Distribution Workflow
 
-[![Type Checking](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml)
+[![PEP 561 Type Distribution](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml)
 
-The [`type-check.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/type-check.yml) workflow ensures that the Slack MCP Server maintains strict type safety and PEP 561 compliance through automated MyPy checks in the CI/CD pipeline.
+The [`type-check.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/type-check.yml) workflow ensures that the Slack MCP Server properly distributes type information according to PEP 561 standards.
 
 **Triggers:**
-- **Push to master**: When type-related files are modified
-- **Pull requests to master**: For type safety validation before merge
-- **Manual dispatch**: On-demand type checking via workflow dispatch
+- **Push to master**: When type distribution files are modified
+- **Pull requests to master**: For PEP 561 compliance validation before merge
+- **Manual dispatch**: On-demand validation via workflow dispatch
 
-**Purpose**: Validates type annotations, ensures PEP 561 compliance, and maintains type safety across the entire codebase.
+**Purpose**: Validates PEP 561 compliance for type information distribution in Python packages.
+
+:::info MyPy Source Code Checking
+**Note**: MyPy type checking of source code is handled by **pre-commit hooks** (configured in `.pre-commit-config.yaml`). This workflow focuses exclusively on **PEP 561 compliance** - ensuring type information is properly packaged and distributed.
+:::
 
 ## Overview
 
-This workflow provides comprehensive type checking validation:
+This workflow validates type information distribution:
 
-- **🔍 MyPy Type Checking** - Static type analysis across all Python modules
-- **📋 PEP 561 Compliance** - Validates proper type information distribution
-- **📦 Type Imports** - Ensures type definitions are accessible and functional
-- **✨ Example Validation** - Verifies type checking examples work correctly
+- **📋 PEP 561 Compliance** - Validates proper type information packaging and distribution
+- **📦 Type Imports** - Ensures type definitions are accessible and functional after installation
+- **🔍 Distribution Verification** - Confirms type files are included in built packages
 
 ---
 
 ## Workflow Jobs
 
-### 1. MyPy Type Checking (`mypy-type-check`)
-
-Runs comprehensive MyPy type checker validation across all package modules with multi-Python version support.
-
-**Configuration:**
-- **Python Versions**: 3.12, 3.13 (matrix strategy for compatibility testing)
-- **Operating System**: ubuntu-latest
-- **Type Checker**: MyPy with error codes and pretty output
-
-**Validation Steps:**
-
-The workflow performs incremental type checking across different package components:
-
-1. **Core Type Definitions** - `slack_mcp/types.py`
-2. **Package Initialization** - `slack_mcp/__init__.py`
-3. **Event Definitions** - `slack_mcp/events.py`
-4. **Backend Modules** - `slack_mcp/backends/`, `slack_mcp/client/`
-5. **MCP Server** - `slack_mcp/mcp/`
-6. **Webhook Server** - `slack_mcp/webhook/`
-7. **Integrated Server** - `slack_mcp/integrate/`
-8. **Full Package Validation** - `slack_mcp/`
-
-**Output Format:**
-```bash
-::group::Type checking types.py
-Success: no issues found in 1 source file
-::endgroup::
-
-::group::Type checking MCP server
-Success: no issues found in 15 source files
-::endgroup::
-```
-
-### 2. PEP 561 Compliance Verification (`verify-pep561-compliance`)
+### 1. PEP 561 Compliance Verification (`verify-pep561-compliance`)
 
 Validates that the package correctly implements [PEP 561](https://peps.python.org/pep-0561/) standards for distributing type information with Python packages.
 
@@ -113,11 +83,11 @@ uv build --sdist --wheel
 - [PEP 585](https://peps.python.org/pep-0585/) - Type Hinting Generics
 - [PEP 544](https://peps.python.org/pep-0544/) - Protocols (Structural Subtyping)
 
-### 3. Type Import Testing (`test-type-imports`)
+### 2. Type Import Testing (`test-type-imports`)
 
 Validates that type definitions are correctly exported and accessible for use in application code.
 
-**Purpose**: Ensures the type system is functional and all type definitions can be imported and used as intended.
+**Purpose**: Ensures the type system is functional and all type definitions can be imported and used as intended after package installation.
 
 **Test Categories:**
 
@@ -190,64 +160,22 @@ assert types.is_slack_timestamp('invalid') == False
 ✅ Timestamp type guard works
 ```
 
-### 4. Example Type Checking (`type-check-examples`)
-
-Validates that type checking examples demonstrate correct usage and pass MyPy validation.
-
-**Purpose**: Ensures example code serves as accurate reference material for developers using the type system.
-
-**Validation Steps:**
-
-**Step 1: MyPy Validation**
-```bash
-# Run MyPy on type checking examples
-uv run mypy examples/type_checking/ --show-error-codes --pretty
-✅ Success: no issues found in 1 source file
-```
-
-**Step 2: Execution Testing**
-```bash
-# Execute example to verify runtime correctness
-uv run python examples/type_checking/type_checking_example.py
-
-=== Type Checking Examples ===
-Registered handler: TypedSlackHandler
-Registered handler: CustomEventHandler
-
-=== Type Guard Validation ===
-Channel valid: True
-User valid: True
-Timestamp valid: True
-
-✓ All type checking examples completed successfully!
-```
-
-**Example Coverage:**
-- Event handlers with type annotations
-- Protocol-based structural subtyping
-- Type guard runtime validation
-- Queue backend implementations
-- Transport configuration with literal types
-- Handler function type signatures
-
----
-
-### 5. Type Checking Summary (`summary`)
+### 3. PEP 561 Summary (`summary`)
 
 Aggregates results from all validation jobs and provides a comprehensive status report.
 
-**Purpose**: Provides a single source of truth for the overall type checking status across all validation dimensions.
+**Purpose**: Provides a single source of truth for PEP 561 compliance status.
 
-**Dependencies**: Requires completion of all previous jobs (mypy-type-check, verify-pep561-compliance, test-type-imports, type-check-examples)
+**Dependencies**: Requires completion of both previous jobs (verify-pep561-compliance, test-type-imports)
 
 **Summary Report Format:**
 ```markdown
-## Type Checking Results
+## PEP 561 Type Distribution Results
 
-✅ MyPy type checking: **PASSED**
+ℹ️ **Note**: MyPy source code checking is handled by pre-commit hooks
+
 ✅ PEP 561 compliance: **PASSED**
 ✅ Type imports: **PASSED**
-✅ Example type checking: **PASSED**
 
 ### PEP Standards Verified
 - PEP 561: Distributing and Packaging Type Information
@@ -256,40 +184,26 @@ Aggregates results from all validation jobs and provides a comprehensive status 
 - PEP 544: Protocols (Structural Subtyping)
 ```
 
-**Failure Handling**: The workflow fails if any validation job does not succeed, ensuring type safety is maintained across all dimensions.
+**Failure Handling**: The workflow fails if any validation job does not succeed, ensuring type distribution compliance is maintained.
 
 ---
 
 ## Local Development
 
-Developers can run the same type checking validations locally before pushing changes.
+Developers can run PEP 561 compliance validations locally before pushing changes.
 
-### Type Checking Commands
-
-**Full Package Validation**
+:::tip MyPy Type Checking
+For MyPy source code type checking, use **pre-commit hooks**:
 ```bash
-# Check entire package
-uv run mypy slack_mcp/
+# Run pre-commit on all files
+pre-commit run --all-files
 
-# Check with detailed output
-uv run mypy slack_mcp/ --show-error-codes --pretty
-
-# Strict mode checking
-uv run mypy slack_mcp/ --strict
+# Run only MyPy hook
+pre-commit run mypy --all-files
 ```
+:::
 
-**Module-Specific Validation**
-```bash
-# Check core type definitions
-uv run mypy slack_mcp/types.py
-
-# Check specific modules
-uv run mypy slack_mcp/mcp/
-uv run mypy slack_mcp/webhook/
-uv run mypy slack_mcp/integrate/
-```
-
-### PEP 561 Compliance Verification
+### PEP 561 Validation Commands
 
 **Marker File Validation**
 ```bash
@@ -332,22 +246,17 @@ print('✅ All type guards work correctly')
 "
 ```
 
-### Example Validation
+### Example Execution
 
-**Type Check Examples**
+**Execute Type Checking Examples**
 ```bash
-# Run MyPy on examples
-uv run mypy examples/type_checking/
-
-# Check specific example
-uv run mypy examples/type_checking/type_checking_example.py
-```
-
-**Execute Examples**
-```bash
-# Run type checking example
+# Run type checking example to verify runtime behavior
 uv run python examples/type_checking/type_checking_example.py
 ```
+
+:::info Example Type Checking
+MyPy validation of examples is handled by pre-commit hooks. Use `pre-commit run mypy --all-files` to type-check all code including examples.
+:::
 
 ### Automated Verification Script
 

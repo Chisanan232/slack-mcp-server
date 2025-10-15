@@ -1,4 +1,4 @@
-name: Type Checking
+name: PEP 561 Type Distribution
 
 on:
   # Run on push to master and pull requests
@@ -8,14 +8,11 @@ on:
     paths:
       # GitHub Action workflow files
       - ".github/workflows/type-check.yml"
-      # Source code files
-      - "slack_mcp/**/*.py"
-      - "!**/__pkg_info__.py"
       # Type definition files
       - "slack_mcp/types.py"
       - "slack_mcp/py.typed"
+      - "slack_mcp/__init__.py"
       # Configuration files
-      - "mypy.ini"
       - "pyproject.toml"
       - "uv.lock"
 
@@ -25,14 +22,11 @@ on:
     paths:
       # GitHub Action workflow files
       - ".github/workflows/type-check.yml"
-      # Source code files
-      - "slack_mcp/**/*.py"
-      - "!**/__pkg_info__.py"
       # Type definition files
       - "slack_mcp/types.py"
       - "slack_mcp/py.typed"
+      - "slack_mcp/__init__.py"
       # Configuration files
-      - "mypy.ini"
       - "pyproject.toml"
       - "uv.lock"
 
@@ -40,79 +34,6 @@ on:
   workflow_dispatch:
 
 jobs:
-  mypy-type-check:
-    name: MyPy Type Checking
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.12", "3.13"]
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Activate the uv virtual environment
-        run: |
-          uv venv
-          . .venv/bin/activate
-
-      - name: Install dependencies
-        run: |
-          uv sync --all-extras
-
-      - name: Run MyPy on types module
-        run: |
-          echo "::group::Type checking types.py"
-          uv run mypy slack_mcp/types.py --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on package __init__
-        run: |
-          echo "::group::Type checking __init__.py"
-          uv run mypy slack_mcp/__init__.py --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on events module
-        run: |
-          echo "::group::Type checking events.py"
-          uv run mypy slack_mcp/events.py --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on core modules
-        run: |
-          echo "::group::Type checking core modules"
-          uv run mypy slack_mcp/backends/ slack_mcp/client/ --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on MCP server
-        run: |
-          echo "::group::Type checking MCP server"
-          uv run mypy slack_mcp/mcp/ --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on webhook server
-        run: |
-          echo "::group::Type checking webhook server"
-          uv run mypy slack_mcp/webhook/ --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on integrated server
-        run: |
-          echo "::group::Type checking integrated server"
-          uv run mypy slack_mcp/integrate/ --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Run MyPy on entire package
-        run: |
-          echo "::group::Type checking entire package"
-          uv run mypy slack_mcp/ --show-error-codes --pretty
-          echo "::endgroup::"
-
   verify-pep561-compliance:
     name: Verify PEP 561 Compliance
     runs-on: ubuntu-latest
@@ -285,54 +206,19 @@ jobs:
           print('✅ Timestamp type guard works')
           "
 
-  type-check-examples:
-    name: Type Check Examples
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: 3.13
-
-      - name: Install dependencies
-        run: |
-          uv sync --all-extras
-
-      - name: Run MyPy on type checking examples
-        if: hashFiles('examples/type_checking/*.py') != ''
-        run: |
-          echo "::group::Type checking examples"
-          uv run mypy examples/type_checking/ --show-error-codes --pretty
-          echo "::endgroup::"
-
-      - name: Execute type checking example
-        if: hashFiles('examples/type_checking/type_checking_example.py') != ''
-        run: |
-          echo "::group::Running type checking example"
-          uv run python examples/type_checking/type_checking_example.py
-          echo "::endgroup::"
-
   summary:
-    name: Type Checking Summary
+    name: PEP 561 Summary
     runs-on: ubuntu-latest
-    needs: [mypy-type-check, verify-pep561-compliance, test-type-imports, type-check-examples]
+    needs: [verify-pep561-compliance, test-type-imports]
     if: always()
 
     steps:
       - name: Check all jobs status
         run: |
-          echo "## Type Checking Results" >> $GITHUB_STEP_SUMMARY
+          echo "## PEP 561 Type Distribution Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "${{ needs.mypy-type-check.result }}" == "success" ]; then
-            echo "✅ MyPy type checking: **PASSED**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ MyPy type checking: **FAILED**" >> $GITHUB_STEP_SUMMARY
-          fi
+          echo "ℹ️ **Note**: MyPy source code checking is handled by pre-commit hooks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ needs.verify-pep561-compliance.result }}" == "success" ]; then
             echo "✅ PEP 561 compliance: **PASSED**" >> $GITHUB_STEP_SUMMARY
@@ -346,12 +232,6 @@ jobs:
             echo "❌ Type imports: **FAILED**" >> $GITHUB_STEP_SUMMARY
           fi
           
-          if [ "${{ needs.type-check-examples.result }}" == "success" ]; then
-            echo "✅ Example type checking: **PASSED**" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Example type checking: **FAILED**" >> $GITHUB_STEP_SUMMARY
-          fi
-          
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### PEP Standards Verified" >> $GITHUB_STEP_SUMMARY
           echo "- PEP 561: Distributing and Packaging Type Information" >> $GITHUB_STEP_SUMMARY
@@ -361,10 +241,8 @@ jobs:
 
       - name: Fail if any job failed
         if: |
-          needs.mypy-type-check.result != 'success' ||
           needs.verify-pep561-compliance.result != 'success' ||
-          needs.test-type-imports.result != 'success' ||
-          needs.type-check-examples.result != 'success'
+          needs.test-type-imports.result != 'success'
         run: |
-          echo "❌ One or more type checking jobs failed!"
+          echo "❌ One or more PEP 561 validation jobs failed!"
           exit 1
