@@ -10,9 +10,10 @@ It uses an asyncio.Queue to store messages in memory, which means:
 import asyncio
 import logging
 import warnings
-from typing import Any, AsyncIterator, Dict, Optional, Tuple
+from typing import Any, AsyncIterator, Dict, Tuple
 
 from slack_mcp.backends.base.protocol import QueueBackend
+from slack_mcp.types import ConsumerGroup, QueueKey, QueueMessage, QueuePayload
 
 # Set up logger for the memory backend
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class MemoryBackend(QueueBackend):
         )
         return cls()
 
-    async def publish(self, key: str, payload: Dict[str, Any]) -> None:
+    async def publish(self, key: QueueKey, payload: QueuePayload) -> None:
         """Publish a message to the in-memory queue.
 
         Args:
@@ -55,7 +56,7 @@ class MemoryBackend(QueueBackend):
         """
         await self._queue.put((key, payload))
 
-    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
+    async def consume(self, *, group: ConsumerGroup = None) -> AsyncIterator[QueueMessage]:
         """Consume messages from the in-memory queue.
 
         The group parameter is ignored in the memory backend implementation

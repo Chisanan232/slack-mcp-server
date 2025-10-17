@@ -85,9 +85,15 @@ SlackChannelID: TypeAlias = str
 - `SyncEventHandlerFunc`: Sync event handler
 
 #### Queue Types
-- `QueueKey`: Queue routing key
+- `QueueKey`: Queue routing key or topic name
 - `QueuePayload`: Queue message payload
-- `QueueMessage`: Complete queue message
+- `QueueMessage`: Complete queue message with metadata
+- `QueueBackendConfig`: Configuration dictionary for backends
+- `ConsumerGroup`: Consumer group identifier
+
+:::tip Queue Backend Development
+For detailed information about queue backend types and plugin development, see the [Queue Backend Architecture](./queue-backends.mdx) guide.
+:::
 
 ### Protocol Definitions
 
@@ -109,22 +115,40 @@ handler: EventHandlerProtocol = MyHandler()
 #### QueueBackendProtocol
 
 ```python
-from slack_mcp.types import QueueBackendProtocol
+from slack_mcp.types import (
+    QueueBackendProtocol,
+    QueueKey,
+    QueuePayload,
+    QueueMessage,
+    ConsumerGroup,
+)
+from typing import AsyncIterator
 
 class MyQueueBackend:
-    async def publish(self, key: str, payload: dict[str, Any]) -> None:
+    async def publish(self, key: QueueKey, payload: QueuePayload) -> None:
+        # Publish to queue backend
         pass
     
-    async def consume(self, *, group: str | None = None):
+    async def consume(
+        self, 
+        *, 
+        group: ConsumerGroup = None
+    ) -> AsyncIterator[QueueMessage]:
+        # Consume from queue backend
         yield {}
     
     @classmethod
     def from_env(cls) -> "MyQueueBackend":
+        # Load configuration from environment
         return cls()
 
 # Type checker verifies protocol compliance
 backend: QueueBackendProtocol = MyQueueBackend()
 ```
+
+:::tip Plugin Development
+For a complete guide on implementing queue backend plugins with proper type definitions, see the [Queue Backend Architecture](./queue-backends.mdx) documentation.
+:::
 
 ### Type Guards
 

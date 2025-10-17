@@ -36,6 +36,11 @@ const sidebars: SidebarsConfig = {
       label: '🔍 Type Checking with MyPy',
     },
     {
+      type: 'doc',
+      id: 'queue-backends',
+      label: '📨 Queue Backend Architecture',
+    },
+    {
       type: 'category',
       label: '🏗️ Architecture',
       collapsed: false,
