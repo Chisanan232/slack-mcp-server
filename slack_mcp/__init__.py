@@ -17,11 +17,11 @@ Main Components:
 
 Type System:
     The package provides comprehensive type definitions for static type checking:
-    
+
     - Slack Types: SlackEventPayload, SlackChannelID, SlackUserID, etc.
     - Queue Types: QueueBackendProtocol, QueueKey, QueuePayload, QueueMessage
     - Handler Types: EventHandlerProtocol, EventHandlerFunc
-    
+
     All types follow PEP 695 (Python 3.12+) using modern type statement syntax.
 
 Example:
@@ -31,12 +31,12 @@ Example:
     >>> # Use type annotations
     >>> def handle_message(event: types.SlackEventPayload) -> None:
     ...     print(f"Received event: {event['type']}")
-    >>> 
+    >>>
     >>> # Implement a queue backend plugin
     >>> class MyBackend:
     ...     async def publish(self, key: types.QueueKey, payload: types.QueuePayload) -> None:
     ...         pass
-    >>> 
+    >>>
     >>> backend: QueueBackendProtocol = MyBackend()
 """
 

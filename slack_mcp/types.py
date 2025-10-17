@@ -25,7 +25,6 @@ from typing import (
     Dict,
     List,
     Literal,
-    Optional,
     Protocol,
     Union,
     runtime_checkable,
@@ -160,11 +159,11 @@ in queue backends. Different backends may use this differently:
 Examples:
     >>> # Slack events topic
     >>> key: QueueKey = "slack_events"
-    >>> 
+    >>>
     >>> # Channel-specific routing
     >>> channel_id = "C1234567890"
     >>> key: QueueKey = f"slack.channel.{channel_id}"
-    >>> 
+    >>>
     >>> # Event type routing
     >>> key: QueueKey = "slack.events.message"
 """
@@ -185,7 +184,7 @@ Examples:
     ...     "text": "Hello, world!",
     ...     "ts": "1234567890.123456"
     ... }
-    >>> 
+    >>>
     >>> # Custom application payload
     >>> payload: QueuePayload = {
     ...     "event_type": "user_action",
@@ -211,7 +210,7 @@ Examples:
     ...     "channel": "C1234567890",
     ...     "text": "Hello"
     ... }
-    >>> 
+    >>>
     >>> # Message with metadata (Redis/Kafka backend)
     >>> message: QueueMessage = {
     ...     "payload": {
@@ -245,7 +244,7 @@ Examples:
     ...     "max_connections": 10,
     ...     "decode_responses": True
     ... }
-    >>> 
+    >>>
     >>> # Kafka backend configuration
     >>> config: QueueBackendConfig = {
     ...     "bootstrap_servers": "localhost:9092",
@@ -267,10 +266,10 @@ This is useful for load balancing and parallel processing.
 Examples:
     >>> # Independent consumer (no group)
     >>> group: ConsumerGroup = None
-    >>> 
+    >>>
     >>> # Consumer group for load balancing
     >>> group: ConsumerGroup = "slack-event-processors"
-    >>> 
+    >>>
     >>> # Environment-specific consumer group
     >>> import os
     >>> group: ConsumerGroup = f"slack-consumers-{os.getenv('ENV', 'dev')}"
@@ -325,7 +324,7 @@ class QueueBackendProtocol(Protocol):
     Plugin Architecture:
         Queue backends are discovered via Python entry points in the
         'slack_mcp.backends.queue' group. Plugins should:
-        
+
         1. Implement this protocol
         2. Use the type aliases from slack_mcp.types
         3. Register via entry points in pyproject.toml
@@ -340,33 +339,33 @@ class QueueBackendProtocol(Protocol):
         ...     ConsumerGroup,
         ... )
         >>> from typing import AsyncIterator
-        >>> 
+        >>>
         >>> class RedisBackend:
         ...     '''Redis implementation of queue backend.'''
-        ...     
+        ...
         ...     async def publish(self, key: QueueKey, payload: QueuePayload) -> None:
         ...         # Publish to Redis stream
         ...         pass
-        ...     
+        ...
         ...     async def consume(
-        ...         self, 
-        ...         *, 
+        ...         self,
+        ...         *,
         ...         group: ConsumerGroup = None
         ...     ) -> AsyncIterator[QueueMessage]:
         ...         # Consume from Redis stream
         ...         yield {}
-        ...     
+        ...
         ...     @classmethod
         ...     def from_env(cls) -> "RedisBackend":
         ...         # Load config from environment
         ...         return cls()
-        >>> 
+        >>>
         >>> # Type checker validates protocol compliance
         >>> backend: QueueBackendProtocol = RedisBackend()
 
     Entry Point Registration:
         In your plugin's pyproject.toml:
-        
+
         [project.entry-points."slack_mcp.backends.queue"]
         redis = "slack_mcp_mq_redis:RedisBackend"
 
@@ -467,7 +466,7 @@ class QueueBackendProtocol(Protocol):
             >>> import os
             >>> os.environ["REDIS_URL"] = "redis://localhost:6379"
             >>> backend = RedisBackend.from_env()
-            >>> 
+            >>>
             >>> # Kafka backend expects KAFKA_BOOTSTRAP_SERVERS
             >>> os.environ["KAFKA_BOOTSTRAP_SERVERS"] = "localhost:9092"
             >>> backend = KafkaBackend.from_env()
