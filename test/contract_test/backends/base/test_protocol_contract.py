@@ -114,7 +114,7 @@ class TestQueueBackendProtocol:
         assert "key" in publish_sig.parameters
         assert "payload" in publish_sig.parameters
         # Return annotation can be None (type object) or 'None' (string annotation)
-        assert publish_sig.return_annotation in (None, 'None', type(None))
+        assert publish_sig.return_annotation in (None, "None", type(None))
 
         # Check consume method
         consume_sig = inspect.signature(QueueBackend.consume)
