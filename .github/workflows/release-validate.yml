@@ -70,7 +70,6 @@ jobs:
       docker: ${{ inputs.docker }}
       docs: ${{ inputs.docs }}
 
-
   # Summary job to report results
   validation-summary:
     name: Validation Summary
