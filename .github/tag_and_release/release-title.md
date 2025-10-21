@@ -1,1 +1,1 @@
-v0.0.1 - Validate the release system of this project 🧑‍💻
+v0.1.0 - Newborn project about Slack MCP server 🍻
