@@ -53,9 +53,9 @@ def load_backend() -> QueueBackend:
             raise RuntimeError(
                 f"❌ Unknown backend '{requested_backend}'. \n"
                 f"💡 Try one of the following installation methods: \n"
-                f"🔹 by pip:    pip install slack-mcp-mq-{requested_backend}\n"
-                f"🔹 by poetry: poetry add slack-mcp-mq-{requested_backend}\n"
-                f"🔹 by uv:     uv add slack-mcp-mq-{requested_backend}"
+                f"🔹 by pip:    pip install abe-{requested_backend}\n"
+                f"🔹 by poetry: poetry add abe-{requested_backend}\n"
+                f"🔹 by uv:     uv add abe-{requested_backend}"
             )
 
     # Auto-select the first non-memory backend if available

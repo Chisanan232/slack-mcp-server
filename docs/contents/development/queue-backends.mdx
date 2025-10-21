@@ -206,18 +206,20 @@ To create a new queue backend plugin (e.g., for Redis):
 #### 1. Project Structure
 
 ```
-slack-mcp-mq-redis/
+abe-redis/
 ├── pyproject.toml
 ├── README.md
-└── slack_mcp_mq_redis/
-    ├── __init__.py
-    └── backend.py
+└── slack_mcp_plugin/
+    └── backends/
+        └── queue/
+            ├── __init__.py
+            └── redis.py
 ```
 
 #### 2. Implement the Protocol
 
 ```python
-# slack_mcp_mq_redis/backend.py
+# slack_mcp_plugin/backends/queue/redis.py
 from slack_mcp.types import (
     QueueBackendProtocol,
     QueueKey,
@@ -229,7 +231,7 @@ from typing import AsyncIterator
 import os
 
 
-class RedisBackend:
+class RedisMessageQueueBackend:
     """Redis Streams implementation of queue backend."""
     
     def __init__(self, redis_url: str):
@@ -252,7 +254,7 @@ class RedisBackend:
             yield {}
     
     @classmethod
-    def from_env(cls) -> "RedisBackend":
+    def from_env(cls) -> "RedisMessageQueueBackend":
         """Create instance from REDIS_URL environment variable."""
         redis_url = os.getenv("REDIS_URL")
         if not redis_url:
@@ -265,7 +267,7 @@ class RedisBackend:
 ```toml
 # pyproject.toml
 [project]
-name = "slack-mcp-mq-redis"
+name = "abe-redis"
 version = "0.1.0"
 description = "Redis backend for Slack MCP Server"
 dependencies = [
@@ -274,16 +276,16 @@ dependencies = [
 ]
 
 [project.entry-points."slack_mcp.backends.queue"]
-redis = "slack_mcp_mq_redis.backend:RedisBackend"
+redis = "slack_mcp_plugin.backends.queue.redis:RedisMessageQueueBackend"
 ```
 
 #### 4. Export from Package
 
 ```python
-# slack_mcp_mq_redis/__init__.py
-from slack_mcp_mq_redis.backend import RedisBackend
+# slack_mcp_plugin/backends/queue/__init__.py
+from slack_mcp_plugin.backends.queue.redis import RedisMessageQueueBackend
 
-__all__ = ["RedisBackend"]
+__all__ = ["RedisMessageQueueBackend"]
 ```
 
 ### Type Safety Validation
@@ -292,10 +294,10 @@ The type system ensures your plugin is compatible:
 
 ```python
 from slack_mcp import QueueBackendProtocol
-from slack_mcp_mq_redis import RedisBackend
+from slack_mcp_plugin.backends.queue.redis import RedisMessageQueueBackend
 
 # Type checker validates protocol compliance
-backend: QueueBackendProtocol = RedisBackend.from_env()
+backend: QueueBackendProtocol = RedisMessageQueueBackend.from_env()
 
 # All methods are type-checked
 await backend.publish(
@@ -373,7 +375,7 @@ The memory backend is **not suitable for production**. Use Redis, Kafka, or anot
 
 ```python
 # Installation
-pip install slack-mcp-mq-redis
+pip install abe-redis
 
 # Configuration
 export QUEUE_BACKEND=redis
@@ -388,7 +390,7 @@ backend = load_backend()  # Loads Redis backend
 
 ```python
 # Installation
-pip install slack-mcp-mq-kafka
+pip install abe-kafka
 
 # Configuration
 export QUEUE_BACKEND=kafka
@@ -451,9 +453,9 @@ backend = load_backend()  # Loads Kafka backend
 
 1. **Install Plugin**: Use package manager
    ```bash
-   pip install slack-mcp-mq-redis
+   pip install abe-redis
    # or
-   uv add slack-mcp-mq-redis
+   uv add abe-redis
    ```
 
 2. **Configure Environment**: Set required variables

@@ -211,7 +211,7 @@ export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
   ```bash
   # Webhook-specific configuration
   export SLACK_EVENTS_TOPIC="slack_events_production"
-  export QUEUE_BACKEND_TYPE="redis"
+  export QUEUE_BACKEND="redis"
   export REDIS_URL="redis://localhost:6379/0"
   export HOST="0.0.0.0"
   export PORT="8080"
@@ -222,7 +222,7 @@ export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
   ```bash
   # Webhook + MCP configuration
   export SLACK_EVENTS_TOPIC="integrated_slack_events"
-  export QUEUE_BACKEND_TYPE="redis"
+  export QUEUE_BACKEND="redis"
   export REDIS_URL="redis://localhost:6379/0"
   export HOST="0.0.0.0"
   export PORT="8080"
@@ -270,13 +270,13 @@ Both modes support configurable queue backends for event processing:
 <Tabs>
   <TabItem value="redis" label="Redis">
   ```bash
-  export QUEUE_BACKEND_TYPE="redis"
+  export QUEUE_BACKEND="redis"
   export REDIS_URL="redis://localhost:6379/0"
   ```
   </TabItem>
   <TabItem value="memory" label="In-Memory (Development)">
   ```bash
-  export QUEUE_BACKEND_TYPE="memory"
+  export QUEUE_BACKEND="memory"
   ```
   </TabItem>
 </Tabs>
