@@ -92,11 +92,11 @@ def test_nonexistent_backend_error_message_e2e(reset_env):
             assert "Unknown backend 'this_backend_definitely_does_not_exist_xyz123'" in error_msg
             assert "💡 Try one of the following installation methods:" in error_msg
             assert "🔹 by pip:" in error_msg
-            assert "pip install slack-mcp-mq-this_backend_definitely_does_not_exist_xyz123" in error_msg
+            assert "pip install abe-this_backend_definitely_does_not_exist_xyz123" in error_msg
             assert "🔹 by poetry:" in error_msg
-            assert "poetry add slack-mcp-mq-this_backend_definitely_does_not_exist_xyz123" in error_msg
+            assert "poetry add abe-this_backend_definitely_does_not_exist_xyz123" in error_msg
             assert "🔹 by uv:" in error_msg
-            assert "uv add slack-mcp-mq-this_backend_definitely_does_not_exist_xyz123" in error_msg
+            assert "uv add abe-this_backend_definitely_does_not_exist_xyz123" in error_msg
 
 
 def test_existing_backend_loaded_correctly(reset_env):

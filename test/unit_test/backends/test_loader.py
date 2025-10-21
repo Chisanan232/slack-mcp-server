@@ -108,11 +108,11 @@ def test_requested_backend_not_found(reset_env):
         assert "❌ Unknown backend 'nonexistent'" in error_message
         assert "💡 Try one of the following installation methods:" in error_message
         assert "🔹 by pip:" in error_message
-        assert "pip install slack-mcp-mq-nonexistent" in error_message
+        assert "pip install abe-nonexistent" in error_message
         assert "🔹 by poetry:" in error_message
-        assert "poetry add slack-mcp-mq-nonexistent" in error_message
+        assert "poetry add abe-nonexistent" in error_message
         assert "🔹 by uv:" in error_message
-        assert "uv add slack-mcp-mq-nonexistent" in error_message
+        assert "uv add abe-nonexistent" in error_message
 
 
 def test_auto_select_non_memory_backend(reset_env):
@@ -232,7 +232,7 @@ def test_legacy_explicit_backend_not_found(reset_env):
             load_backend()
 
         # Verify error message includes installation instructions
-        assert "slack-mcp-mq-nonexistent" in str(exc_info.value)
+        assert "abe-nonexistent" in str(exc_info.value)
 
 
 def test_legacy_load_explicit_backend(reset_env):
