@@ -152,17 +152,25 @@ export REDIS_URL=redis://localhost:6379
 
 The Slack MCP server supports multiple message queue backends for reliable event processing and scalability:
 
-### Currently Available
+### Built-in Backends
 
 - ✅ **Memory Queue** - Built-in in-memory queue for development and testing
 
-### Third-Party Queue Support
+### Available Plugin Backends
+
+The following queue backends are available as installable plugins:
+
+- ✅ **Redis** - Production-ready Redis Streams backend with persistence
+  - Package: [`abe-redis`](https://pypi.org/project/abe-redis/)
+  - Install: `pip install abe-redis`
+  - [Documentation](https://chisanan232.github.io/MCP-BackEnd-Message-Queue-Redis/)
+
+### Planned Plugin Support
 
 The following message queue systems are planned for future releases:
 
-- 🚧 **Redis** - *Coming Soon* Redis backend with persistence
-- 🚧 **Apache Kafka** - *Coming Soon* - High-throughput distributed streaming platform
-- 🚧 **RabbitMQ** - *In Plan* - Robust message broker with advanced routing
+- 🚧 **Apache Kafka** - *In Development* - High-throughput distributed streaming platform (Package: `abe-kafka`)
+- 🚧 **RabbitMQ** - *Planned* - Robust message broker with advanced routing (Package: `abe-rabbitmq`)
 - 🚧 **Amazon SQS** - *Under Consideration* - AWS Simple Queue Service integration
 - 🚧 **Google Cloud Pub/Sub** - *Under Consideration* - Google Cloud messaging service
 - 🚧 **Azure Service Bus** - *Under Consideration* - Microsoft Azure messaging service
@@ -172,15 +180,20 @@ The following message queue systems are planned for future releases:
 ### Configuration Examples
 
 ```bash
-# Currently supported
-export QUEUE_BACKEND=memory          # Default for development
-export QUEUE_BACKEND=redis           # Production-ready option
+# Built-in backend (default for development)
+export QUEUE_BACKEND=memory
+
+# Redis backend (production-ready)
+# First install: pip install abe-redis
+export QUEUE_BACKEND=redis
 export REDIS_URL=redis://localhost:6379
 
-# Future support (coming soon)
+# Future backends (coming soon)
+# Kafka: pip install abe-kafka
 # export QUEUE_BACKEND=kafka
 # export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 # 
+# RabbitMQ: pip install abe-rabbitmq
 # export QUEUE_BACKEND=rabbitmq
 # export RABBITMQ_URL=amqp://localhost:5672
 ```
