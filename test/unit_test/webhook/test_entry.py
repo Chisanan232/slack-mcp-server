@@ -290,7 +290,7 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
 def test_webhook_entry_dotenv_priority_over_cli():
     """Test that .env file values take priority over CLI arguments in webhook entry."""
     import os
-    from unittest.mock import patch, MagicMock
+    from unittest.mock import MagicMock, patch
 
     # Mock environment to track token setting
     mock_environ = {}
