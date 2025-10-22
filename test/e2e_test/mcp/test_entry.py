@@ -219,9 +219,10 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -
     thread.start()
     thread.join(timeout=1)
 
-    # Verify load_dotenv was called with correct path
+    # Verify load_dotenv was called with correct path and override=True
     assert len(load_dotenv_calls) == 1
     assert load_dotenv_calls[0]["dotenv_path"].name == ".env"
+    assert load_dotenv_calls[0]["override"] is True
 
     # Case 2: .env file doesn't exist
     load_dotenv_calls.clear()
@@ -250,9 +251,10 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -
     thread.start()
     thread.join(timeout=1)
 
-    # Verify load_dotenv was called with custom path
+    # Verify load_dotenv was called with custom path and override=True
     assert len(load_dotenv_calls) == 1
     assert load_dotenv_calls[0]["dotenv_path"].name == "custom.env"
+    assert load_dotenv_calls[0]["override"] is True
 
     # Case 4: No env file loading when --no-env-file is specified
     load_dotenv_calls.clear()
@@ -271,16 +273,17 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test setting Slack token from command line argument."""
+    """Test setting Slack token from command line argument when .env file is disabled."""
     entry = _patch_entry.entry
 
     # Mock os.environ to track setting of SLACK_BOT_TOKEN
     mock_environ: dict[str, str] = {}
     monkeypatch.setattr(os, "environ", mock_environ)
 
-    # Case 1: Slack token provided via command line
+    # Case 1: Slack token provided via command line with --no-env-file
+    # This ensures CLI token is used since .env file loading is disabled
     test_token = "xoxb-test-token-123456"
-    argv: list[str] = ["--slack-token", test_token]
+    argv: list[str] = ["--slack-token", test_token, "--no-env-file"]
 
     def run_with_timeout() -> None:
         entry.main(argv)
@@ -389,3 +392,37 @@ def test_entry_integrated_mode_stdio_not_supported(_patch_entry, caplog) -> None
 
     # Verify error log was emitted
     assert "Integrated mode is not supported with stdio transport" in caplog.text
+
+
+def test_entry_dotenv_priority_over_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that .env file values take priority over CLI arguments."""
+    entry = _patch_entry.entry
+
+    # Mock os.environ to track token setting
+    mock_environ: dict[str, str] = {}
+    monkeypatch.setattr(os, "environ", mock_environ)
+
+    # Mock load_dotenv to simulate loading from .env file
+    def mock_load_dotenv(dotenv_path=None, override=False):
+        # Simulate .env file setting SLACK_BOT_TOKEN
+        if override:
+            mock_environ["SLACK_BOT_TOKEN"] = "xoxb-from-dotenv-file"
+
+    monkeypatch.setattr("slack_mcp.mcp.entry.load_dotenv", mock_load_dotenv)
+    monkeypatch.setattr(pathlib.Path, "exists", lambda self: True)
+    monkeypatch.setattr(pathlib.Path, "resolve", lambda self: str(self))
+
+    # Provide CLI token that should be overridden by .env file
+    cli_token = "xoxb-from-cli-argument"
+    argv = ["--slack-token", cli_token]
+
+    def run_with_timeout() -> None:
+        entry.main(argv)
+
+    thread = threading.Thread(target=run_with_timeout)
+    thread.start()
+    thread.join(timeout=1)
+
+    # Verify that the .env file token took priority over CLI argument
+    assert "SLACK_BOT_TOKEN" in mock_environ
+    assert mock_environ["SLACK_BOT_TOKEN"] == "xoxb-from-dotenv-file"
