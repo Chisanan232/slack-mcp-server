@@ -48,7 +48,7 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: 
     parser.add_argument(
         "--slack-token",
         default=None,
-        help="Slack bot token (overrides SLACK_BOT_TOKEN environment variable)",
+        help="Slack bot token (fallback if not set in .env file or SLACK_BOT_TOKEN environment variable)",
     )
     parser.add_argument(
         "--integrated",
