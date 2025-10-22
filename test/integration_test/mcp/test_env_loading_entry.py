@@ -44,7 +44,7 @@ def test_dotenv_loading_with_valid_env_file():
 
 def test_cmd_line_token_overrides_env_file():
     """Test that .env file token takes priority over command line token.
-    
+
     This test verifies the new priority order where .env file has the highest priority,
     followed by CLI arguments as fallback. When both are provided, .env file wins.
     """
@@ -139,7 +139,7 @@ def test_dotenv_loading_disabled():
 
 def test_cmd_line_token_as_fallback_when_env_disabled():
     """Test that CLI token is used as fallback when .env file loading is disabled.
-    
+
     This test verifies that when --no-env-file is used, the CLI argument takes effect.
     """
     # Create a temporary .env file with test values
