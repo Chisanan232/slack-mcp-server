@@ -169,17 +169,30 @@ python -m slack_mcp.webhook --port 0
 
 ### Authentication & Environment Options
 
+:::tip Configuration Priority Order
+When running the webhook server, configuration values are loaded in this priority order:
+
+1. **`.env` file** (HIGHEST PRIORITY) - Values in your `.env` file override everything
+2. **CLI arguments** (`--slack-token`) - Used as fallback if not set in `.env` file
+3. **Environment variables** - Already set environment variables (lowest priority)
+
+This means your `.env` file values will **always take precedence** over CLI arguments.
+:::
+
 #### `--slack-token`
 **Type**: `String`  
 **Default**: `None`  
-**Description**: Override Slack bot token (alternative to environment variable).
+**Description**: Slack bot token (fallback if not set in `.env` file or `SLACK_BOT_TOKEN` environment variable).
 
 ```bash
-# Override bot token via CLI
+# CLI argument is used as fallback (if not in .env file)
 python -m slack_mcp.webhook --slack-token "xoxb-your-token-here"
 
-# Use environment variable (recommended)
-export SLACK_BOT_TOKEN="xoxb-your-token-here"
+# Disable .env file loading to force CLI argument usage
+python -m slack_mcp.webhook --slack-token "xoxb-your-token-here" --no-env-file
+
+# Use .env file (recommended - highest priority)
+# Create .env file with: SLACK_BOT_TOKEN=xoxb-your-token
 python -m slack_mcp.webhook
 ```
 

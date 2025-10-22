@@ -15,60 +15,131 @@ This guide explains how to run and configure the Slack MCP Server after installa
 
 ## Configuration
 
-Before running the server, you need to set up your Slack API token. You have several options:
+Before running the server, you need to set up your Slack API token. The server supports multiple configuration methods with a clear priority order.
+
+:::tip Configuration Priority Order
+When running the server, configuration values are loaded in this priority order:
+
+1. **`.env` file** (HIGHEST PRIORITY) - Values in your `.env` file override everything
+2. **CLI arguments** (`--slack-token`) - Used as fallback if not set in `.env` file  
+3. **Environment variables** - Already set environment variables (lowest priority)
+
+This means your `.env` file values will **always take precedence** over CLI arguments, making environment management easier and more predictable.
+:::
 
 ### Using a .env File (Recommended)
 
-1. Create a `.env` file in your project directory:
-   ```
-   SLACK_API_TOKEN=your_slack_api_token
+The recommended approach is to use a `.env` file for managing your configuration:
+
+1. **Create a `.env` file** in your project directory:
+   ```bash
+   # Copy the example file
+   cp .env.example .env
+   
+   # Edit with your values
+   # .env file content:
+   SLACK_BOT_TOKEN=xoxb-your-slack-bot-token
+   SLACK_TEST_CHANNEL=#dev-testing
+   QUEUE_BACKEND=memory
    ```
 
-2. Specify the path to your `.env` file when starting the server:
+2. **Run the server** (automatically loads from `.env`):
    
    <Tabs>
      <TabItem value="pip" label="pip" default>
      ```bash
-     slack-mcp-server --env /path/to/.env
+     # Automatically loads from .env in current directory
+     slack-mcp-server
+     
+     # Or specify a custom env file path
+     slack-mcp-server --env-file .env.production
      ```
-
      </TabItem>
      <TabItem value="poetry" label="poetry">
      ```bash
-     poetry run slack-mcp-server --env /path/to/.env
+     # Automatically loads from .env in current directory
+     poetry run slack-mcp-server
+     
+     # Or specify a custom env file path
+     poetry run slack-mcp-server --env-file .env.production
      ```
-
      </TabItem>
      <TabItem value="uv" label="uv">
      ```bash
-     uv run slack-mcp-server --env /path/to/.env
+     # Automatically loads from .env in current directory
+     uv run slack-mcp-server
+     
+     # Or specify a custom env file path
+     uv run slack-mcp-server --env-file .env.production
      ```
-
      </TabItem>
    </Tabs>
 
-### Using Command-line Arguments
+### Using Command-line Arguments (Fallback)
 
-You can provide your API token directly as a command-line argument:
+You can provide your API token directly as a command-line argument. This is useful for quick testing or when you want to disable `.env` file loading:
    
 <Tabs>
   <TabItem value="pip" label="pip" default>
   ```bash
-  slack-mcp-server --token your_slack_api_token
+  # Use CLI argument as fallback (if not in .env file)
+  slack-mcp-server --slack-token xoxb-your-token
+  
+  # Disable .env file loading to force CLI argument usage
+  slack-mcp-server --slack-token xoxb-your-token --no-env-file
   ```
-
   </TabItem>
   <TabItem value="poetry" label="poetry">
   ```bash
-  poetry run slack-mcp-server --token your_slack_api_token
+  # Use CLI argument as fallback (if not in .env file)
+  poetry run slack-mcp-server --slack-token xoxb-your-token
+  
+  # Disable .env file loading to force CLI argument usage
+  poetry run slack-mcp-server --slack-token xoxb-your-token --no-env-file
   ```
-
   </TabItem>
   <TabItem value="uv" label="uv">
   ```bash
-  uv run slack-mcp-server --token your_slack_api_token
+  # Use CLI argument as fallback (if not in .env file)
+  uv run slack-mcp-server --slack-token xoxb-your-token
+  
+  # Disable .env file loading to force CLI argument usage
+  uv run slack-mcp-server --slack-token xoxb-your-token --no-env-file
   ```
+  </TabItem>
+</Tabs>
 
+### Using Environment Variables
+
+Set environment variables directly in your shell:
+
+<Tabs>
+  <TabItem value="pip" label="pip" default>
+  ```bash
+  # Set environment variable
+  export SLACK_BOT_TOKEN=xoxb-your-token
+  
+  # Run server (uses environment variable if not in .env)
+  slack-mcp-server
+  ```
+  </TabItem>
+  <TabItem value="poetry" label="poetry">
+  ```bash
+  # Set environment variable
+  export SLACK_BOT_TOKEN=xoxb-your-token
+  
+  # Run server (uses environment variable if not in .env)
+  poetry run slack-mcp-server
+  ```
+  </TabItem>
+  <TabItem value="uv" label="uv">
+  ```bash
+  # Set environment variable
+  export SLACK_BOT_TOKEN=xoxb-your-token
+  
+  # Run server (uses environment variable if not in .env)
+  uv run slack-mcp-server
+  ```
   </TabItem>
 </Tabs>
 
