@@ -24,19 +24,20 @@ def main(argv: Optional[list[str]] = None) -> None:  # noqa: D401 – CLI entry
     # Use centralized logging configuration
     setup_logging_from_args(args)
 
+    # Set Slack token from command line argument first (as fallback)
+    if args.slack_token:
+        os.environ["SLACK_BOT_TOKEN"] = args.slack_token
+        _LOG.info("Using Slack token from command line argument (fallback)")
+
     # Load environment variables from .env file if not disabled
+    # This will override CLI arguments, giving .env file priority
     if not args.no_env_file:
         env_path = pathlib.Path(args.env_file)
         if env_path.exists():
             _LOG.info(f"Loading environment variables from {env_path.resolve()}")
-            load_dotenv(dotenv_path=env_path)
+            load_dotenv(dotenv_path=env_path, override=True)
         else:
             _LOG.warning(f"Environment file not found: {env_path.resolve()}")
-
-    # Set Slack token from command line argument if provided
-    if args.slack_token:
-        os.environ["SLACK_BOT_TOKEN"] = args.slack_token
-        _LOG.info("Using Slack token from command line argument")
 
     # Determine if we should run the integrated server
     if args.integrated:

@@ -187,6 +187,9 @@ def test_main(
 
             if env_file_exists:
                 mock_load_dotenv.assert_called_once()
+                # Verify override=True is passed to prioritize .env file
+                call_kwargs = mock_load_dotenv.call_args[1]
+                assert call_kwargs.get("override") is True
             else:
                 mock_load_dotenv.assert_not_called()
         else:
@@ -282,3 +285,42 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
 
         # Verify serve was called and properly awaited
         mock_server.serve.assert_called_once()
+
+
+def test_webhook_entry_dotenv_priority_over_cli():
+    """Test that .env file values take priority over CLI arguments in webhook entry."""
+    import os
+    from unittest.mock import MagicMock, patch
+
+    # Mock environment to track token setting
+    mock_environ = {}
+
+    # Mock load_dotenv to simulate loading from .env file
+    def mock_load_dotenv(dotenv_path=None, override=False):
+        # Simulate .env file setting SLACK_BOT_TOKEN
+        if override:
+            mock_environ["SLACK_BOT_TOKEN"] = "xoxb-from-dotenv-file"
+
+    with (
+        patch("sys.argv", ["entry.py", "--slack-token", "xoxb-from-cli-argument"]),
+        patch("slack_mcp.webhook.entry.asyncio.run") as mock_run,
+        patch("slack_mcp.webhook.entry.setup_logging_from_args"),
+        patch("slack_mcp.webhook.entry.load_dotenv", side_effect=mock_load_dotenv),
+        patch("slack_mcp.webhook.entry.pathlib.Path") as mock_path,
+        patch("slack_mcp.webhook.entry.register_mcp_tools"),
+        patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock),
+        patch("slack_mcp.webhook.entry.mcp_factory.get"),
+        patch.dict(os.environ, mock_environ, clear=True),
+    ):
+        # Configure the mock path to simulate env file existence
+        mock_path_instance = MagicMock()
+        mock_path_instance.exists.return_value = True
+        mock_path_instance.resolve.return_value = "/path/to/.env"
+        mock_path.return_value = mock_path_instance
+
+        # Run the main function
+        main()
+
+        # Verify that the .env file token took priority over CLI argument
+        assert "SLACK_BOT_TOKEN" in mock_environ
+        assert mock_environ["SLACK_BOT_TOKEN"] == "xoxb-from-dotenv-file"
