@@ -1,0 +1,653 @@
+---
+id: deployment-guide
+title: Deployment Guide
+sidebar_position: 4
+---
+
+```mdx-code-block
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+```
+
+# Deployment Guide
+
+This guide covers common deployment patterns for both MCP server and webhook server implementations. Both servers share similar deployment requirements and can be deployed using the same infrastructure patterns.
+
+:::note Extras Overview
+- [mcp]: installs the MCP server feature set.
+- [webhook]: installs the webhook server feature set.
+- [all]: installs everything (MCP + webhook).
+:::
+
+## Quick Start Deployment
+
+### Local Development Setup
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Clone and setup
+  git clone <repository-url>
+  cd slack-mcp-server
+  
+  # Install dependencies
+  pip install -e .
+  
+  # Create environment file
+  cat > .env << EOF
+  SLACK_BOT_TOKEN=xoxb-your-development-token
+  QUEUE_BACKEND=memory
+  EOF
+  
+  # Start MCP server
+  slack-mcp-server
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Clone and setup
+  git clone <repository-url>
+  cd slack-mcp-server
+  
+  # Install dependencies
+  pip install -e .
+  
+  # Create environment file
+  cat > .env << EOF
+  SLACK_BOT_TOKEN=xoxb-your-development-token
+  SLACK_SIGNING_SECRET=your-signing-secret
+  QUEUE_BACKEND=memory
+  EOF
+  
+  # Start webhook server
+  slack-webhook-server --host 127.0.0.1 --port 3000
+  ```
+  </TabItem>
+</Tabs>
+
+### Production Setup
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Install from PyPI
+  pip install "slack-mcp[mcp]"
+  
+  # Create production environment file
+  cat > .env.production << EOF
+  SLACK_BOT_TOKEN=xoxb-your-production-token
+  QUEUE_BACKEND=redis
+  REDIS_URL=redis://localhost:6379/0
+  EOF
+  
+  # Start with production settings
+  slack-mcp-server --log-level INFO
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Install from PyPI
+  pip install "slack-mcp[webhook]"
+  
+  # Create production environment file
+  cat > .env.production << EOF
+  SLACK_BOT_TOKEN=xoxb-your-production-token
+  SLACK_SIGNING_SECRET=your-production-signing-secret
+  QUEUE_BACKEND=redis
+  REDIS_URL=redis://localhost:6379/0
+  EOF
+  
+  # Start with production settings
+  slack-webhook-server --host 0.0.0.0 --port 3000 --log-level INFO
+  ```
+  </TabItem>
+</Tabs>
+
+## Docker Deployment
+
+### Using Docker Compose (Recommended)
+
+Create a `docker-compose.yml` file for easy multi-service deployment:
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```yaml
+  version: '3.8'
+  
+  services:
+    mcp-server:
+      build: .
+      environment:
+        - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+        - QUEUE_BACKEND=redis
+        - REDIS_URL=redis://redis:6379/0
+      depends_on:
+        - redis
+      restart: unless-stopped
+      
+    redis:
+      image: redis:7-alpine
+      ports:
+        - "6379:6379"
+      volumes:
+        - redis_data:/data
+      restart: unless-stopped
+        
+  volumes:
+    redis_data:
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```yaml
+  version: '3.8'
+  
+  services:
+    webhook-server:
+      build: .
+      ports:
+        - "3000:3000"
+      environment:
+        - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+        - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+        - QUEUE_BACKEND=redis
+        - REDIS_URL=redis://redis:6379/0
+      depends_on:
+        - redis
+      restart: unless-stopped
+      
+    redis:
+      image: redis:7-alpine
+      ports:
+        - "6379:6379"
+      volumes:
+        - redis_data:/data
+      restart: unless-stopped
+        
+  volumes:
+    redis_data:
+  ```
+  </TabItem>
+</Tabs>
+
+### Dockerfile Examples
+
+<Tabs>
+  <TabItem value="basic" label="Basic Dockerfile" default>
+  ```dockerfile
+  FROM python:3.11-slim
+  
+  # Set working directory
+  WORKDIR /app
+  
+  # Install system dependencies
+  RUN apt-get update && apt-get install -y \
+      build-essential \
+      && rm -rf /var/lib/apt/lists/*
+  
+  # Copy requirements and install Python dependencies
+  COPY pyproject.toml .
+  RUN pip install -e .
+  
+  # Copy application code
+  COPY . .
+  
+  # Create non-root user
+  RUN useradd --create-home --shell /bin/bash app
+  RUN chown -R app:app /app
+  USER app
+  
+  # Expose port (for webhook server)
+  EXPOSE 3000
+  
+  # Default command (override for specific server)
+  CMD ["slack-mcp-server"]
+  ```
+  </TabItem>
+  <TabItem value="multistage" label="Multi-stage Dockerfile">
+  ```dockerfile
+  # Build stage
+  FROM python:3.11-slim as builder
+  
+  WORKDIR /app
+  
+  # Install build dependencies
+  RUN apt-get update && apt-get install -y \
+      build-essential \
+      && rm -rf /var/lib/apt/lists/*
+  
+  # Install Python dependencies
+  COPY pyproject.toml .
+  RUN pip install --user -e .
+  
+  # Runtime stage
+  FROM python:3.11-slim
+  
+  WORKDIR /app
+  
+  # Copy installed packages from builder
+  COPY --from=builder /root/.local /root/.local
+  
+  # Copy application code
+  COPY . .
+  
+  # Create non-root user
+  RUN useradd --create-home --shell /bin/bash app
+  RUN chown -R app:app /app
+  USER app
+  
+  # Make sure scripts in .local are usable
+  ENV PATH=/root/.local/bin:$PATH
+  
+  # Expose port
+  EXPOSE 3000
+  
+  # Default command
+  CMD ["slack-mcp-server"]
+  ```
+  </TabItem>
+</Tabs>
+
+### Running with Docker
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Build image
+  docker build -t slack-mcp-server .
+  
+  # Run with environment file
+  docker run --env-file .env.production slack-mcp-server
+  
+  # Run with individual environment variables
+  docker run \
+    -e SLACK_BOT_TOKEN="xoxb-your-token" \
+    -e QUEUE_BACKEND="memory" \
+    slack-mcp-server
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Build image
+  docker build -t slack-webhook-server .
+  
+  # Run with port mapping and environment
+  docker run -p 3000:3000 \
+    --env-file .env.production \
+    slack-webhook-server \
+    slack-webhook-server --host 0.0.0.0 --port 3000
+  
+  # Run with Docker Compose
+  docker-compose up -d
+  ```
+  </TabItem>
+</Tabs>
+
+## Cloud Deployment
+
+### Kubernetes Deployment
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: mcp-server
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: mcp-server
+    template:
+      metadata:
+        labels:
+          app: mcp-server
+      spec:
+        containers:
+        - name: mcp-server
+          image: slack-mcp-server:latest
+          env:
+          - name: SLACK_BOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: slack-secrets
+                key: bot-token
+          - name: QUEUE_BACKEND
+            value: "redis"
+          - name: REDIS_URL
+            value: "redis://redis-service:6379/0"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+  ---
+  apiVersion: v1
+  kind: Secret
+  metadata:
+    name: slack-secrets
+  type: Opaque
+  data:
+    bot-token: <base64-encoded-token>
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```yaml
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: webhook-server
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: webhook-server
+    template:
+      metadata:
+        labels:
+          app: webhook-server
+      spec:
+        containers:
+        - name: webhook-server
+          image: slack-webhook-server:latest
+          ports:
+          - containerPort: 3000
+          env:
+          - name: SLACK_BOT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: slack-secrets
+                key: bot-token
+          - name: SLACK_SIGNING_SECRET
+            valueFrom:
+              secretKeyRef:
+                name: slack-secrets
+                key: signing-secret
+          - name: QUEUE_BACKEND
+            value: "redis"
+          - name: REDIS_URL
+            value: "redis://redis-service:6379/0"
+          args: ["slack-webhook-server", "--host", "0.0.0.0", "--port", "3000"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"
+  ---
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: webhook-service
+  spec:
+    selector:
+      app: webhook-server
+    ports:
+    - port: 80
+      targetPort: 3000
+    type: LoadBalancer
+  ```
+  </TabItem>
+</Tabs>
+
+### Heroku Deployment
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Create Heroku app
+  heroku create your-mcp-server
+  
+  # Set environment variables
+  heroku config:set SLACK_BOT_TOKEN="xoxb-your-token"
+  heroku config:set QUEUE_BACKEND="memory"
+  
+  # Create Procfile
+  echo "worker: slack-mcp-server" > Procfile
+  
+  # Deploy
+  git add .
+  git commit -m "Deploy MCP server"
+  git push heroku main
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # Create Heroku app
+  heroku create your-webhook-server
+  
+  # Set environment variables
+  heroku config:set SLACK_BOT_TOKEN="xoxb-your-token"
+  heroku config:set SLACK_SIGNING_SECRET="your-signing-secret"
+  heroku config:set QUEUE_BACKEND="memory"
+  
+  # Create Procfile
+  echo "web: slack-webhook-server --host 0.0.0.0 --port \$PORT" > Procfile
+  
+  # Deploy
+  git add .
+  git commit -m "Deploy webhook server"
+  git push heroku main
+  ```
+  </TabItem>
+</Tabs>
+
+## Process Management
+
+### Using systemd (Linux)
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```ini
+  [Unit]
+  Description=Slack MCP Server
+  After=network.target
+  
+  [Service]
+  Type=simple
+  User=slack-mcp
+  WorkingDirectory=/opt/slack-mcp-server
+  EnvironmentFile=/opt/slack-mcp-server/.env.production
+  ExecStart=/opt/slack-mcp-server/venv/bin/slack-mcp-server
+  Restart=always
+  RestartSec=10
+  
+  [Install]
+  WantedBy=multi-user.target
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```ini
+  [Unit]
+  Description=Slack Webhook Server
+  After=network.target
+  
+  [Service]
+  Type=simple
+  User=slack-webhook
+  WorkingDirectory=/opt/slack-webhook-server
+  EnvironmentFile=/opt/slack-webhook-server/.env.production
+  ExecStart=/opt/slack-webhook-server/venv/bin/slack-webhook-server --host 0.0.0.0 --port 3000
+  Restart=always
+  RestartSec=10
+  
+  [Install]
+  WantedBy=multi-user.target
+  ```
+  </TabItem>
+</Tabs>
+
+```bash
+# Enable and start services
+sudo systemctl enable slack-mcp-server
+sudo systemctl start slack-mcp-server
+sudo systemctl status slack-mcp-server
+```
+
+### Using Supervisor
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```ini
+  [program:mcp-server]
+  command=/opt/slack-mcp-server/venv/bin/slack-mcp-server
+  directory=/opt/slack-mcp-server
+  environment=SLACK_BOT_TOKEN="xoxb-token",QUEUE_BACKEND="redis"
+  user=slack-mcp
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+  stdout_logfile=/var/log/mcp-server.log
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```ini
+  [program:webhook-server]
+  command=/opt/slack-webhook-server/venv/bin/slack-webhook-server --host 0.0.0.0 --port 3000
+  directory=/opt/slack-webhook-server
+  environment=SLACK_BOT_TOKEN="xoxb-token",SLACK_SIGNING_SECRET="secret"
+  user=slack-webhook
+  autostart=true
+  autorestart=true
+  redirect_stderr=true
+  stdout_logfile=/var/log/webhook-server.log
+  ```
+  </TabItem>
+</Tabs>
+
+## Environment-Specific Configurations
+
+### Development Environment
+
+```bash
+# .env.development
+SLACK_BOT_TOKEN="xoxb-dev-token"
+SLACK_TEST_CHANNEL="#dev-testing"
+QUEUE_BACKEND="memory"
+LOG_LEVEL="DEBUG"
+```
+
+### Staging Environment
+
+```bash
+# .env.staging
+SLACK_BOT_TOKEN="xoxb-staging-token"
+QUEUE_BACKEND="redis"
+REDIS_URL="redis://staging-redis:6379/0"
+LOG_LEVEL="INFO"
+```
+
+### Production Environment
+
+```bash
+# .env.production
+SLACK_BOT_TOKEN="xoxb-prod-token"
+SLACK_SIGNING_SECRET="prod-signing-secret"
+QUEUE_BACKEND="redis"
+REDIS_URL="redis://prod-redis:6379/0"
+LOG_LEVEL="WARNING"
+```
+
+## Monitoring and Logging
+
+### Health Checks
+
+<Tabs>
+  <TabItem value="mcp" label="MCP Server" default>
+  ```bash
+  # Basic health check (check if process is running)
+  pgrep -f slack-mcp-server
+  
+  # Check logs for errors
+  tail -f /var/log/mcp-server.log | grep ERROR
+  ```
+  </TabItem>
+  <TabItem value="webhook" label="Webhook Server">
+  ```bash
+  # HTTP health check endpoint
+  curl -f http://localhost:3000/health || exit 1
+  
+  # Check server status
+  curl -s http://localhost:3000/status
+  ```
+  </TabItem>
+</Tabs>
+
+### Log Management
+
+```bash
+# Rotate logs with logrotate
+cat > /etc/logrotate.d/slack-servers << EOF
+/var/log/mcp-server.log
+/var/log/webhook-server.log {
+    daily
+    rotate 30
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0644 slack-mcp slack-mcp
+}
+EOF
+```
+
+## Troubleshooting Common Deployment Issues
+
+### Connection Issues
+
+```bash
+# Test Slack API connectivity
+curl -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+     https://slack.com/api/auth.test
+
+# Test Redis connectivity (if using Redis backend)
+redis-cli -u $REDIS_URL ping
+```
+
+### Permission Issues
+
+```bash
+# Fix file permissions
+chown -R slack-mcp:slack-mcp /opt/slack-mcp-server
+chmod +x /opt/slack-mcp-server/venv/bin/slack-mcp-server
+
+# Check firewall rules (for webhook server)
+sudo ufw status
+sudo ufw allow 3000/tcp
+```
+
+### Resource Issues
+
+```bash
+# Check memory usage
+free -h
+ps aux | grep slack
+
+# Check disk space
+df -h
+du -sh /opt/slack-*-server/
+```
+
+## Security Considerations
+
+### Network Security
+- Use HTTPS for webhook endpoints
+- Implement proper firewall rules
+- Use VPN or private networks for internal communication
+
+### Token Security
+- Store tokens in secure secret management systems
+- Rotate tokens regularly
+- Use different tokens for different environments
+
+### Container Security
+- Use non-root users in containers
+- Keep base images updated
+- Scan containers for vulnerabilities
+
+For server-specific deployment details, see:
+- [MCP Server CLI Reference](./mcp-server/cli-reference.mdx)
+- [Webhook Server Modes](./webhook-server/server-modes.mdx)

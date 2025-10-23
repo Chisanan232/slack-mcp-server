@@ -1,0 +1,381 @@
+---
+id: mcp-client-examples
+title: MCP Client Examples
+sidebar_position: 5
+---
+
+# MCP Client Examples
+
+Learn how to quickly connect to the Slack MCP server and interact with Slack through ready-to-run client examples. These examples demonstrate different transport methods and integration patterns for building your own MCP clients.
+
+## 🚀 Quick Start
+
+### 1. Start the MCP Server
+
+First, start the MCP server in HTTP mode with integrated capabilities:
+
+```bash
+# Option 1: Using the integrated MCP server
+uv run slack-mcp-server --transport sse --mount-path /mcp --integrated
+
+# Option 2: Using the webhook server with MCP integration
+uv run slack-events-server --mcp-transport sse --mcp-mount-path /mcp --integrated
+```
+
+### 2. Run Client Examples
+
+Navigate to the examples directory and run any client:
+
+```bash
+cd examples/mcp_clients
+
+# SSE transport examples
+python easy_mcp_client_with_sse.py
+python easy_mcp_client_with_sse_in_web.py
+
+# Streamable HTTP transport examples  
+python easy_mcp_client_with_streamable_http.py
+python easy_mcp_client_with_streamable_http_in_web.py
+```
+
+📄 **Source Files**: 
+- [`easy_mcp_client_with_sse.py`]
+- [`easy_mcp_client_with_sse_in_web.py`]
+- [`easy_mcp_client_with_streamable_http.py`]
+- [`easy_mcp_client_with_streamable_http_in_web.py`]
+
+## 📂 Available Examples
+
+| Example Script                                     | Transport | Endpoint                            | Best For                                   |
+|----------------------------------------------------|-----------|-------------------------------------|--------------------------------------------|
+| [`easy_mcp_client_with_sse.py`]                    | SSE       | `http://localhost:9000/sse`         | Real-time applications, simple integration |
+| [`easy_mcp_client_with_sse_in_web.py`]             | SSE       | `http://localhost:9000/mcp/sse`     | Web applications, browser compatibility    |
+| [`easy_mcp_client_with_streamable_http.py`]        | HTTP      | `http://localhost:9000/mcp`         | HTTP-based apps, REST-like patterns        |
+| [`easy_mcp_client_with_streamable_http_in_web.py`] | HTTP      | `http://localhost:9000/mcp/mcp`     | Web integration with HTTP streaming        |
+
+:::info Endpoint Configuration
+The actual endpoint URLs depend on your server's **base URL path** configuration:
+
+- **Integrated mode** (web applications) uses the default base path `/mcp`, which prefixes all endpoints
+- **Standalone mode** examples don't use a base path prefix  
+- **Custom mount path**: When you start the server with `--mount-path /custom`, the endpoints become `/custom/sse` and `/custom`
+
+See the [Server Configuration](#server-configuration) section below for detailed examples.
+:::
+
+[`easy_mcp_client_with_sse.py`]: https://github.com/Chisanan232/slack-mcp-server/blob/main/examples/mcp_clients/easy_mcp_client_with_sse.py
+[`easy_mcp_client_with_sse_in_web.py`]: https://github.com/Chisanan232/slack-mcp-server/blob/main/examples/mcp_clients/easy_mcp_client_with_sse_in_web.py
+[`easy_mcp_client_with_streamable_http.py`]: https://github.com/Chisanan232/slack-mcp-server/blob/main/examples/mcp_clients/easy_mcp_client_with_streamable_http.py
+[`easy_mcp_client_with_streamable_http_in_web.py`]: https://github.com/Chisanan232/slack-mcp-server/blob/main/examples/mcp_clients/easy_mcp_client_with_streamable_http_in_web.py
+
+## 🔧 Transport Methods
+
+### Server-Sent Events (SSE)
+
+**Endpoints**: 
+- `http://localhost:9000/sse` (basic example)
+- `http://localhost:9000/mcp/sse` (web integration example)
+
+SSE provides real-time streaming communication ideal for applications requiring immediate updates.
+
+```python
+import asyncio
+from mcp import ClientSession
+from mcp.client.sse import sse_client
+
+async def mcp_client():
+    url = "http://localhost:9000/mcp/sse"
+    async with sse_client(url) as (read_stream, write_stream):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            # Your MCP operations here
+```
+
+### Streamable HTTP
+
+**Endpoints**: 
+- `http://localhost:9000/mcp` (basic example)
+- `http://localhost:9000/mcp/mcp` (web integration example)
+
+HTTP streaming provides bidirectional communication over a single HTTP connection.
+
+```python
+import asyncio
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
+
+async def mcp_client():
+    url = "http://localhost:9000/mcp"
+    async with streamablehttp_client(url) as (read_stream, write_stream, _close_fn):
+        async with ClientSession(read_stream, write_stream) as session:
+            await session.initialize()
+            # Your MCP operations here
+```
+
+## 🛠️ Common Usage Patterns
+
+### List Available Tools
+
+All examples demonstrate how to discover available MCP tools:
+
+```python
+async with ClientSession(read_stream, write_stream) as session:
+    await session.initialize()
+    tools = await session.list_tools()
+    print("Available tools:", [t.name for t in tools.tools])
+```
+
+**Expected Output:**
+```
+Available tools: ['slack_post_message', 'slack_read_channel_messages', 'slack_read_thread_messages', 'slack_thread_reply', 'slack_read_emojis', 'slack_add_reactions']
+```
+
+### Send Slack Messages
+
+Post messages to Slack channels using the `slack_post_message` tool:
+
+```python
+res = await session.call_tool(
+    name="slack_post_message",
+    arguments={
+        "input_params": {
+            "channel": "#general",  # or channel ID like "C091SAB2F5Y"
+            "text": "Hello from MCP client!",
+        },
+    },
+)
+print("Message sent:", res.model_dump())
+```
+
+### Read Channel Messages
+
+Retrieve message history from Slack channels:
+
+```python
+res = await session.call_tool(
+    name="slack_read_channel_messages",
+    arguments={
+        "input_params": {
+            "channel": "#general",
+            "limit": 10,
+        },
+    },
+)
+print("Messages:", res.model_dump())
+```
+
+### Add Reactions
+
+Add emoji reactions to messages:
+
+```python
+res = await session.call_tool(
+    name="slack_add_reactions",
+    arguments={
+        "input_params": {
+            "channel": "#general",
+            "timestamp": "1234567890.123456",
+            "emojis": ["thumbsup", "heart"],
+        },
+    },
+)
+```
+
+## ⚙️ Configuration
+
+### Environment Variables
+
+Ensure your MCP server has the required Slack configuration:
+
+```bash
+# Required for Slack functionality
+SLACK_BOT_TOKEN=xoxb-your-bot-token
+SLACK_SIGNING_SECRET=your-signing-secret
+
+# Optional backend configuration
+QUEUE_BACKEND=memory  # or redis, kafka
+REDIS_URL=redis://localhost:6379  # if using redis
+```
+
+### Server Configuration
+
+The examples assume default server settings:
+- **Host**: `localhost`
+- **Port**: `9000` 
+- **Mount Path**: `/mcp` (for integrated mode)
+
+#### Understanding Base URL Paths
+
+The **mount path** (base URL path) determines the endpoint structure:
+
+| Server Mode | Mount Path | SSE Endpoint | HTTP Endpoint | Example Usage |
+|-------------|------------|--------------|---------------|---------------|
+| **Standalone** | None | `/sse` | `/` (root) | Direct MCP server |
+| **Integrated** | `/mcp` (default) | `/mcp/sse` | `/mcp` | Web application integration |
+| **Custom** | `--mount-path /api` | `/api/sse` | `/api` | Custom integration |
+
+#### Custom Configuration Examples
+
+```bash
+# Default integrated mode (mount path: /mcp)
+uv run slack-mcp-server --transport sse --integrated
+# Endpoints: http://localhost:9000/mcp/sse, http://localhost:9000/mcp
+
+# Custom mount path
+uv run slack-mcp-server --transport sse --mount-path /api --integrated  
+# Endpoints: http://localhost:9000/api/sse, http://localhost:9000/api
+
+# Standalone mode (no mount path)
+uv run slack-mcp-server --transport sse
+# Endpoints: http://localhost:9000/sse, http://localhost:9000/
+
+# Custom host and port
+uv run slack-mcp-server --transport sse --host 0.0.0.0 --port 8080 --mount-path /custom
+# Endpoints: http://0.0.0.0:8080/custom/sse, http://0.0.0.0:8080/custom
+```
+
+#### Update Client URLs Accordingly
+
+When changing server configuration, update your client URLs:
+
+```python
+# For custom mount path /api
+url = "http://localhost:9000/api/sse"    # SSE transport
+url = "http://localhost:9000/api"        # Streamable HTTP transport
+
+# For standalone mode
+url = "http://localhost:9000/sse"        # SSE transport  
+url = "http://localhost:9000/"           # Streamable HTTP transport (root)
+```
+
+## 🔍 Troubleshooting
+
+### Connection Issues
+
+**Problem**: `ConnectionRefusedError: Connection refused`
+
+**Solutions**:
+- Verify the MCP server is running: `curl http://localhost:9000/health`
+- Ensure server started with HTTP transport (`--transport sse` or `--transport streamable-http`)
+- Check if port 9000 is available or change server port
+
+### Endpoint Errors
+
+**Problem**: `404 Client Error: Not Found`
+
+**Solutions**:
+- Verify endpoint URLs match your server configuration
+- SSE endpoints should end with `/sse`
+- HTTP endpoints should match the mount path (default `/mcp`)
+
+### Tool Availability
+
+**Problem**: `Tool 'slack_post_message' not found`
+
+**Solutions**:
+- Ensure `SLACK_BOT_TOKEN` environment variable is set
+- Verify the bot has required OAuth scopes
+- Check server logs for authentication errors
+
+### Authentication Errors
+
+**Problem**: Slack API returns `invalid_auth` or `not_authed`
+
+**Solutions**:
+- Verify your `SLACK_BOT_TOKEN` is valid and active
+- Ensure the bot is installed in your workspace
+- Check that required OAuth scopes are granted
+
+## 🚀 Building Your Own Client
+
+### Basic Client Template
+
+```python
+import asyncio
+from mcp import ClientSession
+from mcp.client.sse import sse_client  # or streamable_http
+
+async def my_mcp_client():
+    url = "http://localhost:9000/mcp/sse"
+    
+    try:
+        async with sse_client(url) as (read_stream, write_stream):
+            async with ClientSession(read_stream, write_stream) as session:
+                # Initialize the session
+                await session.initialize()
+                
+                # Discover available tools
+                tools = await session.list_tools()
+                print(f"Available tools: {[t.name for t in tools.tools]}")
+                
+                # Call your desired tools
+                result = await session.call_tool(
+                    name="slack_post_message",
+                    arguments={
+                        "input_params": {
+                            "channel": "#your-channel",
+                            "text": "Your message here"
+                        }
+                    }
+                )
+                
+                return result.model_dump()
+                
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+if __name__ == "__main__":
+    result = asyncio.run(my_mcp_client())
+    print(result)
+```
+
+### Error Handling Best Practices
+
+```python
+async def robust_mcp_client():
+    url = "http://localhost:9000/mcp/sse"
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            async with sse_client(url) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    await session.initialize()
+                    
+                    # Your operations here
+                    result = await session.call_tool(...)
+                    
+                    # Check if Slack API call was successful
+                    if hasattr(result, 'content') and result.content:
+                        response_data = result.content[0].text
+                        if '"ok": false' in response_data:
+                            print(f"Slack API error: {response_data}")
+                            return None
+                    
+                    return result
+                    
+        except ConnectionError as e:
+            print(f"Connection attempt {attempt + 1} failed: {e}")
+            if attempt == max_retries - 1:
+                raise
+            await asyncio.sleep(2 ** attempt)  # Exponential backoff
+            
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            raise
+```
+
+## 📚 Next Steps
+
+1. **Explore All Tools**: Try different MCP tools like `slack_read_channel_messages`, `slack_thread_reply`, etc.
+2. **Build Applications**: Use these examples as foundation for your Slack integration apps
+3. **Web Integration**: Leverage the "in_web" variants for browser-based applications
+4. **Production Setup**: Add comprehensive error handling, logging, and configuration management
+
+## 📄 References
+
+- [MCP Protocol Specification](https://spec.modelcontextprotocol.io/)
+- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
+- [Slack MCP Server Tools](./index.mdx#available-tools)
+- [Server Configuration Guide](../environment-configuration.mdx)

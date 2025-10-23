@@ -1,0 +1,595 @@
+---
+id: instance-management-design
+title: Common Instance Management Design
+sidebar_position: 6
+---
+
+# Common Instance Management Design
+
+This document details the unified instance management design used across all server types in the Slack MCP Server project, including the factory pattern, singleton management, token handling, and deployment enhancements. This design is applied consistently to **MCP servers**, **webhook servers**, and **integrated servers**.
+
+## Overview
+
+The unified instance management design addresses several key architectural challenges across **all server types** in the project:
+
+### **Server Types Using This Design**
+- **🤖 MCP Server**: FastMCP server instances with various transport options
+- **🪝 Webhook Server**: FastAPI applications handling Slack webhook events  
+- **🔗 Integrated Server**: Combined MCP + Webhook server functionality
+
+### **Common Architectural Challenges Addressed**
+- **Singleton Management**: Proper lifecycle management for server instances
+- **Factory Pattern**: Consistent server creation across different contexts and server types
+- **Token Handling**: Robust fallback mechanisms for Slack authentication
+- **Environment Configuration**: Improved handling of configuration variables
+- **Testing Support**: Reset mechanisms for test isolation across all server types
+- **Docker Integration**: Enhanced container startup and configuration
+
+## Architecture Components
+
+### **Base Server Factory Pattern**
+
+The foundation of the new design is the `BaseServerFactory` abstract class that provides a consistent interface for server creation:
+
+```python
+from abc import ABC, abstractmethod
+from typing import Generic, TypeVar
+
+T = TypeVar('T')
+
+class BaseServerFactory(ABC, Generic[T]):
+    """Abstract base class for server factories."""
+    
+    @staticmethod
+    @abstractmethod
+    def create(**kwargs) -> T:
+        """Create and configure a server instance."""
+        pass
+    
+    @staticmethod
+    @abstractmethod
+    def get() -> T:
+        """Get the singleton server instance."""
+        pass
+    
+    @staticmethod
+    @abstractmethod
+    def reset() -> None:
+        """Reset the singleton instance for testing."""
+        pass
+```
+
+### **Server Factory Implementations**
+
+All server types implement the factory pattern for consistent server creation:
+
+#### **MCP Server Factory**
+```python
+class MCPServerFactory(BaseServerFactory[FastMCP]):
+    @staticmethod
+    def create(**kwargs) -> FastMCP:
+        """Create and configure MCP server instance."""
+        # MCP-specific server creation logic
+        pass
+```
+
+#### **Webhook Server Factory** 
+```python  
+class WebServerFactory(BaseServerFactory[FastAPI]):
+    @staticmethod
+    def create(**kwargs) -> FastAPI:
+        """Create and configure webhook server instance."""
+        # Webhook-specific server creation logic
+        pass
+```
+
+#### **Integrated Server Factory**
+
+The `IntegratedServerFactory` implements the factory pattern for unified MCP and webhook server creation:
+
+```python
+from typing import Final, Optional, Type
+from fastapi import FastAPI
+from slack_mcp._base import BaseServerFactory
+
+class IntegratedServerFactory(BaseServerFactory[FastAPI]):
+    @staticmethod
+    def create(**kwargs) -> FastAPI:
+        """Create and configure the integrated server."""
+        token: Optional[str] = kwargs.get("token", None)
+        mcp_transport: str = kwargs.get("mcp_transport", "sse")
+        mcp_mount_path: str = kwargs.get("mcp_mount_path", "/mcp")
+        retry: int = kwargs.get("retry", 3)
+
+        # Validate transport type
+        if mcp_transport not in ["sse", "streamable-http"]:
+            raise ValueError(f"Invalid transport type: {mcp_transport}")
+
+        # Initialize factories
+        global _INTEGRATED_SERVER_INSTANCE
+        _INTEGRATED_SERVER_INSTANCE = create_slack_app()
+
+        # Prepare and mount components
+        IntegratedServerFactory._prepare(token=token, retry=retry)
+        IntegratedServerFactory._mount(
+            mcp_transport=mcp_transport, 
+            mcp_mount_path=mcp_mount_path
+        )
+
+        return _INTEGRATED_SERVER_INSTANCE
+```
+
+## Singleton Management
+
+### **Instance Lifecycle**
+
+The singleton pattern ensures consistent server instances across the application:
+
+```python
+# Global singleton instance
+_INTEGRATED_SERVER_INSTANCE: Optional[FastAPI] = None
+
+class IntegratedServerFactory(BaseServerFactory[FastAPI]):
+    @staticmethod
+    def get() -> FastAPI:
+        """Get the singleton server instance."""
+        assert _INTEGRATED_SERVER_INSTANCE is not None, \
+            "Server must be created first."
+        return _INTEGRATED_SERVER_INSTANCE
+    
+    @staticmethod
+    def reset() -> None:
+        """Reset the singleton instance (for testing)."""
+        global _INTEGRATED_SERVER_INSTANCE
+        _INTEGRATED_SERVER_INSTANCE = None
+```
+
+### **Factory Coordination**
+
+Multiple factories work together with proper initialization order:
+
+```python
+@staticmethod
+def create(**kwargs) -> FastAPI:
+    # Initialize MCP factory
+    try:
+        mcp_factory.get()
+    except AssertionError:
+        mcp_factory.create()
+
+    # Initialize web factory
+    try:
+        web_factory.get()
+    except AssertionError:
+        web_factory.create()
+
+    # Create integrated server
+    global _INTEGRATED_SERVER_INSTANCE
+    _INTEGRATED_SERVER_INSTANCE = create_slack_app()
+    
+    return _INTEGRATED_SERVER_INSTANCE
+```
+
+## Token Management Enhancements
+
+### **Environment Variable Fallback**
+
+The new design implements robust token handling with automatic fallback to environment variables:
+
+```python
+def main(argv: list[str] | None = None) -> None:
+    args = _parse_args(argv)
+    
+    # Set Slack token from command line or environment
+    if args.slack_token:
+        os.environ["SLACK_BOT_TOKEN"] = args.slack_token
+    
+    if args.integrated:
+        # Get effective token (CLI argument or environment variable)
+        effective_token = args.slack_token or os.environ.get("SLACK_BOT_TOKEN")
+        
+        # Create integrated app with effective token
+        app = integrated_factory.create(
+            token=effective_token,
+            mcp_transport=args.transport,
+            mcp_mount_path=args.mount_path,
+            retry=args.retry
+        )
+        
+        # Update client with effective token
+        update_slack_client(token=effective_token, client=slack_client)
+```
+
+### **Client Manager Integration**
+
+The client manager provides centralized token and client lifecycle management:
+
+```python
+def update_slack_client(
+    token: Optional[str] = None, 
+    client: Optional[AsyncWebClient] = None
+) -> AsyncWebClient:
+    """Update the token used by a Slack client."""
+    client_manager = get_client_manager()
+    
+    # Check if we're in a test environment
+    in_test_env = "PYTEST_CURRENT_TEST" in os.environ
+    
+    if not token:
+        if in_test_env:
+            token = "xoxb-test-token-for-pytest"
+        else:
+            raise ValueError("Token cannot be empty or None")
+    
+    if client:
+        # Update existing client
+        client.token = token
+        client_manager.update_client(token, client)
+        return client
+    
+    # Create new client
+    return client_manager.get_async_client(token)
+```
+
+## Environment Variable Handling
+
+### **Case-Insensitive Log Level Processing**
+
+Docker startup scripts now handle case-insensitive log level configuration:
+
+```bash
+# LOG_LEVEL: Python logging level
+if [ -n "${MCP_LOG_LEVEL}" ]; then
+  # Convert to lowercase to ensure compatibility with CLI parser
+  LOG_LEVEL_LOWER=$(echo "${MCP_LOG_LEVEL}" | tr '[:upper:]' '[:lower:]')
+  CMD_ARGS+=(--log-level "${LOG_LEVEL_LOWER}")
+fi
+```
+
+### **Runtime Environment Variable Reading**
+
+Critical configuration is now read at runtime rather than startup to support dynamic configuration:
+
+```python
+@app.post("/slack/events")
+async def slack_events(request: Request) -> Response:
+    # ... event processing ...
+    
+    # Get topic at runtime (not startup) for test flexibility
+    slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
+    await backend.publish(slack_events_topic, event_dict)
+```
+
+## Testing Support
+
+### **Factory Reset Mechanisms**
+
+Each factory provides reset functionality for test isolation:
+
+```python
+# Reset all factories for clean test state
+MCPServerFactory.reset()
+IntegratedServerFactory.reset()
+web_factory.reset()
+
+# Reset global backend references
+import slack_mcp.webhook.server
+original_backend = slack_mcp.webhook.server._queue_backend
+slack_mcp.webhook.server._queue_backend = None
+```
+
+### **Test Environment Detection**
+
+The system automatically detects test environments and adjusts behavior:
+
+```python
+def update_slack_client(token: Optional[str] = None) -> AsyncWebClient:
+    # Check if we're in a test environment
+    in_test_env = "PYTEST_CURRENT_TEST" in os.environ
+    
+    if not token and in_test_env:
+        # Use dummy token in test environments
+        token = "xoxb-test-token-for-pytest"
+        _LOG.debug("Using dummy token in test environment")
+```
+
+### **Mock Backend Integration**
+
+Test fixtures can inject mock backends seamlessly:
+
+```python
+@pytest_asyncio.fixture
+async def real_queue_backend() -> AsyncGenerator[MemoryBackend, None]:
+    # Reset the global _queue_backend to ensure fresh initialization
+    import slack_mcp.webhook.server
+    original_backend = slack_mcp.webhook.server._queue_backend
+    slack_mcp.webhook.server._queue_backend = None
+    
+    try:
+        # Let the system create the real MemoryBackend naturally
+        real_backend = get_queue_backend()
+        yield real_backend
+    finally:
+        # Restore original backend
+        slack_mcp.webhook.server._queue_backend = original_backend
+```
+
+## Docker Integration Improvements
+
+### **Startup Script Enhancements**
+
+The Docker startup scripts now provide robust environment variable handling:
+
+```bash
+#!/bin/bash
+set -e
+
+# Service type router with integrated mode support
+SERVICE_TYPE=${SERVICE_TYPE:-mcp}
+
+case "${SERVICE_TYPE}" in
+  integrated)
+    echo "Starting integrated server via MCP entry point..."
+    export MCP_INTEGRATED=true
+    exec "${SCRIPT_DIR}/run-slack-mcp-server.sh"
+    ;;
+  mcp)
+    echo "Starting MCP server..."
+    exec "${SCRIPT_DIR}/run-slack-mcp-server.sh"
+    ;;
+  webhook)
+    echo "Starting Slack webhook server..."
+    exec "${SCRIPT_DIR}/run-slack-webhook-server.sh"
+    ;;
+esac
+```
+
+### **Environment Variable Mapping**
+
+Comprehensive environment variable mapping in startup scripts:
+
+```bash
+# Map environment variables to command line options
+
+# TRANSPORT: Transport mode for FastMCP server
+if [ -n "${MCP_TRANSPORT}" ]; then
+  CMD_ARGS+=(--transport "${MCP_TRANSPORT}")
+fi
+
+# SLACK_BOT_TOKEN: Slack bot token
+if [ -n "${SLACK_BOT_TOKEN}" ]; then
+  CMD_ARGS+=(--slack-token "${SLACK_BOT_TOKEN}")
+fi
+
+# INTEGRATED: Run in integrated mode
+if [ -n "${MCP_INTEGRATED}" ] && [ "${MCP_INTEGRATED}" = "true" ]; then
+  CMD_ARGS+=(--integrated)
+fi
+
+# Execute with collected arguments
+exec uv run slack-mcp-server "${CMD_ARGS[@]}"
+```
+
+### **Container Health Checks**
+
+Enhanced health check endpoints for monitoring:
+
+```python
+@app.get("/health")
+async def health_check() -> JSONResponse:
+    """Comprehensive health check for integrated server."""
+    try:
+        # Check queue backend
+        backend = get_queue_backend()
+        test_payload = {"type": "health_check", "timestamp": "test"}
+        await backend.publish("_health_check", test_payload)
+        backend_status = "healthy"
+        
+        # Check Slack client
+        slack_status = "initialized" if slack_client else "not_initialized"
+        
+        # Overall status
+        is_healthy = backend_status == "healthy"
+        status_code = status.HTTP_200_OK if is_healthy else status.HTTP_503_SERVICE_UNAVAILABLE
+        
+        return JSONResponse(
+            status_code=status_code,
+            content={
+                "status": "healthy" if is_healthy else "unhealthy",
+                "service": "slack-webhook-server",
+                "components": {
+                    "queue_backend": backend_status,
+                    "slack_client": slack_status,
+                },
+            },
+        )
+    except Exception as e:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy", 
+                "service": "slack-webhook-server", 
+                "error": str(e)
+            },
+        )
+```
+
+## Configuration Patterns
+
+### **Multi-Layer Configuration**
+
+The new design supports configuration from multiple sources with proper precedence:
+
+1. **Command Line Arguments** (highest priority)
+2. **Environment Variables** (fallback)
+3. **Default Values** (lowest priority)
+
+```python
+# Example: Token resolution
+effective_token = (
+    args.slack_token or                    # CLI argument
+    os.environ.get("SLACK_BOT_TOKEN") or   # Environment variable
+    "default-test-token"                   # Default (test only)
+)
+```
+
+### **Environment Variable Conventions**
+
+Standardized environment variable naming:
+
+```bash
+# Server Configuration
+SERVICE_TYPE=integrated              # Service mode selection
+MCP_INTEGRATED=true                 # Enable integrated mode
+MCP_TRANSPORT=sse                   # MCP transport type
+MCP_MOUNT_PATH=/mcp                 # MCP endpoint path
+MCP_LOG_LEVEL=debug                 # Logging level (case-insensitive)
+MCP_HOST=0.0.0.0                    # Server bind address
+MCP_PORT=8000                       # Server port
+MCP_RETRY=3                         # Retry count for operations
+
+# Slack Configuration
+SLACK_BOT_TOKEN=xoxb-...            # Slack bot token
+SLACK_SIGNING_SECRET=...            # Webhook verification secret
+SLACK_EVENTS_TOPIC=slack_events     # Queue topic for events
+
+# Backend Configuration
+QUEUE_BACKEND_TYPE=memory           # Queue backend selection
+```
+
+## Error Handling and Resilience
+
+### **Graceful Degradation**
+
+The system handles missing configurations gracefully:
+
+```python
+def _prepare(cls, token: Optional[str] = None, retry: int = 3) -> None:
+    """Prepare the integrated server with optional token."""
+    if token:
+        initialize_slack_client(token, retry=retry)
+    else:
+        _LOG.info("Deferring Slack client initialization - token will be set later")
+```
+
+### **Validation and Early Failure**
+
+Input validation prevents runtime errors:
+
+```python
+@staticmethod
+def create(**kwargs) -> FastAPI:
+    mcp_transport: str = kwargs.get("mcp_transport", "sse")
+    
+    # Validate transport type before any operations
+    if mcp_transport not in ["sse", "streamable-http"]:
+        raise ValueError(
+            f"Invalid transport type: {mcp_transport}. "
+            "Must be 'sse' or 'streamable-http'."
+        )
+```
+
+## Migration Guide
+
+### **From Legacy to New Design**
+
+**Before (Legacy Pattern):**
+```python
+# Manual server creation
+app = create_slack_app()
+mcp_app = create_mcp_app()
+app.mount("/mcp", mcp_app)
+```
+
+**After (Factory Pattern):**
+```python
+# Factory-based creation
+app = integrated_factory.create(
+    token=token,
+    mcp_transport="sse",
+    mcp_mount_path="/mcp"
+)
+```
+
+### **Testing Migration**
+
+**Before:**
+```python
+# Manual test setup
+app = create_slack_app()
+# ... manual configuration
+```
+
+**After:**
+```python
+# Factory-based test setup with reset
+IntegratedServerFactory.reset()
+app = integrated_factory.create(token="test-token")
+```
+
+## Performance Benefits
+
+### **Resource Efficiency**
+
+- **Singleton Management**: Prevents duplicate server instances
+- **Factory Caching**: Reduces initialization overhead
+- **Connection Pooling**: Shared client instances
+- **Memory Optimization**: Centralized resource management
+
+### **Startup Performance**
+
+- **Lazy Initialization**: Components created only when needed
+- **Configuration Validation**: Early failure prevents wasted resources
+- **Factory Coordination**: Optimal initialization order
+
+## Security Enhancements
+
+### **Token Security**
+
+- **Environment Variables**: Secure token storage
+- **Test Token Isolation**: Separate test credentials
+- **Client Lifecycle**: Proper token rotation support
+
+### **Configuration Security**
+
+- **Input Validation**: Prevent injection attacks
+- **Default Security**: Secure defaults for all configurations
+- **Secret Management**: Clear separation of secrets and configuration
+
+## Monitoring and Observability
+
+### **Factory Metrics**
+
+Track factory usage and performance:
+
+```python
+@staticmethod
+def create(**kwargs) -> FastAPI:
+    start_time = time.time()
+    
+    try:
+        # Server creation logic
+        result = _create_server(**kwargs)
+        
+        _LOG.info("server_created", 
+                 duration=time.time() - start_time,
+                 transport=kwargs.get("mcp_transport"))
+        
+        return result
+    except Exception as e:
+        _LOG.error("server_creation_failed",
+                  error=str(e),
+                  duration=time.time() - start_time)
+        raise
+```
+
+### **Health Monitoring**
+
+Comprehensive health checks for all components:
+
+- **Factory Status**: Instance creation and lifecycle
+- **Client Status**: Authentication and connectivity
+- **Backend Status**: Queue and storage systems
+- **Integration Status**: Component coordination
+
+This new instance management design provides a robust, scalable, and maintainable foundation for the Slack MCP Server, addressing key architectural challenges while maintaining flexibility and performance.

@@ -1,0 +1,363 @@
+---
+title: Type Checking with MyPy
+description: Guide to static type checking in the Slack MCP Server project
+---
+
+# Type Checking with MyPy
+
+The Slack MCP Server project is fully compliant with **PEP 561** and provides comprehensive type annotations for static type checking with MyPy and other type checkers.
+
+## PEP Standards Compliance
+
+This project follows these Python Enhancement Proposals:
+
+- **[PEP 561](https://peps.python.org/pep-0561/)**: Distributing and Packaging Type Information
+- **[PEP 484](https://peps.python.org/pep-0484/)**: Type Hints
+- **[PEP 585](https://peps.python.org/pep-0585/)**: Type Hinting Generics In Standard Collections
+- **[PEP 544](https://peps.python.org/pep-0544/)**: Protocols: Structural subtyping (static duck typing)
+- **[PEP 695](https://peps.python.org/pep-0695/)**: Type Parameter Syntax (Python 3.12+)
+
+## Type Module
+
+The `slack_mcp.types` module provides centralized type definitions for the entire package using modern **PEP 695** type alias syntax:
+
+```python
+from slack_mcp import types
+
+# Use type annotations in your code
+def handle_event(event: types.SlackEventPayload) -> None:
+    channel: types.SlackChannelID = event.get("channel", "")
+    timestamp: types.SlackTimestamp = event.get("ts", "")
+    print(f"Event in {channel} at {timestamp}")
+```
+
+### Modern Type Alias Syntax (PEP 695)
+
+All type aliases in `slack_mcp/types.py` use the modern `type` statement introduced in Python 3.12:
+
+```python
+# Modern PEP 695 syntax
+type SlackChannelID = str
+type SlackUserID = str
+type JSONDict = Dict[str, JSONValue]
+type TransportType = Literal["stdio", "sse", "streamable-http"]
+```
+
+**Benefits:**
+- ✅ **Cleaner syntax** - More concise than `TypeAlias` annotation
+- ✅ **Better type inference** - Native support in type checkers
+- ✅ **No forward references** - Automatic resolution without quotes
+- ✅ **SonarQube compliant** - Resolves python:S6794 violations
+
+**Old style (deprecated):**
+```python
+# ❌ Avoid - triggers SonarQube python:S6794
+from typing import TypeAlias
+SlackChannelID: TypeAlias = str
+```
+
+### Available Type Definitions
+
+#### JSON Types
+- `JSONPrimitive`: Basic JSON types (str, int, float, bool, None)
+- `JSONValue`: Any valid JSON value
+- `JSONDict`: JSON object as dictionary
+- `JSONList`: JSON array as list
+
+#### Slack Types
+- `SlackChannelID`: Slack channel identifier
+- `SlackUserID`: Slack user identifier
+- `SlackTimestamp`: Slack message timestamp
+- `SlackToken`: Slack API token
+- `SlackEventType`: Event type string
+- `SlackEventPayload`: Event payload dictionary
+- `SlackMessagePayload`: Message payload structure
+- `SlackClient`: Slack SDK WebClient type
+- `SlackAPIResponse`: Slack SDK response type
+
+#### Transport Types
+- `TransportType`: MCP transport types ("stdio", "sse", "streamable-http")
+- `MCPTransport`: Alias for TransportType
+
+#### Handler Types
+- `EventHandlerFunc`: Event handler function (sync or async)
+- `AsyncEventHandlerFunc`: Async event handler
+- `SyncEventHandlerFunc`: Sync event handler
+
+#### Queue Types
+- `QueueKey`: Queue routing key or topic name
+- `QueuePayload`: Queue message payload
+- `QueueMessage`: Complete queue message with metadata
+- `QueueBackendConfig`: Configuration dictionary for backends
+- `ConsumerGroup`: Consumer group identifier
+
+:::tip Queue Backend Development
+For detailed information about queue backend types and plugin development, see the [Queue Backend Architecture](./queue-backends.mdx) guide.
+:::
+
+### Protocol Definitions
+
+The package provides runtime-checkable protocols for structural subtyping:
+
+#### EventHandlerProtocol
+
+```python
+from slack_mcp.types import EventHandlerProtocol
+
+class MyHandler:
+    async def handle_event(self, event: dict[str, Any]) -> None:
+        print(f"Handling: {event['type']}")
+
+# Type checker verifies protocol compliance
+handler: EventHandlerProtocol = MyHandler()
+```
+
+#### QueueBackendProtocol
+
+```python
+from slack_mcp.types import (
+    QueueBackendProtocol,
+    QueueKey,
+    QueuePayload,
+    QueueMessage,
+    ConsumerGroup,
+)
+from typing import AsyncIterator
+
+class MyQueueBackend:
+    async def publish(self, key: QueueKey, payload: QueuePayload) -> None:
+        # Publish to queue backend
+        pass
+    
+    async def consume(
+        self, 
+        *, 
+        group: ConsumerGroup = None
+    ) -> AsyncIterator[QueueMessage]:
+        # Consume from queue backend
+        yield {}
+    
+    @classmethod
+    def from_env(cls) -> "MyQueueBackend":
+        # Load configuration from environment
+        return cls()
+
+# Type checker verifies protocol compliance
+backend: QueueBackendProtocol = MyQueueBackend()
+```
+
+:::tip Plugin Development
+For a complete guide on implementing queue backend plugins with proper type definitions, see the [Queue Backend Architecture](./queue-backends.mdx) documentation.
+:::
+
+### Type Guards
+
+The types module includes type guard functions for runtime validation:
+
+```python
+from slack_mcp.types import is_slack_channel_id, is_slack_user_id, is_slack_timestamp
+
+# Validate Slack identifiers
+if is_slack_channel_id("C1234567890"):
+    print("Valid channel ID")
+
+if is_slack_user_id("U1234567890"):
+    print("Valid user ID")
+
+if is_slack_timestamp("1234567890.123456"):
+    print("Valid timestamp")
+```
+
+## Using Type Annotations
+
+### In Your Application Code
+
+```python
+from slack_mcp import types, SlackEvent
+from slack_mcp.webhook.event.handler import BaseSlackEventHandler
+
+class MySlackHandler(BaseSlackEventHandler):
+    async def on_message(self, event: types.SlackEventPayload) -> None:
+        """Handle message events with proper type annotations."""
+        channel: types.SlackChannelID = event["channel"]
+        text: str = event.get("text", "")
+        user: types.SlackUserID = event.get("user", "")
+        
+        print(f"Message from {user} in {channel}: {text}")
+```
+
+### With Queue Backends
+
+```python
+from slack_mcp.types import QueueBackendProtocol, QueuePayload
+
+async def process_queue(backend: QueueBackendProtocol) -> None:
+    """Process messages from a queue backend."""
+    async for message in backend.consume(group="my-consumer-group"):
+        payload: QueuePayload = message
+        print(f"Processing: {payload}")
+```
+
+## Running MyPy
+
+### Basic Type Checking
+
+```bash
+# Check specific files
+uv run mypy slack_mcp/types.py
+
+# Check entire package
+uv run mypy slack_mcp/
+
+# Check with strict mode
+uv run mypy --strict slack_mcp/
+```
+
+### MyPy Configuration
+
+The project includes a `mypy.ini` configuration file:
+
+```ini
+[mypy]
+packages = slack_mcp,test
+exclude = (?x)(
+    test/unit_test.{1,64}.py    # Ignore unit tests (use mocks)
+  )
+
+show_traceback = True
+warn_unused_configs = True
+warn_redundant_casts = True
+warn_unused_ignores = True
+strict_equality = True
+strict_concatenate = True
+```
+
+### IDE Integration
+
+Most modern IDEs support MyPy integration:
+
+#### VS Code
+Install the Pylance extension for automatic type checking.
+
+#### PyCharm
+Enable MyPy in Settings → Tools → Python Integrated Tools → Type Checker.
+
+#### Vim/Neovim
+Use ALE or coc-pyright for type checking.
+
+## PEP 561 Compliance
+
+The package includes a `py.typed` marker file to indicate it supports type checking:
+
+```
+slack_mcp/
+├── __init__.py
+├── py.typed          # PEP 561 marker file
+├── types.py          # Type definitions
+└── ...
+```
+
+### Package Distribution
+
+When you install the package, type information is automatically available:
+
+```bash
+pip install slack-mcp
+```
+
+Your type checker will automatically discover the type information without additional configuration.
+
+## Best Practices
+
+### 1. Always Use Type Annotations
+
+```python
+# Good
+def process_event(event: types.SlackEventPayload) -> None:
+    pass
+
+# Avoid
+def process_event(event):
+    pass
+```
+
+### 2. Use Protocol Types for Flexibility
+
+```python
+from slack_mcp.types import EventHandlerProtocol
+
+# Accept any object that implements the protocol
+def register_handler(handler: EventHandlerProtocol) -> None:
+    pass
+```
+
+### 3. Leverage Type Guards
+
+```python
+from slack_mcp.types import is_slack_channel_id
+
+def get_channel_info(channel_id: str) -> dict:
+    if not is_slack_channel_id(channel_id):
+        raise ValueError(f"Invalid channel ID: {channel_id}")
+    # Type checker knows channel_id is valid here
+    return {"id": channel_id}
+```
+
+### 4. Use TYPE_CHECKING for Import Optimization
+
+```python
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from slack_sdk import WebClient
+
+def create_client() -> WebClient:
+    from slack_sdk import WebClient
+    return WebClient(token="...")
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### Import Errors
+If MyPy reports import errors, ensure all dependencies are installed:
+```bash
+uv sync
+```
+
+#### Missing Type Stubs
+Some third-party packages may not have type stubs. Install them separately:
+```bash
+pip install types-requests types-redis
+```
+
+#### Circular Import Issues
+Use `from __future__ import annotations` and TYPE_CHECKING guards:
+```python
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from slack_mcp.client import SlackClientManager
+```
+
+## Contributing
+
+When contributing to the project:
+
+1. **Add type annotations** to all new functions and methods
+2. **Run MyPy** before submitting PRs: `uv run mypy slack_mcp/`
+3. **Update types.py** if adding new type definitions
+4. **Document types** in docstrings using proper type syntax
+
+## References
+
+- [PEP 561 – Distributing and Packaging Type Information](https://peps.python.org/pep-0561/)
+- [PEP 484 – Type Hints](https://peps.python.org/pep-0484/)
+- [PEP 585 – Type Hinting Generics](https://peps.python.org/pep-0585/)
+- [PEP 544 – Protocols](https://peps.python.org/pep-0544/)
+- [PEP 695 – Type Parameter Syntax](https://peps.python.org/pep-0695/)
+- [MyPy Documentation](https://mypy.readthedocs.io/)
+- [SonarQube python:S6794 Rule](https://rules.sonarsource.com/python/RSPEC-6794/)

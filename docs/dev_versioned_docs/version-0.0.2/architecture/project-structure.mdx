@@ -1,0 +1,268 @@
+---
+id: project-structure
+title: Project Structure
+sidebar_position: 2
+---
+
+# Project Structure & Organization
+
+This document provides an overview of the Slack MCP Server project structure, source code organization, and architectural design patterns.
+
+## Directory Structure
+
+```
+slack-mcp-server/
+├── slack_mcp/                 # Main package directory
+│   ├── _base/                 # Base classes and common patterns
+│   │   ├── app.py             # Base server factory interface
+│   │   └── __init__.py
+│   ├── mcp/                   # MCP server implementation
+│   │   ├── model/             # Data models and schemas
+│   │   ├── cli/               # Command-line interface
+│   │   ├── server.py          # MCP server implementation
+│   │   ├── app.py             # MCP server factory
+│   │   ├── entry.py           # MCP server entry point
+│   │   └── __init__.py
+│   ├── webhook/               # Webhook server implementation
+│   │   ├── event/             # Event handling and models
+│   │   ├── cli/               # Webhook CLI interface
+│   │   ├── server.py          # FastAPI webhook server
+│   │   ├── models.py          # Pydantic models for Slack events
+│   │   ├── app.py             # Webhook server factory
+│   │   └── entry.py           # Entry points and runners
+│   ├── integrate/             # Integrated server implementation
+│   │   ├── app.py             # Integrated server factory
+│   │   ├── server.py          # Health checks and utilities
+│   │   └── __init__.py
+│   ├── client/                # Slack client management
+│   │   ├── factory.py         # Client factory patterns
+│   │   └── manager.py         # Client lifecycle management
+│   ├── backends/              # Queue backend abstractions
+│   │   ├── base/              # Base backend interfaces
+│   │   └── queue/             # Queue backend implementations
+│   ├── events.py              # Slack event type definitions
+│   └── __init__.py
+├── test/                      # Test suite
+│   ├── unit_test/             # Unit tests
+│   ├── integration_test/      # Integration tests
+│   ├── contract_test/         # Contract tests
+│   └── e2e_test/              # End-to-end tests
+├── examples/                  # Usage examples
+├── scripts/                   # Build and deployment scripts
+├── docs/                      # Documentation (Docusaurus)
+└── pyproject.toml            # Project configuration
+```
+
+## Core Components
+
+### **Base Classes (`slack_mcp/_base/`)**
+
+Foundation classes and interfaces for the common instance management pattern:
+
+- **`app.py`**: `BaseServerFactory` abstract class defining the factory interface
+- Provides consistent `create()`, `get()`, and `reset()` methods for all server types
+- Generic typing support for different server implementations
+- Foundation for singleton management and testing support
+
+**Key Features:**
+- Abstract factory pattern implementation
+- Type-safe generic interfaces
+- Consistent lifecycle management across all server types
+
+### **MCP Server (`slack_mcp/mcp/`)**
+
+The MCP server implements the Model Context Protocol for Slack integration:
+
+- **`server.py`**: Main MCP server implementation with tool registration
+- **`app.py`**: MCP server factory implementing BaseServerFactory pattern
+- **`entry.py`**: Command-line entry point and server runner
+- **`model/`**: Pydantic models for MCP requests and responses
+- **`cli/`**: Command-line interface options and argument parsing
+
+**Key Features:**
+- Multiple transport support (stdio, SSE, HTTP)
+- Slack API integration through registered tools
+- Factory pattern for consistent server creation
+- Async/await patterns for non-blocking operations
+- Comprehensive error handling and logging
+
+### **Webhook Server (`slack_mcp/webhook/`)**
+
+FastAPI-based webhook server for receiving Slack events:
+
+- **`server.py`**: FastAPI application with webhook endpoints
+- **`app.py`**: Webhook server factory implementing BaseServerFactory pattern
+- **`entry.py`**: Command-line entry point and server runners
+- **`models.py`**: Pydantic models for Slack event payloads
+- **`event/`**: Event processing and handler management
+
+**Key Features:**
+- Request signature verification for security
+- Event publishing to queue backends
+- URL verification challenge handling
+- Factory pattern for consistent server creation
+- Standalone and integrated deployment modes
+
+### **Integrated Server (`slack_mcp/integrate/`)**
+
+Combined MCP and webhook server functionality in a unified deployment:
+
+- **`app.py`**: IntegratedServerFactory implementing BaseServerFactory pattern
+- **`server.py`**: Health check routers and server utilities
+- Coordinates MCP and webhook server creation and mounting
+- Provides unified configuration and shared resource management
+
+**Key Features:**
+- Single deployment combining both MCP and webhook functionality
+- Shared Slack client and resource management
+- Configurable transport options (SSE, HTTP streaming)
+- Unified health checks and monitoring
+- Factory pattern for consistent server creation
+
+### **Client Management (`slack_mcp/client/`)**
+
+Centralized Slack client management:
+
+- **`factory.py`**: Factory patterns for client creation
+- **`manager.py`**: Client lifecycle and token management
+
+### **Backend Abstraction (`slack_mcp/backends/`)**
+
+Queue backend abstraction layer:
+
+- **`base/`**: Abstract base classes and interfaces
+- **`queue/`**: Concrete queue backend implementations
+
+### **Event Type Definitions (`slack_mcp/events.py`)**
+
+Comprehensive Slack event type definitions and constants:
+
+- Type definitions for all supported Slack event types
+- Event validation and parsing utilities
+- Reference implementation for Slack API events
+- Used across webhook server and event handling components
+
+## Design Patterns
+
+### **Factory Pattern**
+Used extensively for creating clients and server instances:
+
+```python
+# Base factory pattern
+from slack_mcp._base import BaseServerFactory
+
+# Client factory
+from slack_mcp.client.factory import create_slack_client
+
+# Server factory implementations
+from slack_mcp.mcp.app import mcp_factory
+from slack_mcp.webhook.app import web_factory
+from slack_mcp.integrate.app import integrated_factory
+
+# Factory usage examples
+mcp_server = mcp_factory.create()
+webhook_app = web_factory.create()
+integrated_app = integrated_factory.create(
+    token="xoxb-token",
+    mcp_transport="sse",
+    mcp_mount_path="/mcp"
+)
+```
+
+### **Strategy Pattern**
+Transport mechanism selection and queue backend selection:
+
+```python
+# Transport strategy
+if transport == "sse":
+    mcp_app = server.sse_app(mount_path=mount_path)
+elif transport == "streamable-http":
+    mcp_app = server.streamable_http_app()
+```
+
+### **Repository Pattern**
+Backend abstraction for different queue systems:
+
+```python
+# Queue backend strategy
+backend = get_backend(backend_type)
+await backend.publish(topic, event_data)
+```
+
+### **Command Pattern**
+MCP tools as command objects:
+
+```python
+@server.list_tools()
+async def handle_list_tools() -> list[types.Tool]:
+    return [
+        types.Tool(name="slack_post_message", description="..."),
+        # ... other tools
+    ]
+```
+
+## Configuration Management
+
+### **Environment-Based Configuration**
+- `.env` files for local development
+- Environment variables for production
+- Centralized configuration validation
+
+### **CLI Integration**
+- Comprehensive command-line interfaces
+- Argument parsing with validation
+- Help text and documentation
+
+## Testing Strategy
+
+### **Test Organization**
+- **Unit Tests**: Component-level testing with mocks
+- **Integration Tests**: Cross-component interaction testing
+- **Contract Tests**: API contract validation
+- **End-to-End Tests**: Full workflow testing
+
+### **Test Utilities**
+- Shared fixtures and test data
+- Mock factories for external dependencies
+- Test configuration management
+
+## Development Workflow
+
+### **Code Organization Principles**
+1. **Separation of Concerns**: Clear boundaries between MCP, webhook, and client code
+2. **Dependency Injection**: Loose coupling through factory patterns
+3. **Async/Await**: Non-blocking operations throughout
+4. **Type Hints**: Comprehensive type annotations for better IDE support
+5. **Error Handling**: Consistent error patterns and logging
+
+### **Package Management**
+- **UV**: Fast Python package management
+- **Lock Files**: Reproducible dependency resolution
+- **Development Dependencies**: Separate dev/test requirements
+
+### **Code Quality**
+- **Linting**: Pylint, MyPy type checking
+- **Formatting**: Consistent code style
+- **Pre-commit Hooks**: Automated quality checks
+
+## Extension Points
+
+### **Adding New MCP Tools**
+1. Create tool function in `slack_mcp/mcp/server.py`
+2. Define input/output models in `slack_mcp/mcp/model/`
+3. Register tool with MCP server
+4. Add comprehensive tests
+
+### **Adding New Event Handlers**
+1. Extend event models in `slack_mcp/webhook/event/`
+2. Implement handler logic
+3. Register with webhook server
+4. Add queue publishing logic
+
+### **Adding New Queue Backends**
+1. Implement backend interface in `slack_mcp/backends/queue/`
+2. Add backend selection logic
+3. Update configuration options
+4. Add backend-specific tests
+
+This modular architecture ensures maintainability, testability, and extensibility while providing clear boundaries between different system components.

@@ -1,0 +1,214 @@
+---
+id: slack-read-emojis-mcp-api
+title: Read Emojis
+sidebar_position: 5
+---
+
+# Slack Read Emojis MCP API
+
+The Slack Read Emojis MCP API allows you to retrieve all emojis (both built-in and custom) available in the Slack workspace using the Model Context Protocol interface. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Tool Information
+
+### slack_read_emojis
+
+* **Tool name**: `slack_read_emojis`
+* **Function**: `read_slack_emojis`
+* **Description**: Get all emojis (both built-in and custom) available in the Slack workspace. This tool provides a complete mapping of emoji names to their URLs or aliases.
+
+## Input Parameters
+
+The tool accepts a `SlackReadEmojisInput` object with no required parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| *(none)* | - | - | This tool does not require any input parameters |
+
+## Usage Examples
+
+### Basic Emoji Retrieval
+```json
+{}
+```
+
+### Empty Object (Valid)
+```json
+{
+}
+```
+
+## Response Format
+
+The tool returns the raw JSON response from Slack's `emoji.list` API:
+
+```json
+{
+  "ok": true,
+  "emoji": {
+    "bowtie": "https://my.slack.com/emoji/bowtie/46ec6f2bb0.png",
+    "squirrel": "https://my.slack.com/emoji/squirrel/f35f40c0e0.png", 
+    "glitch_crab": "https://my.slack.com/emoji/glitch_crab/db049f1f9c.png",
+    "piggy": "https://my.slack.com/emoji/piggy/b7762ee8cd.png",
+    "cubimal_chick": "https://my.slack.com/emoji/cubimal_chick/85961c43d7.png",
+    "dusty_stick": "https://my.slack.com/emoji/dusty_stick/6177a62312.png",
+    "pride": "https://my.slack.com/emoji/pride/56b1bd3388.png",
+    "thumbsup_all": "https://my.slack.com/emoji/thumbsup_all/50096a1020.gif",
+    "party-parrot": "alias:parrot",
+    "dance": "alias:dancer",
+    "simple_smile": "alias:slightly_smiling_face"
+  },
+  "cache_ts": "1234567890"
+}
+```
+
+### Key Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `ok` | Boolean indicating if the operation was successful |
+| `emoji` | Object mapping emoji names to URLs or alias strings |
+| `cache_ts` | Cache timestamp for emoji data freshness |
+
+### Emoji Object Structure
+
+The `emoji` object contains keys (emoji names) mapped to either:
+
+1. **Custom Emoji URLs**: Direct links to custom emoji images
+   ```json
+   "company_logo": "https://my.slack.com/emoji/company_logo/a1b2c3d4e5.png"
+   ```
+
+2. **Alias References**: References to other emoji names
+   ```json
+   "thumbs_up": "alias:+1"
+   ```
+
+## Emoji Types
+
+### Custom Emojis
+- **Format**: `"emoji_name": "https://domain/path/to/image.ext"`
+- **File Types**: PNG, JPG, GIF (animated supported)
+- **Max Size**: 128KB per emoji
+- **Dimensions**: Recommended 128x128 pixels
+
+### Standard Emoji Aliases
+- **Format**: `"emoji_name": "alias:standard_emoji_name"`
+- **Purpose**: Create alternative names for existing Unicode emojis
+- **Examples**: `:thumbs_up:` → `alias:+1`, `:party:` → `alias:tada`
+
+## Error Handling
+
+This function may raise errors in the following situations:
+- Missing or invalid Slack API token
+- Insufficient permissions to access emoji data
+- Network connectivity issues
+- API rate limiting
+- Workspace access restrictions
+
+Error responses will have `"ok": false` and include an error message:
+
+```json
+{
+  "ok": false,
+  "error": "invalid_auth",
+  "detail": "Invalid authentication token provided."
+}
+```
+
+### Common Error Codes
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `invalid_auth` | Invalid or missing API token | Check SLACK_BOT_TOKEN environment variable |
+| `not_authed` | No authentication token provided | Ensure token is properly configured |
+| `account_inactive` | Workspace account is inactive | Contact workspace administrator |
+| `rate_limited` | Too many requests sent | Implement rate limiting in your application |
+| `team_access_not_granted` | Bot lacks team access | Review bot permissions and scopes |
+
+## Use Cases
+
+Typical scenarios for using `slack_read_emojis`:
+- **Emoji Validation**: Verify which emojis are available before using them in messages
+- **Custom Emoji Discovery**: Find workspace-specific emojis for team communication
+- **Bot Enhancement**: Enable bots to use appropriate emojis in responses
+- **Emoji Analytics**: Analyze available emoji usage patterns
+- **Integration Tools**: Build emoji pickers or suggestion systems
+- **Workspace Auditing**: Inventory custom emojis for compliance or cleanup
+- **Cross-platform Compatibility**: Map custom emojis to standard alternatives
+
+## Authentication
+
+This tool requires a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+The bot must have the following OAuth scopes:
+- `emoji:read` - Required to access emoji information
+
+## Rate Limiting
+
+Slack enforces rate limits on the `emoji.list` API:
+- **Tier 2**: 20+ requests per minute
+- **Tier 3**: 50+ requests per minute
+- **Tier 4**: 100+ requests per minute
+
+The server will automatically handle retries according to Slack's rate limiting headers.
+
+## Caching Considerations
+
+- **Cache Timestamp**: Use `cache_ts` to implement intelligent caching
+- **Data Freshness**: Emoji data doesn't change frequently, so caching is recommended
+- **Cache Duration**: Consider caching for 1-24 hours depending on your needs
+- **Memory Usage**: Large workspaces may have hundreds of custom emojis
+
+## Custom Emoji Management
+
+### Emoji Naming Conventions
+- **Lowercase**: All emoji names are lowercase
+- **Underscores**: Use underscores instead of spaces or hyphens
+- **Alphanumeric**: Names contain only letters, numbers, and underscores
+- **Length Limit**: Maximum 21 characters per emoji name
+
+### Emoji URL Structure
+- **Domain**: URLs point to your workspace's emoji storage
+- **Hashed Names**: File names are hashed for security
+- **Direct Access**: URLs can be used directly in web browsers
+- **Expiration**: URLs may have expiration timestamps for security
+
+## Working with Aliases
+
+### Understanding Aliases
+```json
+{
+  "thumbsup": "alias:+1",
+  "party": "alias:tada", 
+  "happy": "alias:smiley"
+}
+```
+
+### Resolving Aliases
+When encountering an alias, use the target emoji name:
+- `"thumbsup"` resolves to the standard `:+1:` emoji
+- `"party"` resolves to the standard `:tada:` emoji
+
+### Alias Chains
+Some aliases may point to other aliases. Follow the chain to the final emoji.
+
+## Integration Examples
+
+### Emoji Validation Function
+```javascript
+// Check if emoji exists before using
+function isEmojiAvailable(emojiName, emojiData) {
+  return emojiName in emojiData.emoji;
+}
+```
+
+### Custom vs Standard Detection
+```javascript
+// Determine if emoji is custom or standard
+function isCustomEmoji(emojiName, emojiData) {
+  const value = emojiData.emoji[emojiName];
+  return value && !value.startsWith('alias:');
+}
+```

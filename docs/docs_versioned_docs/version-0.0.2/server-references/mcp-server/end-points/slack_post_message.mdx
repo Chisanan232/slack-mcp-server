@@ -1,0 +1,140 @@
+---
+id: slack-post-message-mcp-api
+title: Post Message
+sidebar_position: 1
+---
+
+# Slack Post Message MCP API
+
+The Slack Post Message MCP API allows you to send text messages to Slack channels using the Model Context Protocol interface. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Tool Information
+
+### slack_post_message
+
+* **Tool name**: `slack_post_message`
+* **Function**: `send_slack_message`
+* **Description**: Send text to the given Slack channel. This is the primary tool for delivering textual notifications to Slack channels on behalf of the user.
+
+## Input Parameters
+
+The tool accepts a `SlackPostMessageInput` object with the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `channel` | `string` | Yes | Slack channel ID (e.g., `C12345678`) or name with `#` (e.g., `#general`) |
+| `text` | `string` | Yes | The plain-text message to post (up to 40 kB) |
+
+## Usage Examples
+
+### Basic Message
+```json
+{
+  "channel": "#general",
+  "text": "Hello from the MCP server! This is a test message."
+}
+```
+
+### Channel ID Format
+```json
+{
+  "channel": "C1234567890",
+  "text": "Build completed successfully! ✅"
+}
+```
+
+### Multi-line Message
+```json
+{
+  "channel": "#notifications", 
+  "text": "Deployment Status:\n• Database migration: Complete\n• Application deployment: Complete\n• Health checks: Passed"
+}
+```
+
+## Response Format
+
+The tool returns the raw JSON response from Slack's `chat.postMessage` API:
+
+```json
+{
+  "ok": true,
+  "channel": "C1234567890",
+  "ts": "1234567890.123456",
+  "message": {
+    "text": "Hello from the MCP server!",
+    "user": "U12345678",
+    "ts": "1234567890.123456",
+    "team": "T1234567890",
+    "type": "message"
+  }
+}
+```
+
+### Key Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `ok` | Boolean indicating if the operation was successful |
+| `channel` | The channel ID where the message was posted |
+| `ts` | Timestamp of the posted message (used as message ID) |
+| `message` | The complete message object that was posted |
+
+## Error Handling
+
+This function may raise errors in the following situations:
+- Missing or invalid Slack API token
+- Invalid channel name or ID
+- Insufficient permissions to post in the channel
+- Network connectivity issues
+- API rate limiting
+- Message too long (exceeds 40 kB limit)
+
+Error responses will have `"ok": false` and include an error message:
+
+```json
+{
+  "ok": false,
+  "error": "channel_not_found",
+  "detail": "Value passed for channel was invalid."
+}
+```
+
+### Common Error Codes
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `channel_not_found` | Channel doesn't exist or bot lacks access | Verify channel name/ID and bot permissions |
+| `not_in_channel` | Bot is not a member of the channel | Invite the bot to the channel |
+| `invalid_auth` | Invalid or missing API token | Check SLACK_BOT_TOKEN environment variable |
+| `rate_limited` | Too many requests sent | Implement rate limiting in your application |
+| `msg_too_long` | Message exceeds 40,000 characters | Shorten the message or split into multiple messages |
+
+## Use Cases
+
+Typical scenarios for using `slack_post_message`:
+- **Build/Deployment Notifications**: Alert team channels about build or deployment status
+- **Automated Reminders**: Send scheduled reminders or summaries after completing tasks
+- **Event Broadcasting**: Share important events like incident reports or announcements
+- **Status Updates**: Provide real-time updates on long-running processes
+- **Integration Alerts**: Forward notifications from external systems to Slack
+
+## Authentication
+
+This tool requires a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+The bot must have the following OAuth scopes:
+- `chat:write` - Required to post messages
+- `channels:read` - Required to access public channels
+- `groups:read` - Required to access private channels (if needed)
+
+## Rate Limiting
+
+Slack enforces rate limits on the `chat.postMessage` API:
+- **Tier 1**: 1+ message per second
+- **Tier 2**: 20+ messages per minute
+- **Tier 3**: 50+ messages per minute
+- **Tier 4**: 100+ messages per minute
+
+The server will automatically handle retries according to Slack's rate limiting headers.
