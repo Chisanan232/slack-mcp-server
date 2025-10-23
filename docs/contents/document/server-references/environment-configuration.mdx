@@ -13,6 +13,30 @@ import TabItem from '@theme/TabItem';
 
 Both the MCP server and webhook server share common environment variable requirements for Slack integration, queue backends, and basic configuration. This guide covers all shared environment variables used across both server types.
 
+## Configuration Priority Order
+
+:::tip Environment Loading Priority
+When running the Slack MCP Server, configuration values are loaded in the following priority order (highest to lowest):
+
+1. **`.env` file** (HIGHEST PRIORITY) - Values in your `.env` file override everything
+2. **CLI arguments** (`--slack-token`) - Used as fallback if not set in `.env` file
+3. **Environment variables** - Already set environment variables (lowest priority)
+
+This means your `.env` file values will **always take precedence** over CLI arguments, making it easier to manage different environments without worrying about accidental overrides from command-line options.
+:::
+
+**Example:**
+```bash
+# In your .env file
+SLACK_BOT_TOKEN=xoxb-production-token
+
+# Even if you run with --slack-token argument, the .env value wins
+slack-mcp-server --slack-token xoxb-dev-token  # Still uses xoxb-production-token from .env
+
+# To use CLI argument instead, disable .env file loading
+slack-mcp-server --slack-token xoxb-dev-token --no-env-file  # Now uses xoxb-dev-token
+```
+
 ## Required Environment Variables
 
 ### Slack Authentication
@@ -80,6 +104,43 @@ Use the **[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/
 
 📚 **Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
 :::
+
+## Environment File Loading Options
+
+Both the MCP server and webhook server support flexible environment file loading:
+
+### Default Behavior
+By default, the server automatically loads variables from `.env` in the current directory:
+
+```bash
+# Automatically loads from .env file
+slack-mcp-server
+
+# Automatically loads from .env file
+slack-events-server
+```
+
+### Custom Environment File
+Specify a custom environment file path:
+
+```bash
+# MCP server with custom env file
+slack-mcp-server --env-file .env.production
+
+# Webhook server with custom env file
+slack-events-server --env-file /path/to/.env.staging
+```
+
+### Disable Environment File Loading
+Disable automatic `.env` file loading (useful when relying only on system environment variables or CLI arguments):
+
+```bash
+# MCP server without .env file
+slack-mcp-server --no-env-file --slack-token xoxb-your-token
+
+# Webhook server without .env file
+slack-events-server --no-env-file --slack-token xoxb-your-token
+```
 
 ## Environment File Examples
 
