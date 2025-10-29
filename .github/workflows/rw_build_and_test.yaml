@@ -21,31 +21,34 @@ on:
 jobs:
   run_unit-test:
 #    name: Run all unit test items
-    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
     with:
       test_type: unit-test
       test_folder: './test/unit_test'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+      pre_test_script: 'curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"'
 
   run_integration-test:
 #    name: Run all integration test items
-    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
     with:
       test_type: integration-test
       test_folder: './test/integration_test'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+      pre_test_script: 'curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"'
 
   run_one_e2e-test:
 #    name: Run all end-to-end test items under one case
-    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
     with:
       test_type: e2e-test
       test_folder: './test/e2e_test'
       max-parallel: 1
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest"]'
+      pre_test_script: 'curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"'
       with-environment-variables: ${{ inputs.with-environment-variables }}
     secrets:
       e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
@@ -53,34 +56,37 @@ jobs:
   run_e2e-test:
 #    name: Run all end-to-end test items
     if: ${{ inputs.run_e2e == true }}
-    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
     with:
       test_type: e2e-test
       test_folder: './test/e2e_test'
       max-parallel: 1
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+      pre_test_script: 'curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"'
       with-environment-variables: ${{ inputs.with-environment-variables }}
     secrets:
       e2e_test_api_token: ${{ secrets.e2e_test_api_token }}
 
   run_contract-test:
 #    name: Run all contract test items
-    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
     with:
       test_type: contract-test
       test_folder: './test/contract_test'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+      pre_test_script: 'curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"'
 
   run_script-test:
 #    name: Run all contract test items
-    uses: Chisanan232/Template-Python-UV-Project/.github/workflows/rw_uv_run_test_with_multi_py_versions.yaml@master
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_uv_run_test.yaml@master
     with:
       test_type: ci-script-test
       test_folder: './test/ci_script_test'
       python-versions: '["3.13"]'
       operating-systems: '["ubuntu-latest", "ubuntu-22.04", "macos-latest", "macos-14"]'
+      pre_test_script: 'curl -s https://slack.com/api/auth.test -H "Authorization: Bearer $SLACK_BOT_TOKEN"'
 
   unit-test_codecov:
 #    name: For unit test, organize and generate the testing report and upload it to Codecov
