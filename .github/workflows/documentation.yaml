@@ -90,61 +90,43 @@ jobs:
             echo "should_deploy=false" >> $GITHUB_OUTPUT
           fi
 
-  deploy_documentation:
-    runs-on: ubuntu-latest
-    # Run based on the check_docs_changes job output (which handles both push and workflow_run events)
+  build_documentation:
+    name: Build Documentation
     if: needs.check_docs_changes.outputs.should_deploy == 'true'
     needs: [check_docs_changes]
+    uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_docusaurus_operations.yaml@master
+    with:
+      operation: build
+      node-version: '22'
+      working-directory: docs
+      upload-artifacts: true
+
+  deploy_to_github_pages:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    if: needs.check_docs_changes.outputs.should_deploy == 'true'
+    needs: [check_docs_changes, build_documentation]
     steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+      - name: Download build artifacts
+        uses: actions/download-artifact@v6
         with:
-          fetch-depth: 0
+          name: documentation-build
+          path: ./docs/build
 
-      # Setup pnpm first
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-          run_install: false
-
-      # Then setup Node.js with pnpm cache
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-          cache-dependency-path: docs/pnpm-lock.yaml
-
-      - name: Cache Docusaurus build
-        uses: actions/cache@v4
-        with:
-          path: |
-            docs/.docusaurus
-            docs/node_modules/.cache
-          key: ${{ runner.os }}-docusaurus-${{ hashFiles('docs/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-docusaurus-
-
-      - name: Install dependencies
-        working-directory: docs
-        run: pnpm install --no-frozen-lockfile
-
-      - name: Build website
-        working-directory: docs
-        run: pnpm build
-
-      # Setup Pages
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # Upload artifact
-      - name: Upload artifact
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: ./docs/build
 
-      # Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deployment summary
+        run: |
+          echo "## 📚 Documentation Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Successfully deployed to GitHub Pages" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **URL**: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
