@@ -31,6 +31,7 @@ classifiers = [
 ]
 dependencies = [
     # Base installation only includes the base protocol rules of this project (no any feature for MCP, HTTP server, etc.)
+    "abstract-backend>=0.0.1",
 ]
 
 [project.urls]
