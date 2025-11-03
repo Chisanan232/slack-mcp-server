@@ -4,7 +4,7 @@ Contract tests for SlackEventConsumer class.
 These tests verify that the SlackEventConsumer class adheres to its contract
 and provides expected behavior. They focus on:
 
-1. Initialization with QueueBackend and EventHandler
+1. Initialization with MessageQueueBackend and EventHandler
 2. Event processing and routing
 3. Graceful shutdown
 4. Error handling
@@ -17,8 +17,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from slack_mcp.backends.base.protocol import QueueBackend
-from slack_mcp.backends.queue.memory import MemoryBackend
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.service.memory import MemoryBackend
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler import DecoratorHandler
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
@@ -33,7 +33,7 @@ class TestSlackEventConsumerContract:
     @pytest.fixture
     def mock_backend(self) -> AsyncMock:
         """Fixture providing a mock queue backend."""
-        backend = AsyncMock(spec=QueueBackend)
+        backend = AsyncMock(spec=MessageQueueBackend)
         return backend
 
     @pytest.fixture

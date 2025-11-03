@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.backends.base.protocol import QueueBackend
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from slack_mcp.mcp.app import MCPServerFactory
 from slack_mcp.webhook.app import WebServerFactory
 from slack_mcp.webhook.models import SlackEventModel, UrlVerificationModel
@@ -18,8 +18,8 @@ from slack_mcp.webhook.server import (
 )
 
 
-class MockQueueBackend(QueueBackend):
-    """Mock implementation of QueueBackend for testing."""
+class MockMessageQueueBackend(MessageQueueBackend):
+    """Mock implementation of MessageQueueBackend for testing."""
 
     def __init__(self) -> None:
         """Initialize the mock backend with an empty list of published events."""
@@ -37,7 +37,7 @@ class MockQueueBackend(QueueBackend):
             yield event
 
     @classmethod
-    def from_env(cls) -> "MockQueueBackend":
+    def from_env(cls) -> "MockMessageQueueBackend":
         """Mock implementation of from_env classmethod."""
         return cls()
 
@@ -45,7 +45,7 @@ class MockQueueBackend(QueueBackend):
 @pytest.fixture
 def mock_queue_backend():
     """Create a mock queue backend."""
-    return MockQueueBackend()
+    return MockMessageQueueBackend()
 
 
 @pytest.fixture
@@ -718,7 +718,7 @@ class TestHealthCheckEndpoint:
     def test_health_check_failure_queue_backend_error(self, mock_queue_backend):
         """Test health check returns 503 when queue backend fails."""
         # Create a mock backend that fails on publish
-        failing_backend = MockQueueBackend()
+        failing_backend = MockMessageQueueBackend()
         failing_backend.publish = AsyncMock(side_effect=Exception("Connection failed"))
 
         # First create the app with a working queue backend
@@ -772,7 +772,7 @@ class TestHealthCheckEndpoint:
             def __str__(self):
                 raise RuntimeError("Cannot convert error to string")
 
-        failing_backend = MockQueueBackend()
+        failing_backend = MockMessageQueueBackend()
         failing_backend.publish = AsyncMock(side_effect=UnprintableError("Original error"))
 
         # This should trigger outer exception handler when trying to format the error message

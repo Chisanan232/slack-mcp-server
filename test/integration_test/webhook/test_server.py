@@ -6,13 +6,13 @@ import pytest
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.backends.base.protocol import QueueBackend
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from slack_mcp.mcp.app import mcp_factory
 from slack_mcp.webhook.app import web_factory
 from slack_mcp.webhook.server import create_slack_app
 
 
-class MockQueueBackend(QueueBackend):
+class MockMessageQueueBackend(MessageQueueBackend):
     """Mock queue backend for testing."""
 
     def __init__(self):
@@ -63,7 +63,7 @@ def test_e2e_app_mention():
         client = TestClient(app)
 
         # Create a mock queue backend and patch the real backend's publish method
-        mock_backend = MockQueueBackend()
+        mock_backend = MockMessageQueueBackend()
 
         # Get the real backend instance and patch its publish method to use our mock
         from slack_mcp.webhook.server import get_queue_backend
@@ -135,7 +135,7 @@ def test_e2e_reaction_added():
         client = TestClient(app)
 
         # Create a mock queue backend and patch the real backend's publish method
-        mock_backend = MockQueueBackend()
+        mock_backend = MockMessageQueueBackend()
 
         # Get the real backend instance and patch its publish method to use our mock
         from slack_mcp.webhook.server import get_queue_backend
