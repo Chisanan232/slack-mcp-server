@@ -14,12 +14,12 @@ import aiohttp
 import pytest
 import pytest_asyncio
 import uvicorn
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.service.memory import MemoryBackend
 from fastapi import Request
 from fastapi.testclient import TestClient
 from mcp.server import FastMCP
 
-from slack_mcp.backends.base.protocol import QueueBackend
-from slack_mcp.backends.queue.memory import MemoryBackend
 from slack_mcp.integrate.app import integrated_factory
 from slack_mcp.mcp.app import MCPServerFactory
 
@@ -118,7 +118,7 @@ async def safely_cancel_task(task: asyncio.Task) -> None:
         warnings.warn(f"Error while cancelling task: {e}")
 
 
-class MockQueueBackend(QueueBackend):
+class MockMessageQueueBackend(MessageQueueBackend):
     """Mock queue backend for testing."""
 
     def __init__(self) -> None:
@@ -139,7 +139,7 @@ class MockQueueBackend(QueueBackend):
             yield event
 
     @classmethod
-    def from_env(cls) -> "MockQueueBackend":
+    def from_env(cls) -> "MockMessageQueueBackend":
         """Mock implementation of from_env classmethod."""
         return cls()
 
@@ -531,7 +531,7 @@ async def test_sse_integrated_server_webhook_queue_publishing(sse_server: Dict[s
         assert response_data == {"status": "ok"}
 
         # Verify that the event was actually published to the real queue
-        from slack_mcp.backends.queue.memory import MemoryBackend
+        from abe.backends.message_queue.service.memory import MemoryBackend
 
         assert isinstance(real_queue_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_queue_backend)}"
 
@@ -603,7 +603,7 @@ async def test_http_integrated_server_webhook_queue_publishing(http_server: Dict
         assert response_data == {"status": "ok"}
 
         # Verify that the event was actually published to the real queue
-        from slack_mcp.backends.queue.memory import MemoryBackend
+        from abe.backends.message_queue.service.memory import MemoryBackend
 
         assert isinstance(real_queue_backend, MemoryBackend), f"Expected MemoryBackend, got {type(real_queue_backend)}"
 

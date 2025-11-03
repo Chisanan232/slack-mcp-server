@@ -95,14 +95,10 @@ KAFKA_BOOTSTRAP="broker1:9092,broker2:9092"
 - **memory**: In-memory queue (default, good for development)
 - **redis**: Redis-based queue (recommended for production)
 - **kafka**: Apache Kafka (for high-throughput scenarios)
-- **custom plugins**: Any custom queue backend plugin you develop
+- **custom plugins**: Any custom queue backend plugin from the [abstract-backend](https://github.com/Chisanan232/abstract-backend) library
 
-:::tip Develop Custom Queue Backend Plugins
-You can extend the system with custom queue backends (e.g., RabbitMQ, AWS SQS, Google Pub/Sub) by implementing the `QueueBackend` protocol. 
-
-Use the **[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/Slack-MCP-Server-Backend-MQ-Template)** to quickly create your own queue backend plugins with best practices and complete project structure.
-
-📚 **Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
+:::note Queue Backend Plugins
+Queue backend implementations are provided by the **[abstract-backend](https://github.com/Chisanan232/abstract-backend)** library. For information about available backends and developing custom queue backend plugins, refer to the **[abstract-backend documentation](https://chisanan232.github.io/abstract-backend/)**.
 :::
 
 ## Environment File Loading Options

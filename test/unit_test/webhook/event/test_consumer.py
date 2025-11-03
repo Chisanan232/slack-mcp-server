@@ -4,8 +4,8 @@ from typing import Any, Dict, Generator, List, Optional
 from unittest.mock import patch
 
 import pytest
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
 
-from slack_mcp.backends.base.protocol import QueueBackend
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
 from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
@@ -14,12 +14,12 @@ from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
 handler = DecoratorHandler()
 
 
-class MockQueueBackend(QueueBackend):
-    """Mock implementation of QueueBackend for testing."""
+class MockMessageQueueBackend(MessageQueueBackend):
+    """Mock implementation of MessageQueueBackend for testing."""
 
     def __init__(self) -> None:
         """Initialize the mock backend with an empty event list."""
-        # Note: events is not part of the QueueBackend protocol, but we add it for testing
+        # Note: events is not part of the MessageQueueBackend protocol, but we add it for testing
         self.events: List[Dict[str, Any]] = []
         self.published_events: List[Dict[str, Any]] = []
         self.group: Optional[str] = None
@@ -37,7 +37,7 @@ class MockQueueBackend(QueueBackend):
         await asyncio.sleep(0.1)
 
     @classmethod
-    def from_env(cls) -> "MockQueueBackend":
+    def from_env(cls) -> "MockMessageQueueBackend":
         """Mock implementation of from_env classmethod."""
         return cls()
 
@@ -70,9 +70,9 @@ class TestSlackEventConsumer:
             yield event
 
     @pytest.fixture
-    def mock_backend(self) -> MockQueueBackend:
+    def mock_backend(self) -> MockMessageQueueBackend:
         """Fixture providing a mock backend."""
-        return MockQueueBackend()
+        return MockMessageQueueBackend()
 
     @pytest.fixture
     def oo_handler(self) -> _TestHandler:
@@ -80,12 +80,14 @@ class TestSlackEventConsumer:
         return _TestHandler()
 
     @pytest.fixture
-    def consumer(self, mock_backend: MockQueueBackend) -> SlackEventConsumer:
+    def consumer(self, mock_backend: MockMessageQueueBackend) -> SlackEventConsumer:
         """Fixture providing a SlackEventConsumer."""
         return SlackEventConsumer(mock_backend)
 
     @pytest.fixture
-    def consumer_with_handler(self, mock_backend: MockQueueBackend, oo_handler: _TestHandler) -> SlackEventConsumer:
+    def consumer_with_handler(
+        self, mock_backend: MockMessageQueueBackend, oo_handler: _TestHandler
+    ) -> SlackEventConsumer:
         """Fixture providing a SlackEventConsumer with a handler."""
         return SlackEventConsumer(mock_backend, handler=oo_handler)
 
@@ -99,7 +101,7 @@ class TestSlackEventConsumer:
         handler._handlers.clear()
 
     @pytest.mark.asyncio
-    async def test_initialization(self, mock_backend: MockQueueBackend) -> None:
+    async def test_initialization(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that the consumer initializes correctly."""
         # Create a consumer with default parameters
         consumer = SlackEventConsumer(mock_backend)
@@ -119,7 +121,7 @@ class TestSlackEventConsumer:
         """Test that events are processed by the OO handler."""
         # Set up test events
         mock_backend = consumer_with_handler.backend
-        if isinstance(mock_backend, MockQueueBackend):
+        if isinstance(mock_backend, MockMessageQueueBackend):
             mock_backend.events = [
                 {"type": "message", "text": "Hello"},
                 {"type": "reaction_added", "reaction": "+1"},
@@ -152,7 +154,7 @@ class TestSlackEventConsumer:
         ]
 
         # Add events to the backend if it's a MockQueueBackend
-        if isinstance(mock_backend, MockQueueBackend):
+        if isinstance(mock_backend, MockMessageQueueBackend):
             mock_backend.events = test_events
 
         # Track calls to handlers
@@ -179,7 +181,7 @@ class TestSlackEventConsumer:
         assert reaction_calls[0]["reaction"] == "+1"
 
     @pytest.fixture
-    def consumer_with_both(self, mock_backend: MockQueueBackend, oo_handler: _TestHandler) -> SlackEventConsumer:
+    def consumer_with_both(self, mock_backend: MockMessageQueueBackend, oo_handler: _TestHandler) -> SlackEventConsumer:
         """Fixture providing a SlackEventConsumer with both handler types."""
         return SlackEventConsumer(mock_backend, handler=oo_handler)
 
@@ -215,7 +217,7 @@ class TestSlackEventConsumer:
         assert test_event.get("handled_by_decorator") == "message"
 
     @pytest.mark.asyncio
-    async def test_error_handler(self, mock_backend: MockQueueBackend) -> None:
+    async def test_error_handler(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that errors in handlers are caught and logged."""
         # Create a consumer with a handler that raises an exception
         consumer = SlackEventConsumer(mock_backend)
@@ -247,7 +249,7 @@ class TestSlackEventConsumer:
             assert "Error processing Slack event" in str(mock_log.exception.call_args)
 
     @pytest.mark.asyncio
-    async def test_stop_signal(self, mock_backend: MockQueueBackend) -> None:
+    async def test_stop_signal(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that the consumer stops when shutdown is called."""
         # Create a consumer
         consumer = SlackEventConsumer(mock_backend)
@@ -292,7 +294,7 @@ class TestSlackEventConsumer:
         mock_backend.consume = original_consume  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_consumer_group(self, mock_backend: MockQueueBackend) -> None:
+    async def test_consumer_group(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that the consumer passes the group to the backend."""
         # Create consumer with group
         group_name = "test-group"
@@ -333,7 +335,7 @@ class TestSlackEventConsumer:
         mock_backend.consume = original_consume  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_event_processing_exception(self, mock_backend: MockQueueBackend) -> None:
+    async def test_event_processing_exception(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that exceptions during event processing are caught and logged."""
         # Create a consumer
         consumer = SlackEventConsumer(mock_backend)
@@ -368,7 +370,7 @@ class TestSlackEventConsumer:
                 assert "Test processing error" in call_args
 
     @pytest.mark.asyncio
-    async def test_consumer_unexpected_exception(self, mock_backend: MockQueueBackend) -> None:
+    async def test_consumer_unexpected_exception(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that unexpected exceptions in the consumer loop are caught and logged."""
         # Create a consumer
         consumer = SlackEventConsumer(mock_backend)
@@ -411,7 +413,7 @@ class TestSlackEventConsumer:
         mock_backend.consume = original_consume  # type: ignore
 
     @pytest.mark.asyncio
-    async def test_cancelled_error_handling(self, mock_backend: MockQueueBackend) -> None:
+    async def test_cancelled_error_handling(self, mock_backend: MockMessageQueueBackend) -> None:
         """Test that CancelledError is caught and logged properly."""
         # Create a consumer
         consumer = SlackEventConsumer(mock_backend)

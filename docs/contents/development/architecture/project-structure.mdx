@@ -37,9 +37,7 @@ slack-mcp-server/
 │   ├── client/                # Slack client management
 │   │   ├── factory.py         # Client factory patterns
 │   │   └── manager.py         # Client lifecycle management
-│   ├── backends/              # Queue backend abstractions
-│   │   ├── base/              # Base backend interfaces
-│   │   └── queue/             # Queue backend implementations
+│   ├── handler/               # Event handler implementations
 │   ├── events.py              # Slack event type definitions
 │   └── __init__.py
 ├── test/                      # Test suite
@@ -126,13 +124,6 @@ Centralized Slack client management:
 - **`factory.py`**: Factory patterns for client creation
 - **`manager.py`**: Client lifecycle and token management
 
-### **Backend Abstraction (`slack_mcp/backends/`)**
-
-Queue backend abstraction layer:
-
-- **`base/`**: Abstract base classes and interfaces
-- **`queue/`**: Concrete queue backend implementations
-
 ### **Event Type Definitions (`slack_mcp/events.py`)**
 
 Comprehensive Slack event type definitions and constants:
@@ -180,14 +171,11 @@ elif transport == "streamable-http":
     mcp_app = server.streamable_http_app()
 ```
 
-### **Repository Pattern**
-Backend abstraction for different queue systems:
+:::note Queue Backend Abstraction
+The queue backend abstraction layer has been migrated to the **[abstract-backend](https://github.com/Chisanan232/abstract-backend)** library. This library provides a unified interface for message queue backends (Memory, Redis, Kafka, etc.).
 
-```python
-# Queue backend strategy
-backend = get_backend(backend_type)
-await backend.publish(topic, event_data)
-```
+For queue backend implementation details, plugin development, and usage examples, please refer to the **[abstract-backend documentation](https://chisanan232.github.io/abstract-backend/)**.
+:::
 
 ### **Command Pattern**
 MCP tools as command objects:
@@ -260,9 +248,15 @@ async def handle_list_tools() -> list[types.Tool]:
 4. Add queue publishing logic
 
 ### **Adding New Queue Backends**
-1. Implement backend interface in `slack_mcp/backends/queue/`
-2. Add backend selection logic
-3. Update configuration options
-4. Add backend-specific tests
+
+:::note External Library
+Queue backend implementations are now managed by the **[abstract-backend](https://github.com/Chisanan232/abstract-backend)** library.
+
+To add new queue backends:
+1. Refer to the **[abstract-backend plugin development guide](https://chisanan232.github.io/abstract-backend/)**
+2. Implement the `MessageQueueBackend` protocol from `abe.backends.message_queue`
+3. Register your backend as an entry point in your plugin package
+4. Install your backend plugin alongside `slack-mcp`
+:::
 
 This modular architecture ensures maintainability, testability, and extensibility while providing clear boundaries between different system components.

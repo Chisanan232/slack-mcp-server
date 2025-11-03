@@ -11,8 +11,8 @@ import asyncio
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from slack_mcp.backends.base.consumer import AsyncLoopConsumer
-from slack_mcp.backends.base.protocol import QueueBackend
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.consumer import AsyncLoopConsumer
 
 from .handler import EventHandler
 from .handler.decorator import DecoratorHandler
@@ -25,18 +25,20 @@ _LOG = logging.getLogger(__name__)
 class SlackEventConsumer(AsyncLoopConsumer):
     """Consumer that pulls events from a queue and routes them to handlers.
 
-    This class connects to a QueueBackend to receive Slack events and passes
+    This class connects to a MessageQueueBackend to receive Slack events and passes
     them to the appropriate handler, which can be either:
     1. An object following the EventHandler protocol (OO style)
     2. A DecoratorHandler instance (decorator style)
     """
 
-    def __init__(self, backend: QueueBackend, handler: Optional[EventHandler] = None, group: Optional[str] = None):
+    def __init__(
+        self, backend: MessageQueueBackend, handler: Optional[EventHandler] = None, group: Optional[str] = None
+    ):
         """Initialize the consumer with a backend and optional handler.
 
         Parameters
         ----------
-        backend : QueueBackend
+        backend : MessageQueueBackend
             The queue backend to consume events from
         handler : Optional[EventHandler], optional
             An event handler object (following the EventHandler protocol)

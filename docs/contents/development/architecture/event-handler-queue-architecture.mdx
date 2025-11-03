@@ -36,7 +36,7 @@ graph TD
 ### Component Responsibilities
 
 1. **Webhook Server** ([`slack_mcp/webhook/server.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/webhook/server.py)) - Receives events from Slack and publishes them to a queue
-2. **Queue Backend** ([`slack_mcp/backends/`](https://github.com/Chisanan232/slack-mcp-server/tree/master/slack_mcp/backends)) - Stores and distributes events to consumers
+2. **Queue Backend** (from [abstract-backend](https://github.com/Chisanan232/abstract-backend) library) - Stores and distributes events to consumers
 3. **Event Consumer** ([`slack_mcp/webhook/event/consumer.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/webhook/event/consumer.py)) - Consumes events from the queue and routes them to handlers
 4. **Event Handlers** ([`slack_mcp/webhook/event/handler/`](https://github.com/Chisanan232/slack-mcp-server/tree/master/slack_mcp/webhook/event/handler)) - Process individual Slack events
 
@@ -51,124 +51,61 @@ The event processing flow is designed for reliability and scalability:
 5. **Routing**: Events are routed to appropriate handlers based on type and subtype
 6. **Processing**: Handler methods process the events according to your business logic
 
-## Queue Backend System Architecture
+## Message Queue Backend System Architecture
 
-### Protocol Interface Design
+:::note Queue Backend Abstraction
+The queue backend abstraction layer has been migrated to the **[abstract-backend](https://github.com/Chisanan232/abstract-backend)** library. This library provides:
 
-All queue backends implement the [`QueueBackend`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/backends/base/protocol.py#L11-L51) protocol defined in [`slack_mcp/backends/base/protocol.py`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/backends/base/protocol.py):
+- **Unified Protocol Interface**: `MessageQueueBackend` protocol for all queue implementations
+- **Built-in Backends**: Memory, Redis, Kafka, and more
+- **Plugin System**: Easy development and registration of custom backends
+- **Backend Discovery**: Automatic loading via entry points
 
-```python
-@runtime_checkable
-class QueueBackend(Protocol):
-    async def publish(self, key: str, payload: Dict[str, Any]) -> None:
-        """Publish a message to the queue."""
-        ...
+**For detailed information about:**
+- Queue backend protocol and interface design
+- Built-in backend implementations (Memory, Redis, Kafka)
+- Backend selection and configuration
+- Developing custom queue backend plugins
+- Backend-specific environment variables
 
-    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
-        """Consume messages from the queue."""
-        ...
-
-    @classmethod
-    def from_env(cls) -> "QueueBackend":
-        """Create a backend instance from environment variables."""
-        ...
-```
-
-### Built-in Backend Implementations
-
-#### Memory Backend
-- **Purpose**: Development and testing only
-- **Implementation**: [`MemoryBackend`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/backends/queue/memory.py#L21-L107)
-- **Features**: In-process asyncio.Queue storage
-- **Limitations**: Messages lost on restart, single-process only
-- **Configuration**: No environment variables required
-
-```python
-# Usage
-from slack_mcp.backends.queue.memory import MemoryBackend
-backend = MemoryBackend.from_env()
-```
-
-### Backend Selection Architecture
-
-The system automatically selects backends using this priority:
-
-1. **Explicit**: Use `QUEUE_BACKEND` environment variable
-2. **Auto-discovery**: First non-memory backend from entry points
-3. **Fallback**: Memory backend with warning
-
-```bash
-# Explicit backend selection
-export QUEUE_BACKEND=redis
-```
-
-### Developing Custom Queue Backends
-
-:::tip Backend Development Template
-Use the **[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/Slack-MCP-Server-Backend-MQ-Template)** to quickly create custom queue backend plugins. This template provides a complete project structure with best practices, CI/CD workflows, and comprehensive documentation.
-
-📚 **Template Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
+**Please refer to the [abstract-backend documentation](https://chisanan232.github.io/abstract-backend/)**
 :::
 
-#### 1. Implement the Protocol
-
-Create a class that implements the `QueueBackend` protocol:
+### Quick Usage Example
 
 ```python
-from slack_mcp.backends.base.protocol import QueueBackend
-from typing import Dict, Any, Optional, AsyncIterator
+# Import from abstract-backend library
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.loader import load_backend
 
-class MyCustomBackend(QueueBackend):
-    def __init__(self, connection_url: str):
-        self.connection_url = connection_url
-        # Initialize your backend connection
-    
-    async def publish(self, key: str, payload: Dict[str, Any]) -> None:
-        # Implement message publishing
-        pass
-    
-    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[Dict[str, Any]]:
-        # Implement message consumption
-        while True:
-            # Yield messages from your queue
-            yield message
-    
-    @classmethod
-    def from_env(cls) -> "MyCustomBackend":
-        connection_url = os.environ.get("MY_BACKEND_URL", "localhost:9092")
-        return cls(connection_url)
+# Load backend from environment
+backend: MessageQueueBackend = load_backend()
+
+# Publish events
+await backend.publish(key="slack_events", payload=event_data)
+
+# Consume events
+async for message in backend.consume(group="my-consumer-group"):
+    process_message(message)
 ```
-
-#### 2. Register Backend Plugin
-
-Add to your `pyproject.toml`:
-
-```toml
-[project.entry-points."slack_mcp.backends"]
-my_backend = "my_package.backends:MyCustomBackend"
-```
-
-#### 3. Environment Configuration
-
-```bash
-export QUEUE_BACKEND=my_backend
-export MY_BACKEND_URL=your-backend-url
-```
-
-The [`load_backend`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/backends/loader.py#L18-L70) function will automatically discover and load your backend.
 
 ## Consumer System Architecture
 
 ### Base Consumer Design
 
-The [`AsyncLoopConsumer`](https://github.com/Chisanan232/slack-mcp-server/blob/master/slack_mcp/backends/base/consumer.py#L41-L118) provides the foundation for all event consumers:
+:::note Consumer Base Classes
+The base consumer classes (`AsyncLoopConsumer`) have been migrated to the **[abstract-backend](https://github.com/Chisanan232/abstract-backend)** library.
+
+For consumer implementation details, refer to the [abstract-backend consumer documentation](https://chisanan232.github.io/abstract-backend/).
+:::
 
 ```python
-from slack_mcp.backends.base.consumer import AsyncLoopConsumer
-from slack_mcp.backends.base.protocol import QueueBackend
+# Import from abstract-backend library
+from abe.backends.message_queue.consumer import AsyncLoopConsumer
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
 
 class CustomConsumer(AsyncLoopConsumer):
-    def __init__(self, backend: QueueBackend):
+    def __init__(self, backend: MessageQueueBackend):
         super().__init__(backend)
 
     async def process_message(self, message: Dict[str, Any]) -> None:

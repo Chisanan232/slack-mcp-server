@@ -68,16 +68,7 @@ def validate_slack_identifiers(channel: str, user: str, timestamp: str) -> tuple
     return is_valid_channel, is_valid_user, is_valid_timestamp
 
 
-# Example 4: Working with queue backends
-async def process_queue_messages(backend: types.QueueBackendProtocol) -> None:
-    """Process messages from a queue backend with type safety."""
-    async for message in backend.consume(group="example-consumer"):
-        payload: types.QueuePayload = message
-        event_type: str = payload.get("type", "unknown")
-        print(f"Processing queue message: {event_type}")
-
-
-# Example 5: Using JSON types
+# Example 4: Using JSON types
 def process_json_data(data: types.JSONDict) -> types.JSONValue:
     """Process JSON data with proper type annotations."""
     # Type checker knows data is a dictionary
@@ -87,7 +78,7 @@ def process_json_data(data: types.JSONDict) -> types.JSONValue:
     return nested_data
 
 
-# Example 6: Working with transport types
+# Example 5: Working with transport types
 def configure_transport(transport: types.TransportType) -> dict[str, Any]:
     """Configure MCP transport with type safety."""
     config: dict[str, Any] = {"transport": transport}
@@ -104,7 +95,7 @@ def configure_transport(transport: types.TransportType) -> dict[str, Any]:
     return config
 
 
-# Example 7: Event handler function types
+# Example 6: Event handler function types
 async def async_message_handler(event: types.SlackEventPayload) -> None:
     """Async event handler function."""
     print(f"Async handler: {event.get('type')}")

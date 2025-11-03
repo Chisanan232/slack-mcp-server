@@ -31,6 +31,7 @@ classifiers = [
 ]
 dependencies = [
     # Base installation only includes the base protocol rules of this project (no any feature for MCP, HTTP server, etc.)
+    "abstract-backend>=0.0.1",
 ]
 
 [project.urls]
@@ -43,9 +44,6 @@ Changelog = "https://chisanan232.github.io/slack-mcp-server/docs/next/changelog"
 [project.scripts]
 slack-mcp-server = "slack_mcp.mcp.entry:main"
 slack-webhook-server = "slack_mcp.webhook.entry:main"
-
-[project.entry-points."slack_mcp.backends.queue"]
-memory = "slack_mcp.backends.queue.memory:MemoryBackend"
 
 [project.optional-dependencies]
 # MCP core feature set supports SSE/Streamable transports (but doesn't support integrated mode)

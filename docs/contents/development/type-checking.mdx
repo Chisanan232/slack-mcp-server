@@ -84,17 +84,6 @@ SlackChannelID: TypeAlias = str
 - `AsyncEventHandlerFunc`: Async event handler
 - `SyncEventHandlerFunc`: Sync event handler
 
-#### Queue Types
-- `QueueKey`: Queue routing key or topic name
-- `QueuePayload`: Queue message payload
-- `QueueMessage`: Complete queue message with metadata
-- `QueueBackendConfig`: Configuration dictionary for backends
-- `ConsumerGroup`: Consumer group identifier
-
-:::tip Queue Backend Development
-For detailed information about queue backend types and plugin development, see the [Queue Backend Architecture](./queue-backends.mdx) guide.
-:::
-
 ### Protocol Definitions
 
 The package provides runtime-checkable protocols for structural subtyping:
@@ -112,43 +101,6 @@ class MyHandler:
 handler: EventHandlerProtocol = MyHandler()
 ```
 
-#### QueueBackendProtocol
-
-```python
-from slack_mcp.types import (
-    QueueBackendProtocol,
-    QueueKey,
-    QueuePayload,
-    QueueMessage,
-    ConsumerGroup,
-)
-from typing import AsyncIterator
-
-class MyQueueBackend:
-    async def publish(self, key: QueueKey, payload: QueuePayload) -> None:
-        # Publish to queue backend
-        pass
-    
-    async def consume(
-        self, 
-        *, 
-        group: ConsumerGroup = None
-    ) -> AsyncIterator[QueueMessage]:
-        # Consume from queue backend
-        yield {}
-    
-    @classmethod
-    def from_env(cls) -> "MyQueueBackend":
-        # Load configuration from environment
-        return cls()
-
-# Type checker verifies protocol compliance
-backend: QueueBackendProtocol = MyQueueBackend()
-```
-
-:::tip Plugin Development
-For a complete guide on implementing queue backend plugins with proper type definitions, see the [Queue Backend Architecture](./queue-backends.mdx) documentation.
-:::
 
 ### Type Guards
 
@@ -186,17 +138,6 @@ class MySlackHandler(BaseSlackEventHandler):
         print(f"Message from {user} in {channel}: {text}")
 ```
 
-### With Queue Backends
-
-```python
-from slack_mcp.types import QueueBackendProtocol, QueuePayload
-
-async def process_queue(backend: QueueBackendProtocol) -> None:
-    """Process messages from a queue backend."""
-    async for message in backend.consume(group="my-consumer-group"):
-        payload: QueuePayload = message
-        print(f"Processing: {payload}")
-```
 
 ## Running MyPy
 

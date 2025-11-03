@@ -11,13 +11,13 @@ import logging
 import os
 from typing import Final, Optional
 
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.loader import load_backend
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
-from slack_mcp.backends.base.protocol import QueueBackend
-from slack_mcp.backends.loader import load_backend
 from slack_mcp.client.manager import get_client_manager
 
 from .app import web_factory
@@ -38,18 +38,18 @@ _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 slack_client: Optional[AsyncWebClient] = None
 
 # Global queue backend for publishing Slack events
-_queue_backend: Optional[QueueBackend] = None
+_queue_backend: Optional[MessageQueueBackend] = None
 
 # Default topic/key for Slack events in the queue
 DEFAULT_SLACK_EVENTS_TOPIC: Final[str] = "slack_events"
 
 
-def get_queue_backend() -> QueueBackend:
+def get_queue_backend() -> MessageQueueBackend:
     """Get or initialize the global queue backend.
 
     Returns
     -------
-    QueueBackend
+    MessageQueueBackend
         The global queue backend instance
     """
     global _queue_backend
