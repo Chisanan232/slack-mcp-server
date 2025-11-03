@@ -19,7 +19,6 @@ from __future__ import annotations
 from typing import (
     TYPE_CHECKING,
     Any,
-    AsyncIterator,
     Awaitable,
     Callable,
     Dict,
@@ -162,8 +161,6 @@ class EventHandlerProtocol(Protocol):
             event: The Slack event payload
         """
         ...
-
-
 
 
 # ============================================================================

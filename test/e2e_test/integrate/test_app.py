@@ -14,12 +14,12 @@ import aiohttp
 import pytest
 import pytest_asyncio
 import uvicorn
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.service.memory import MemoryBackend
 from fastapi import Request
 from fastapi.testclient import TestClient
 from mcp.server import FastMCP
 
-from abe.backends.message_queue.base.protocol import MessageQueueBackend
-from abe.backends.message_queue.service.memory import MemoryBackend
 from slack_mcp.integrate.app import integrated_factory
 from slack_mcp.mcp.app import MCPServerFactory
 

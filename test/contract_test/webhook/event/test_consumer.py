@@ -16,9 +16,9 @@ from typing import Any, Dict
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from abe.backends.message_queue.service.memory import MemoryBackend
+
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler import DecoratorHandler
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler

@@ -11,8 +11,8 @@ import asyncio
 import logging
 from typing import Any, Awaitable, Callable, Dict, Optional
 
-from abe.backends.message_queue.consumer import AsyncLoopConsumer
 from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.consumer import AsyncLoopConsumer
 
 from .handler import EventHandler
 from .handler.decorator import DecoratorHandler
@@ -31,7 +31,9 @@ class SlackEventConsumer(AsyncLoopConsumer):
     2. A DecoratorHandler instance (decorator style)
     """
 
-    def __init__(self, backend: MessageQueueBackend, handler: Optional[EventHandler] = None, group: Optional[str] = None):
+    def __init__(
+        self, backend: MessageQueueBackend, handler: Optional[EventHandler] = None, group: Optional[str] = None
+    ):
         """Initialize the consumer with a backend and optional handler.
 
         Parameters

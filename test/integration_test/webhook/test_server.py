@@ -3,10 +3,10 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
-from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from slack_mcp.mcp.app import mcp_factory
 from slack_mcp.webhook.app import web_factory
 from slack_mcp.webhook.server import create_slack_app

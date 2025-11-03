@@ -4,8 +4,8 @@ from typing import Any, Dict, Generator, List, Optional
 from unittest.mock import patch
 
 import pytest
-
 from abe.backends.message_queue.base.protocol import MessageQueueBackend
+
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
 from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
@@ -85,7 +85,9 @@ class TestSlackEventConsumer:
         return SlackEventConsumer(mock_backend)
 
     @pytest.fixture
-    def consumer_with_handler(self, mock_backend: MockMessageQueueBackend, oo_handler: _TestHandler) -> SlackEventConsumer:
+    def consumer_with_handler(
+        self, mock_backend: MockMessageQueueBackend, oo_handler: _TestHandler
+    ) -> SlackEventConsumer:
         """Fixture providing a SlackEventConsumer with a handler."""
         return SlackEventConsumer(mock_backend, handler=oo_handler)
 

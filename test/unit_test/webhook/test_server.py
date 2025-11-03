@@ -4,11 +4,11 @@ from typing import Any, AsyncIterator, Dict
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from slack_sdk.web.async_client import AsyncWebClient
 
-from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from slack_mcp.mcp.app import MCPServerFactory
 from slack_mcp.webhook.app import WebServerFactory
 from slack_mcp.webhook.models import SlackEventModel, UrlVerificationModel

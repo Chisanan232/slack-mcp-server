@@ -11,13 +11,13 @@ import logging
 import os
 from typing import Final, Optional
 
+from abe.backends.message_queue.base.protocol import MessageQueueBackend
+from abe.backends.message_queue.loader import load_backend
 from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
 from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
-from abe.backends.message_queue.base.protocol import MessageQueueBackend
-from abe.backends.message_queue.loader import load_backend
 from slack_mcp.client.manager import get_client_manager
 
 from .app import web_factory
