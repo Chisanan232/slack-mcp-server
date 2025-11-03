@@ -492,14 +492,6 @@ graph LR
     F --> G
 ```
 
-:::tip Custom Queue Backend Plugin Development
-To develop custom queue backend plugins, use the **[Slack MCP Server Backend MQ Template](https://github.com/Chisanan232/Slack-MCP-Server-Backend-MQ-Template)**. This template repository provides a complete project structure with best practices, automated CI/CD workflows, and comprehensive documentation to accelerate your plugin development.
-
-📚 **Template Documentation**: [https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/](https://chisanan232.github.io/Slack-MCP-Server-Backend-MQ-Template/)
-
-For detailed information on implementing the `QueueBackend` protocol and plugin registration, see [Event Handler & Queue Architecture](./event-handler-queue-architecture.mdx#developing-custom-queue-backends).
-:::
-
 **Redis Configuration:**
 ```bash
 export QUEUE_BACKEND_TYPE="redis"

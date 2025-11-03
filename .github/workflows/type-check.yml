@@ -177,7 +177,6 @@ jobs:
           
           # Test Protocol types
           assert hasattr(types, 'EventHandlerProtocol')
-          assert hasattr(types, 'QueueBackendProtocol')
           print('✅ Protocol types accessible')
           
           # Test type guards
