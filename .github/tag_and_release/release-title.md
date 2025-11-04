@@ -1,1 +1,1 @@
-v0.1.0 - Newborn project about Slack MCP server 🍻
+v0.1.0 - Rule and manage by *abstract-backend* for the message queue component 🗃️
