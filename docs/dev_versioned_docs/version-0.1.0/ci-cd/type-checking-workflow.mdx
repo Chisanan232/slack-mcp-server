@@ -1,0 +1,472 @@
+---
+title: PEP 561 Type Distribution Workflow
+sidebar_position: 7
+---
+
+# PEP 561 Type Distribution Workflow
+
+[![PEP 561 Type Distribution](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml)
+
+The [`type-check.yml`](https://github.com/Chisanan232/slack-mcp-server/blob/master/.github/workflows/type-check.yml) workflow ensures that the Slack MCP Server properly distributes type information according to PEP 561 standards.
+
+**Triggers:**
+- **Push to master**: When type distribution files are modified
+- **Pull requests to master**: For PEP 561 compliance validation before merge
+- **Manual dispatch**: On-demand validation via workflow dispatch
+
+**Purpose**: Validates PEP 561 compliance for type information distribution in Python packages.
+
+:::info MyPy Source Code Checking
+**Note**: MyPy type checking of source code is handled by **pre-commit hooks** (configured in `.pre-commit-config.yaml`). This workflow focuses exclusively on **PEP 561 compliance** - ensuring type information is properly packaged and distributed.
+:::
+
+## Overview
+
+This workflow validates type information distribution:
+
+- **📋 PEP 561 Compliance** - Validates proper type information packaging and distribution
+- **📦 Type Imports** - Ensures type definitions are accessible and functional after installation
+- **🔍 Distribution Verification** - Confirms type files are included in built packages
+
+---
+
+## Workflow Jobs
+
+### 1. PEP 561 Compliance Verification (`verify-pep561-compliance`)
+
+Validates that the package correctly implements [PEP 561](https://peps.python.org/pep-0561/) standards for distributing type information with Python packages.
+
+**Purpose**: Ensures type checkers can automatically discover and use the package's type information after installation.
+
+**Validation Process:**
+
+**Step 1: Marker File Validation**
+```bash
+# Verify py.typed marker file exists
+if [ ! -f "slack_mcp/py.typed" ]; then
+    echo "❌ Error: py.typed marker file not found!"
+    exit 1
+fi
+✅ py.typed marker file exists
+```
+
+**Step 2: Type Module Validation**
+```bash
+# Verify types.py module and exports
+✅ types.py module exists
+✅ types.py has __all__ export
+```
+
+**Step 3: Build Configuration Validation**
+```bash
+# Verify pyproject.toml includes type artifacts
+✅ pyproject.toml includes py.typed in artifacts
+```
+
+**Step 4: Distribution Verification**
+```bash
+# Build package and verify type files in distributions
+uv build --sdist --wheel
+
+# Check source distribution
+✅ py.typed found in source distribution
+✅ types.py found in source distribution
+
+# Check wheel distribution
+✅ py.typed found in wheel distribution
+✅ types.py found in wheel distribution
+```
+
+**PEP Standards Validated:**
+- [PEP 561](https://peps.python.org/pep-0561/) - Distributing and Packaging Type Information
+- [PEP 484](https://peps.python.org/pep-0484/) - Type Hints
+- [PEP 585](https://peps.python.org/pep-0585/) - Type Hinting Generics
+- [PEP 544](https://peps.python.org/pep-0544/) - Protocols (Structural Subtyping)
+- [PEP 695](https://peps.python.org/pep-0695/) - Type Parameter Syntax (Python 3.12+)
+
+### 2. Type Import Testing (`test-type-imports`)
+
+Validates that type definitions are correctly exported and accessible for use in application code.
+
+**Purpose**: Ensures the type system is functional and all type definitions can be imported and used as intended after package installation.
+
+**Test Categories:**
+
+**Module Import Validation**
+```python
+from slack_mcp import types
+✅ Successfully imported types module
+✅ Available types: 23 exports
+```
+
+**SlackEvent Enum Validation**
+```python
+from slack_mcp import SlackEvent
+✅ Successfully imported SlackEvent
+✅ Total events: 99
+```
+
+**Type Accessibility Testing**
+
+The workflow validates that all major type categories are accessible:
+
+```python
+# JSON type definitions
+assert hasattr(types, 'JSONValue')
+assert hasattr(types, 'JSONDict')
+assert hasattr(types, 'JSONList')
+assert hasattr(types, 'JSONPrimitive')
+✅ JSON types accessible
+
+# Slack-specific types
+assert hasattr(types, 'SlackChannelID')
+assert hasattr(types, 'SlackUserID')
+assert hasattr(types, 'SlackTimestamp')
+assert hasattr(types, 'SlackToken')
+assert hasattr(types, 'SlackEventPayload')
+✅ Slack types accessible
+
+# Protocol definitions (PEP 544)
+assert hasattr(types, 'EventHandlerProtocol')
+assert hasattr(types, 'QueueBackendProtocol')
+✅ Protocol types accessible
+
+# Type guard functions
+assert hasattr(types, 'is_slack_channel_id')
+assert hasattr(types, 'is_slack_user_id')
+assert hasattr(types, 'is_slack_timestamp')
+✅ Type guards accessible
+```
+
+**Type Guard Functionality Testing**
+
+Validates runtime type validation functions work correctly:
+
+```python
+# Channel ID validation
+assert types.is_slack_channel_id('C1234567890') == True
+assert types.is_slack_channel_id('#general') == True
+assert types.is_slack_channel_id('invalid') == False
+✅ Channel ID type guard works
+
+# User ID validation
+assert types.is_slack_user_id('U1234567890') == True
+assert types.is_slack_user_id('W1234567890') == True
+assert types.is_slack_user_id('invalid') == False
+✅ User ID type guard works
+
+# Timestamp validation
+assert types.is_slack_timestamp('1234567890.123456') == True
+assert types.is_slack_timestamp('invalid') == False
+✅ Timestamp type guard works
+```
+
+### 3. PEP 561 Summary (`summary`)
+
+Aggregates results from all validation jobs and provides a comprehensive status report.
+
+**Purpose**: Provides a single source of truth for PEP 561 compliance status.
+
+**Dependencies**: Requires completion of both previous jobs (verify-pep561-compliance, test-type-imports)
+
+**Summary Report Format:**
+```markdown
+## PEP 561 Type Distribution Results
+
+ℹ️ **Note**: MyPy source code checking is handled by pre-commit hooks
+
+✅ PEP 561 compliance: **PASSED**
+✅ Type imports: **PASSED**
+
+### PEP Standards Verified
+- PEP 561: Distributing and Packaging Type Information
+- PEP 484: Type Hints
+- PEP 585: Type Hinting Generics
+- PEP 544: Protocols (Structural Subtyping)
+- PEP 695: Type Parameter Syntax (Python 3.12+)
+```
+
+**Failure Handling**: The workflow fails if any validation job does not succeed, ensuring type distribution compliance is maintained.
+
+---
+
+## Type Definition Standards
+
+The Slack MCP Server follows modern Python typing standards with comprehensive type definitions in `slack_mcp/types.py`.
+
+### PEP 695 Type Aliases (Python 3.12+)
+
+All type aliases use the modern `type` statement syntax introduced in [PEP 695](https://peps.python.org/pep-0695/):
+
+**Modern Syntax (PEP 695):**
+```python
+# Simple type aliases
+type SlackChannelID = str
+type SlackUserID = str
+
+# Generic type aliases
+type JSONDict = Dict[str, JSONValue]
+type JSONList = List[JSONValue]
+
+# Union type aliases
+type JSONPrimitive = Union[str, int, float, bool, None]
+type EventHandlerFunc = Union[SyncEventHandlerFunc, AsyncEventHandlerFunc]
+
+# Literal type aliases
+type TransportType = Literal["stdio", "sse", "streamable-http"]
+```
+
+**Benefits over TypeAlias annotation:**
+- ✅ **Cleaner syntax** - More concise and readable
+- ✅ **Better type inference** - Type checkers understand it natively
+- ✅ **No forward reference quotes** - Automatic resolution of forward references
+- ✅ **SonarQube compliant** - Resolves python:S6794 rule violations
+- ✅ **Modern standard** - Recommended for Python 3.12+
+
+### Type Categories
+
+**JSON Types:**
+```python
+type JSONPrimitive = Union[str, int, float, bool, None]
+type JSONValue = Union[JSONPrimitive, JSONDict, JSONList]
+type JSONDict = Dict[str, JSONValue]
+type JSONList = List[JSONValue]
+```
+
+**Slack Types:**
+```python
+type SlackChannelID = str
+type SlackUserID = str
+type SlackTimestamp = str
+type SlackToken = str
+type SlackEventPayload = Dict[str, Any]
+```
+
+**Handler Types:**
+```python
+type SyncEventHandlerFunc = Callable[[SlackEventPayload], None]
+type AsyncEventHandlerFunc = Callable[[SlackEventPayload], Awaitable[None]]
+type EventHandlerFunc = Union[SyncEventHandlerFunc, AsyncEventHandlerFunc]
+```
+
+**Protocol Types (PEP 544):**
+```python
+@runtime_checkable
+class EventHandlerProtocol(Protocol):
+    async def handle_event(self, event: SlackEventPayload) -> None: ...
+
+@runtime_checkable
+class QueueBackendProtocol(Protocol):
+    async def publish(self, key: QueueKey, payload: QueuePayload) -> None: ...
+    async def consume(self, *, group: Optional[str] = None) -> AsyncIterator[QueueMessage]: ...
+```
+
+### Type Guards
+
+Runtime type validation functions for Slack-specific types:
+
+```python
+def is_slack_channel_id(value: str) -> bool:
+    """Check if string is a valid Slack channel ID."""
+    return value.startswith(("C", "G", "D", "#"))
+
+def is_slack_user_id(value: str) -> bool:
+    """Check if string is a valid Slack user ID."""
+    return value.startswith(("U", "W", "B"))
+
+def is_slack_timestamp(value: str) -> bool:
+    """Check if string is a valid Slack timestamp."""
+    parts = value.split(".")
+    return len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit()
+```
+
+---
+
+## Local Development
+
+Developers can run PEP 561 compliance validations locally before pushing changes.
+
+:::tip MyPy Type Checking
+For MyPy source code type checking, use **pre-commit hooks**:
+```bash
+# Run pre-commit on all files
+pre-commit run --all-files
+
+# Run only MyPy hook
+pre-commit run mypy --all-files
+```
+:::
+
+### PEP 561 Validation Commands
+
+**Marker File Validation**
+```bash
+# Verify py.typed marker exists
+ls -la slack_mcp/py.typed
+```
+
+**Distribution Testing**
+```bash
+# Build package
+uv build --sdist --wheel
+
+# Verify type files in source distribution
+tar -tzf dist/*.tar.gz | grep -E "(py.typed|types.py)"
+
+# Verify type files in wheel
+unzip -l dist/*.whl | grep -E "(py.typed|types.py)"
+```
+
+### Type Import Testing
+
+**Module Import Validation**
+```bash
+# Test types module import
+uv run python -c "from slack_mcp import types; print(f'Available types: {len(types.__all__)}')"
+
+# Test SlackEvent import
+uv run python -c "from slack_mcp import SlackEvent; print(f'Total events: {len(SlackEvent)}')"
+```
+
+**Type Guard Testing**
+```bash
+# Validate type guard functionality
+uv run python -c "
+from slack_mcp import types
+assert types.is_slack_channel_id('C1234567890')
+assert types.is_slack_user_id('U1234567890')
+assert types.is_slack_timestamp('1234567890.123456')
+print('✅ All type guards work correctly')
+"
+```
+
+### Example Execution
+
+**Execute Type Checking Examples**
+```bash
+# Run type checking example to verify runtime behavior
+uv run python examples/type_checking/type_checking_example.py
+```
+
+:::info Example Type Checking
+MyPy validation of examples is handled by pre-commit hooks. Use `pre-commit run mypy --all-files` to type-check all code including examples.
+:::
+
+### Automated Verification Script
+
+The project includes a comprehensive verification script:
+
+```bash
+# Run full type checking verification
+./scripts/ci/verify_type_checking.sh
+```
+
+This script performs all validation steps automatically and provides a detailed report.
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**MyPy Type Errors**
+- **Symptom**: Type checking fails with incompatible type errors
+- **Solution**: Review MyPy error messages and fix type annotations
+- **Example Error**: `error: Incompatible types in assignment (expression has type "str", variable has type "int")`
+
+**Missing PEP 561 Marker**
+- **Symptom**: `py.typed marker file not found` error in workflow
+- **Solution**: Ensure `slack_mcp/py.typed` file exists in the package directory
+- **Verification**: `ls -la slack_mcp/py.typed`
+
+**Type Import Failures**
+- **Symptom**: Cannot import types from `slack_mcp.types`
+- **Solution**: Verify `__all__` exports in `types.py` and package `__init__.py`
+- **Check**: `uv run python -c "from slack_mcp import types; print(types.__all__)"`
+
+**Distribution Issues**
+- **Symptom**: Type files not included in built packages
+- **Solution**: Verify `pyproject.toml` includes `py.typed` in artifacts configuration
+- **Validation**: Build package and check contents with `tar -tzf` or `unzip -l`
+
+**Workflow Not Triggering**
+- **Symptom**: Workflow doesn't run on expected file changes
+- **Solution**: Check file paths match trigger conditions in workflow YAML
+- **Verification**: Review workflow file path patterns and branch names
+
+**MyPy Version Conflicts**
+- **Symptom**: Different MyPy versions produce different results
+- **Solution**: Ensure consistent MyPy version in `pyproject.toml`:
+  ```toml
+  [dependency-groups]
+  pre-commit-ci = [
+      "mypy>=1.16.1,<2",
+  ]
+  ```
+
+**Missing Dependencies**
+- **Symptom**: Import errors during type checking
+- **Solution**: Install all dependencies including extras:
+  ```bash
+  uv sync --all-extras
+  ```
+
+**SonarQube python:S6794 Violations**
+- **Symptom**: SonarQube reports "Use PEP 695 type aliases" for `TypeAlias` usage
+- **Solution**: Use modern `type` statement syntax instead of `TypeAlias` annotation
+- **Migration**:
+  ```python
+  # ❌ Old style (triggers S6794)
+  from typing import TypeAlias
+  MyType: TypeAlias = str
+  
+  # ✅ New style (PEP 695)
+  type MyType = str
+  ```
+- **Requirement**: Python 3.12+ (already required by this project)
+
+### Debug Configuration
+
+**View Workflow Logs**
+```bash
+# List recent workflow runs
+gh run list --workflow=type-check.yml --limit=5
+
+# View specific run details
+gh run view <run-id> --log
+```
+
+**Test Configuration Locally**
+```bash
+# Run verification script
+./scripts/ci/verify_type_checking.sh
+
+# Check specific validation
+uv run mypy slack_mcp/ --show-error-codes
+```
+
+---
+
+## Workflow Integration
+
+The type checking workflow integrates with the project's CI/CD system:
+
+### **Integration Points:**
+- **Pre-merge Validation** → Runs on all pull requests to master
+- **Post-merge Verification** → Validates type safety after merges
+- **Manual Validation** → Available via workflow dispatch for on-demand checks
+
+### **Monitoring and Maintenance:**
+- Workflow status visible via badge: [![Type Checking](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml/badge.svg)](https://github.com/Chisanan232/slack-mcp-server/actions/workflows/type-check.yml)
+- Failed workflows trigger notifications for immediate attention
+- Regular review ensures type definitions stay current with codebase changes
+
+---
+
+## Navigation
+
+- **🏠 [CI/CD Overview](/dev/next/ci-cd)** - Return to main CI/CD hub
+- **📋 [Continuous Integration](./continuous-integration)** - Main CI workflows and testing
+- **🔄 [Release System](./release-system)** - Production releases and deployment
+- **⚙️ [Additional CI Workflows](./additional-ci-workflows)** - Specialized utility workflows
+- **🛠️ [Developer Guide](./developer-guide)** - Configuration and troubleshooting

@@ -1,0 +1,175 @@
+---
+id: webhook-apis
+title: Webhook Server APIs
+sidebar_position: 3
+---
+
+# Webhook Server APIs
+
+The Slack MCP Server provides a comprehensive webhook server implementation that receives and processes Slack events through the Slack Events API. This webhook server can operate in standalone mode or integrated with the MCP server for complete Slack integration capabilities.
+
+:::note Installation extras
+- [mcp]: installs the MCP server feature set.
+- [webhook]: installs the webhook server feature set (this page).
+- [all]: installs everything.
+:::
+
+## Overview
+
+The webhook server is built on FastAPI and provides secure, scalable handling of Slack events with the following key features:
+
+- **Secure Event Processing**: Slack signature verification for all incoming events
+- **Event Queue Integration**: Automatic publishing of events to configurable message queues
+- **Flexible Deployment**: Standalone webhook server or integrated MCP+Webhook server
+- **Comprehensive Event Support**: Handles all Slack event types with Pydantic model validation
+- **URL Verification**: Built-in support for Slack's URL verification challenge
+- **Retry Mechanisms**: Configurable retry logic for network operations
+- **Production Ready**: ASGI-compatible with proper logging and error handling
+
+## Available Endpoints
+
+The webhook server exposes the following REST API endpoints:
+
+- ✅ [**POST /slack/events**](./end-points/slack-events-endpoint.mdx) - Main endpoint for receiving Slack events
+
+[//]: # (- ✅ [**URL Verification**]&#40;./url-verification.mdx&#41; - Automatic handling of Slack's challenge requests)
+
+## Server Modes
+
+The webhook server supports two deployment modes:
+
+### **⚙️ [Server Modes](./server-modes.mdx)**
+Choose between standalone and integrated deployment options:
+
+**Standalone Mode:**
+- Dedicated webhook server for Slack events only
+- Lightweight deployment focused solely on event processing
+- Ideal for microservices architectures
+- Default port: 3000
+
+**Integrated Mode:**
+- Combined MCP server and webhook server in one application
+- Full-featured deployment with both MCP tools and event processing
+- Single deployment for complete Slack integration
+- Configurable MCP transport (SSE or HTTP streaming)
+
+## Event Processing Flow
+
+The webhook server processes Slack events through a secure validation and queuing pipeline. For detailed architectural information, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
+
+[//]: # (## Authentication & Security)
+
+[//]: # ()
+[//]: # (### **🔐 [Security Features]&#40;./security.mdx&#41;**)
+
+[//]: # (- **Slack Signature Verification**: All requests validated using HMAC-SHA256)
+
+[//]: # (- **Environment-based Configuration**: Secure token and secret management)
+
+[//]: # (- **Request Validation**: Comprehensive payload validation with Pydantic models)
+
+[//]: # (- **HTTPS Support**: Production-ready HTTPS deployment capabilities)
+
+[//]: # ()
+[//]: # (### **Required Environment Variables**)
+
+[//]: # (- `SLACK_SIGNING_SECRET` - Required for request signature verification)
+
+[//]: # (- `SLACK_BOT_TOKEN` - Required for Slack API operations)
+
+[//]: # (- `SLACK_EVENTS_TOPIC` - Optional queue topic name &#40;default: "slack_events"&#41;)
+
+## Supported Event Types
+
+The webhook server processes all Slack event types including:
+
+### **Message Events**
+- `message` - New messages in channels
+- `app_mention` - Bot mentions in messages
+- `message.channels` - Channel message events
+- `message.groups` - Private channel message events
+- `message.mpim` - Multi-party IM message events
+
+### **Reaction Events**
+- `reaction_added` - Emoji reactions added to messages
+- `reaction_removed` - Emoji reactions removed from messages
+
+### **Channel Events**
+- `channel_created` - New channels created
+- `channel_deleted` - Channels deleted
+- `channel_rename` - Channel name changes
+- `member_joined_channel` - Users joining channels
+- `member_left_channel` - Users leaving channels
+
+### **User Events**
+- `team_join` - New users joining the workspace
+- `user_change` - User profile changes
+
+## Configuration Options
+
+### **📋 [Environment Configuration](../environment-configuration.mdx)**
+Complete configuration guide including:
+- Environment variables and authentication
+- Queue backend configuration
+- SSL/TLS and security settings  
+- Logging levels and formats
+- Retry mechanisms
+- Environment file loading
+- Queue backend configuration
+
+### **🚀 Deployment**
+For deployment patterns, container configurations, and production recommendations, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
+
+## Development Tools
+
+### **🛠️ CLI Interface**
+For complete webhook server CLI options and usage patterns, see [CLI Reference](./cli-reference.mdx).
+
+### **💻 Local Development**
+For development setup and testing guides, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
+
+## Queue Integration
+
+### **📨 Message Queue Backend**
+For queue backend architecture and configuration details, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
+
+## Error Handling
+
+The webhook server provides comprehensive error handling:
+
+### **Common HTTP Status Codes**
+- `200 OK` - Event successfully processed
+- `401 Unauthorized` - Invalid Slack signature
+- `400 Bad Request` - Malformed request payload
+- `500 Internal Server Error` - Server processing error
+
+### **Error Response Format**
+```json
+{
+  "detail": "Error description",
+  "status_code": 401
+}
+```
+
+## Performance & Best Practices
+
+For performance characteristics, deployment best practices, development workflows, and optimization strategies, see [Webhook Server Architecture](/dev/next/architecture/webhook-server-architecture).
+
+## Quick Start
+
+```bash
+# Install dependencies for webhook server
+pip install "slack-mcp[webhook]"
+
+# Set environment variables
+export SLACK_SIGNING_SECRET="your_signing_secret"
+export SLACK_BOT_TOKEN="xoxb-your-bot-token"
+
+# Run standalone webhook server
+python -m slack_mcp.webhook --host 0.0.0.0 --port 3000
+
+# Or run integrated server (MCP + Webhook)
+python -m slack_mcp.webhook --integrated --mcp-transport sse
+```
+
+For detailed setup instructions, see the [Environment Configuration](../environment-configuration.mdx) and [CLI Execution Methods](../cli-execution-methods.mdx) guides.

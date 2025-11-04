@@ -1,0 +1,280 @@
+---
+id: slack-add-reactions-mcp-api
+title: Add Reactions
+sidebar_position: 6
+---
+
+# Slack Add Reactions MCP API
+
+The Slack Add Reactions MCP API allows you to add one or more emoji reactions to specific messages in Slack channels using the Model Context Protocol interface. For more information about MCP, see the [official documentation](https://modelcontextprotocol.io/docs/getting-started/intro).
+
+## Tool Information
+
+### slack_add_reactions
+
+* **Tool name**: `slack_add_reactions`
+* **Function**: `add_slack_reactions`
+* **Description**: Add one or more emoji reactions to a specific message in a Slack channel. This allows adding emoji reactions to any message, including those in threads.
+
+## Input Parameters
+
+The tool accepts a `SlackAddReactionsInput` object with the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `channel` | `string` | Yes | Slack channel ID (e.g., `C12345678`) or name with `#` (e.g., `#general`) |
+| `timestamp` | `string` | Yes | Timestamp ID of the message to react to |
+| `emojis` | `array[string]` | Yes | A list of emoji names to add as reactions (without colons) |
+
+## Usage Examples
+
+### Single Reaction
+```json
+{
+  "channel": "#general",
+  "timestamp": "1234567890.123456",
+  "emojis": ["thumbsup"]
+}
+```
+
+### Multiple Reactions
+```json
+{
+  "channel": "C1234567890",
+  "timestamp": "1234567890.123456", 
+  "emojis": ["thumbsup", "heart", "fire", "100"]
+}
+```
+
+### Custom Emoji Reactions
+```json
+{
+  "channel": "#team-updates",
+  "timestamp": "1640995200.000000",
+  "emojis": ["company_logo", "party-parrot", "rocket"]
+}
+```
+
+### Thread Message Reactions
+```json
+{
+  "channel": "C9876543210",
+  "timestamp": "1641081600.123456",
+  "emojis": ["eyes", "thinking_face", "question"]
+}
+```
+
+### Mixed Standard and Custom Emojis
+```json
+{
+  "channel": "#announcements", 
+  "timestamp": "1234567891.456789",
+  "emojis": ["tada", "clap", "custom_celebrate", "heart_eyes"]
+}
+```
+
+## Response Format
+
+The tool returns a dictionary containing a list of responses under the 'responses' key. Each response is the raw JSON returned by Slack for each emoji reaction added:
+
+```json
+{
+  "responses": [
+    {
+      "ok": true
+    }
+  ]
+}
+```
+
+### For Multiple Reactions
+```json
+{
+  "responses": [
+    {
+      "ok": true
+    },
+    {
+      "ok": true  
+    },
+    {
+      "ok": false,
+      "error": "already_reacted",
+      "detail": "Cannot react with that emoji because you have already reacted with it."
+    },
+    {
+      "ok": true
+    }
+  ]
+}
+```
+
+### Key Response Fields
+
+| Field | Description |
+|-------|-------------|
+| `responses` | Array of response objects, one for each emoji reaction attempt |
+| `responses[].ok` | Boolean indicating if the individual reaction was successful |
+| `responses[].error` | Error code if the reaction failed |
+| `responses[].detail` | Detailed error message if the reaction failed |
+
+## Error Handling
+
+This function may raise errors in the following situations:
+- Missing or invalid Slack API token
+- Invalid channel name or ID
+- Invalid message timestamp
+- Insufficient permissions to react in the channel
+- Message doesn't exist or is not accessible
+- Emoji doesn't exist in the workspace
+- Already reacted with the same emoji
+- Network connectivity issues
+- API rate limiting
+
+If any individual reaction fails, the corresponding response will have `"ok": false`:
+
+```json
+{
+  "responses": [
+    {
+      "ok": true
+    },
+    {
+      "ok": false,
+      "error": "no_reaction",
+      "detail": "Value passed for name was invalid."
+    }
+  ]
+}
+```
+
+### Common Error Codes
+
+| Error Code | Description | Solution |
+|------------|-------------|----------|
+| `channel_not_found` | Channel doesn't exist or bot lacks access | Verify channel name/ID and bot permissions |
+| `message_not_found` | Message timestamp is invalid or message doesn't exist | Verify the timestamp parameter |
+| `no_reaction` | Emoji name is invalid or doesn't exist | Check emoji name spelling and availability |
+| `already_reacted` | User has already reacted with this emoji | This is informational, not necessarily an error |
+| `not_in_channel` | Bot is not a member of the channel | Invite the bot to the channel |
+| `invalid_auth` | Invalid or missing API token | Check SLACK_BOT_TOKEN environment variable |
+| `rate_limited` | Too many requests sent | Implement rate limiting in your application |
+| `too_many_reactions` | Message has reached maximum reaction limit | Remove existing reactions or choose different emojis |
+
+## Use Cases
+
+Typical scenarios for using `slack_add_reactions`:
+- **Sentiment Expression**: Add reactions to express agreement, appreciation, or emotions
+- **Status Indication**: Use reactions to indicate task completion or approval status
+- **Poll Responses**: Create informal polls using reaction-based voting
+- **Workflow Automation**: Automatically react to messages based on content analysis
+- **Bot Feedback**: Provide immediate visual feedback from automated systems
+- **Team Engagement**: Encourage team interaction and acknowledgment
+- **Content Categorization**: Use reactions to tag or categorize messages
+
+## Authentication
+
+This tool requires a valid Slack bot token set in one of the following environment variables:
+- `SLACK_BOT_TOKEN` (recommended)
+- `SLACK_TOKEN` (fallback)
+
+The bot must have the following OAuth scopes:
+- `reactions:write` - Required to add reactions to messages
+- `channels:read` - Required to access public channels
+- `groups:read` - Required to access private channels (if needed)
+
+## Rate Limiting
+
+Slack enforces rate limits on the `reactions.add` API:
+- **Tier 3**: 50+ requests per minute
+- **Tier 4**: 100+ requests per minute
+
+The server will automatically handle retries according to Slack's rate limiting headers.
+
+## Emoji Name Format
+
+### Standard Emojis
+- **Format**: Use the emoji name without colons
+- **Examples**: `thumbsup`, `heart`, `fire`, `100`, `tada`
+- **Unicode**: Standard Unicode emoji names are supported
+
+### Custom Emojis
+- **Format**: Use the custom emoji name without colons
+- **Examples**: `company_logo`, `party-parrot`, `custom_celebrate`
+- **Availability**: Must exist in the current workspace
+
+### Emoji Name Rules
+- **No Colons**: Don't include `:` characters (use `thumbsup`, not `:thumbsup:`)
+- **Case Insensitive**: `ThumbsUp` and `thumbsup` are equivalent
+- **Underscores**: Use underscores for multi-word emoji names
+- **Length Limit**: Maximum 21 characters per emoji name
+
+## Reaction Behavior
+
+### Duplicate Reactions
+- **Same User**: Cannot react with the same emoji twice
+- **Error Response**: Returns `already_reacted` error
+- **Non-Fatal**: Other reactions in the same request will still be processed
+
+### Reaction Limits
+- **Per Message**: Maximum of 50 unique reactions per message
+- **Per User**: No limit on different reactions from the same user
+- **Workspace Limit**: Limited by available emojis in the workspace
+
+### Reaction Visibility
+- **Public Channels**: Reactions are visible to all channel members
+- **Private Channels**: Reactions are visible to all channel members
+- **Direct Messages**: Reactions are visible to all conversation participants
+- **Threads**: Reactions on thread messages are visible to thread participants
+
+## Best Practices
+
+### Reaction Strategy
+- **Meaningful Reactions**: Choose emojis that add value to the conversation
+- **Consistent Usage**: Establish team conventions for reaction meanings
+- **Avoid Spam**: Don't overuse reactions to prevent notification fatigue
+- **Cultural Sensitivity**: Be aware of emoji interpretations across cultures
+
+### Error Handling
+- **Graceful Degradation**: Handle individual reaction failures without stopping the entire process
+- **User Feedback**: Inform users about failed reactions when appropriate
+- **Retry Logic**: Implement exponential backoff for rate-limited requests
+- **Emoji Validation**: Verify emoji availability before attempting to react
+
+### Performance Optimization
+- **Batch Reactions**: Use this tool to add multiple reactions in a single API call
+- **Caching**: Cache emoji availability to avoid repeated validation
+- **Rate Management**: Distribute reaction requests over time to avoid rate limits
+- **Error Monitoring**: Track reaction failure patterns for system health
+
+## Integration Examples
+
+### Automated Approval Workflow
+```javascript
+// React to indicate approval status
+{
+  "channel": "#pull-requests",
+  "timestamp": "1234567890.123456",
+  "emojis": ["white_check_mark", "shipit"]
+}
+```
+
+### Sentiment Analysis Bot
+```javascript
+// React based on message sentiment
+{
+  "channel": "#feedback",
+  "timestamp": "1234567890.123456", 
+  "emojis": ["thumbsup", "heart"]  // Positive sentiment
+}
+```
+
+### Task Completion Indicator
+```javascript
+// Mark task as completed
+{
+  "channel": "#project-tasks",
+  "timestamp": "1234567890.123456",
+  "emojis": ["heavy_check_mark", "tada"]
+}
+```
