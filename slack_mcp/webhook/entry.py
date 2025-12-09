@@ -2,6 +2,145 @@
 
 This module provides a standalone server that integrates with the Slack Events API
 and handles events like mentions and emoji reactions.
+
+Module Overview
+===============
+The Slack webhook server listens for events from Slack and publishes them to a message queue
+backend (memory, Redis, or Kafka). This allows decoupled processing of Slack events through
+custom consumers.
+
+Key Features
+============
+- **Event Listening**: Receives Slack events via HTTP webhooks
+- **Event Publishing**: Publishes events to configurable message queue backends
+- **Health Checks**: Built-in health check endpoint for monitoring
+- **Signature Verification**: Validates all incoming requests are from Slack
+- **Integrated Mode**: Can run alongside MCP server in integrated mode
+
+Server Modes
+============
+1. **Standalone**: Runs only the webhook server
+2. **Integrated**: Runs both webhook server and MCP server
+
+Quick Start Examples
+====================
+
+**1. Run webhook server standalone:**
+
+    .. code-block:: bash
+
+        python -m slack_mcp.webhook.entry --host 0.0.0.0 --port 3000
+
+**2. Run in integrated mode with MCP:**
+
+    .. code-block:: bash
+
+        python -m slack_mcp.webhook.entry --integrated --mcp-transport sse --port 3000
+
+**3. Using curl to test endpoints:**
+
+    .. code-block:: bash
+
+        # Health check
+        curl http://localhost:3000/health
+
+        # Slack event endpoint (requires valid Slack signature)
+        curl -X POST http://localhost:3000/slack/events \\
+             -H "Content-Type: application/json" \\
+             -H "X-Slack-Request-Timestamp: $(date +%s)" \\
+             -H "X-Slack-Signature: v0=..." \\
+             -d '{"type":"url_verification","challenge":"..."}'
+
+**4. Using Python to interact with the server:**
+
+    .. code-block:: python
+
+        import asyncio
+        from slack_mcp.webhook.entry import run_slack_server
+
+        async def main():
+            await run_slack_server(
+                host="0.0.0.0",
+                port=3000,
+                token="xoxb-...",
+                retry=3
+            )
+
+        asyncio.run(main())
+
+**5. Using wget to check server health:**
+
+    .. code-block:: bash
+
+        wget -q -O- http://localhost:3000/health | jq .
+
+Environment Variables
+======================
+- **SLACK_BOT_TOKEN**: Slack bot token (required, xoxb-...)
+- **SLACK_SIGNING_SECRET**: Slack signing secret for webhook verification (required)
+- **SLACK_EVENTS_TOPIC**: Message queue topic for events (default: slack_events)
+- **QUEUE_BACKEND**: Queue backend type (memory/redis/kafka, defaults to memory)
+- **REDIS_URL**: Redis connection URL (when using redis backend)
+- **KAFKA_BOOTSTRAP**: Kafka bootstrap servers (when using kafka backend)
+
+Configuration Files
+===================
+The server supports loading environment variables from a .env file:
+
+    .. code-block:: bash
+
+        # Load from default .env file
+        python -m slack_mcp.webhook.entry
+
+        # Load from custom .env file
+        python -m slack_mcp.webhook.entry --env-file /path/to/.env
+
+        # Skip loading .env file
+        python -m slack_mcp.webhook.entry --no-env-file
+
+Docker Usage
+============
+The server is designed to run in Docker containers:
+
+    .. code-block:: bash
+
+        # Build Docker image
+        docker build -t slack-webhook-server .
+
+        # Run webhook server
+        docker run -e SLACK_BOT_TOKEN=xoxb-... \\
+                   -e SLACK_SIGNING_SECRET=... \\
+                   -e QUEUE_BACKEND=memory \\
+                   -p 3000:3000 \\
+                   slack-webhook-server
+
+        # Run in integrated mode
+        docker run -e SLACK_BOT_TOKEN=xoxb-... \\
+                   -e SLACK_SIGNING_SECRET=... \\
+                   -e SERVICE_TYPE=integrated \\
+                   -e MCP_TRANSPORT=sse \\
+                   -p 3000:3000 \\
+                   slack-webhook-server
+
+Event Processing
+================
+Events are processed as follows:
+1. Slack sends event to /slack/events endpoint
+2. Server verifies request signature using SLACK_SIGNING_SECRET
+3. Event is deserialized and validated
+4. Event is published to message queue backend
+5. Custom consumers can process events from the queue
+
+Supported Events
+================
+The server supports all Slack event types including:
+- message events
+- reaction_added / reaction_removed
+- app_mention
+- member_joined_channel
+- And many more...
+
+See https://api.slack.com/events for the complete list of Slack events.
 """
 
 import asyncio
@@ -89,16 +228,70 @@ async def run_slack_server(
 ) -> None:
     """Run the Slack events server.
 
+    This function starts an async Slack webhook server that listens for events from Slack
+    and publishes them to a message queue backend. It's designed to be run in a separate
+    process or coroutine from the MCP server.
+
     Parameters
     ----------
-    host : str
-        The host to listen on
-    port : int
-        The port to listen on
-    token : Optional[str]
-        The Slack bot token to use. If None, will use environment variables.
-    retry : int
-        Number of retry attempts for network operations (default: 3)
+    host : str, optional
+        The host interface to listen on. Default is "0.0.0.0" (all interfaces).
+        Use "127.0.0.1" for localhost-only access.
+    port : int, optional
+        The port number to listen on. Default is 3000.
+    token : Optional[str], optional
+        The Slack bot token to use. If None, will use SLACK_BOT_TOKEN environment variable.
+    retry : int, optional
+        Number of retry attempts for Slack API operations. Default is 3.
+        Set to 0 to disable retries.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If no token is provided and SLACK_BOT_TOKEN environment variable is not set.
+
+    Examples
+    --------
+    **Run webhook server on default port:**
+
+    .. code-block:: python
+
+        import asyncio
+        from slack_mcp.webhook.entry import run_slack_server
+
+        asyncio.run(run_slack_server())
+
+    **Run on custom host and port:**
+
+    .. code-block:: python
+
+        asyncio.run(run_slack_server(host="127.0.0.1", port=8080))
+
+    **Run with explicit token:**
+
+    .. code-block:: python
+
+        asyncio.run(run_slack_server(
+            token="xoxb-your-token-here",
+            retry=5
+        ))
+
+    **Command-line usage:**
+
+    .. code-block:: bash
+
+        python -m slack_mcp.webhook.entry --host 0.0.0.0 --port 3000
+
+    Notes
+    -----
+    - The server requires SLACK_SIGNING_SECRET to verify incoming Slack requests
+    - Events are published to the message queue backend specified by QUEUE_BACKEND env var
+    - The health check endpoint is available at /health
+    - The Slack events endpoint is available at /slack/events
     """
     _LOG.info(f"Starting Slack events server on {host}:{port}")
 
@@ -126,20 +319,93 @@ async def run_integrated_server(
 ) -> None:
     """Run the integrated server with both MCP and webhook functionalities.
 
+    This function starts an async server that combines both the Slack webhook server
+    (for event listening) and the MCP server (for Slack tool access) in a single
+    process. Both services run on the same port with different URL paths.
+
     Parameters
     ----------
-    host : str
-        The host to listen on
-    port : int
-        The port to listen on
-    token : Optional[str]
-        The Slack bot token to use. If None, will use environment variables.
-    mcp_transport : str
-        The transport to use for the MCP server. Either "sse" or "streamable-http".
-    mcp_mount_path : Optional[str]
-        The mount path for the MCP server. Only used for sse transport.
-    retry : int
-        Number of retry attempts for network operations (default: 3)
+    host : str, optional
+        The host interface to listen on. Default is "0.0.0.0" (all interfaces).
+        Use "127.0.0.1" for localhost-only access.
+    port : int, optional
+        The port number to listen on. Default is 3000.
+    token : Optional[str], optional
+        The Slack bot token to use. If None, will use SLACK_BOT_TOKEN environment variable.
+    mcp_transport : str, optional
+        The transport protocol for the MCP server. Must be "sse" or "streamable-http".
+        Default is "sse".
+    mcp_mount_path : Optional[str], optional
+        The URL path where the MCP server is mounted. Default is "/mcp".
+        Only used for SSE transport. Ignored for streamable-http.
+    retry : int, optional
+        Number of retry attempts for Slack API operations. Default is 3.
+        Set to 0 to disable retries.
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        If an invalid transport is specified or if required environment variables are missing.
+
+    Examples
+    --------
+    **Run integrated server with SSE transport:**
+
+    .. code-block:: python
+
+        import asyncio
+        from slack_mcp.webhook.entry import run_integrated_server
+
+        asyncio.run(run_integrated_server(
+            token="xoxb-your-token-here",
+            mcp_transport="sse"
+        ))
+
+    **Run with streamable-http transport:**
+
+    .. code-block:: python
+
+        asyncio.run(run_integrated_server(
+            token="xoxb-your-token-here",
+            mcp_transport="streamable-http"
+        ))
+
+    **Command-line usage:**
+
+    .. code-block:: bash
+
+        # Run integrated server
+        python -m slack_mcp.webhook.entry --integrated --mcp-transport sse --port 3000
+
+        # Run with streamable-http
+        python -m slack_mcp.webhook.entry --integrated --mcp-transport streamable-http --port 3000
+
+    **Using curl to access endpoints:**
+
+    .. code-block:: bash
+
+        # Health check
+        curl http://localhost:3000/health
+
+        # MCP SSE endpoint (for SSE transport)
+        curl http://localhost:3000/mcp/sse
+
+        # Slack events endpoint
+        curl -X POST http://localhost:3000/slack/events \\
+             -H "X-Slack-Request-Timestamp: ..." \\
+             -H "X-Slack-Signature: ..."
+
+    Notes
+    -----
+    - Both MCP and webhook services run on the same port
+    - Webhook events are published to the message queue backend
+    - MCP tools are available at the specified mount path
+    - Health check endpoint is available at /health
+    - Requires SLACK_SIGNING_SECRET for webhook verification
     """
     _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {host}:{port}")
 
@@ -162,7 +428,81 @@ async def run_integrated_server(
 
 
 def main(argv: Optional[list[str]] = None) -> None:
-    """Run the Slack events server as a standalone application."""
+    """Run the Slack events server as a standalone application.
+
+    This is the main entry point for the Slack webhook server. It handles:
+    1. Parsing command-line arguments
+    2. Setting up logging
+    3. Loading environment variables from .env file
+    4. Registering MCP tools
+    5. Starting the server in standalone or integrated mode
+
+    Parameters
+    ----------
+    argv : Optional[list[str]], optional
+        Command-line arguments to parse. If None, uses sys.argv.
+        Useful for testing and programmatic invocation.
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    **Run webhook server with default settings:**
+
+    .. code-block:: python
+
+        from slack_mcp.webhook.entry import main
+        main()
+
+    **Run with custom port:**
+
+    .. code-block:: python
+
+        main(["--port", "8080"])
+
+    **Run in integrated mode:**
+
+    .. code-block:: python
+
+        main(["--integrated", "--mcp-transport", "sse"])
+
+    **Command-line usage:**
+
+    .. code-block:: bash
+
+        # Show help
+        python -m slack_mcp.webhook.entry --help
+
+        # Run webhook server
+        python -m slack_mcp.webhook.entry --host 0.0.0.0 --port 3000
+
+        # Run in integrated mode
+        python -m slack_mcp.webhook.entry --integrated --mcp-transport sse --port 3000
+
+        # Run with custom .env file
+        python -m slack_mcp.webhook.entry --env-file /etc/slack-mcp/.env
+
+        # Run with debug logging
+        python -m slack_mcp.webhook.entry --log-level DEBUG
+
+    Notes
+    -----
+    - The Slack bot token is required and can be provided via:
+      1. SLACK_BOT_TOKEN environment variable
+      2. --slack-token command-line argument
+      3. .env file (takes precedence over CLI argument)
+
+    - Webhook mode requires:
+      1. SLACK_SIGNING_SECRET environment variable
+      2. Proper Slack app configuration with event subscriptions
+
+    - Integrated mode requires:
+      1. Both SLACK_BOT_TOKEN and SLACK_SIGNING_SECRET
+      2. HTTP transport (sse or streamable-http)
+      3. Both services run on the same port
+    """
     args = _parse_args(argv)
 
     # Use centralized logging configuration

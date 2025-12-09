@@ -1,7 +1,38 @@
-"""Slack app implementation for handling Slack events.
+"""Slack webhook server implementation (FastAPI).
 
-This module defines a FastAPI application that serves as an endpoint for Slack events API.
-It follows PEP 484/585 typing conventions.
+This module defines a FastAPI application that receives Slack Events API requests,
+verifies signatures, and publishes events to a message queue backend for
+asynchronous processing by consumers.
+
+Features
+========
+- Signature verification using Slack's signing secret
+- URL verification challenge handling
+- Queue publishing via ABE backends (memory, Redis, Kafka)
+- Health check endpoint (`/health`) with component status
+- Optional global Slack client initialization with configurable retries
+
+Environment Variables
+=====================
+- ``SLACK_SIGNING_SECRET``: Required for request verification
+- ``SLACK_BOT_TOKEN`` / ``SLACK_TOKEN``: Slack API token for optional client initialization
+- ``SLACK_EVENTS_TOPIC``: Queue topic/key for published events (default: ``slack_events``)
+- ``QUEUE_BACKEND``: ABE backend selector (e.g., memory, redis, kafka)
+
+Quick Examples
+==============
+
+.. code-block:: bash
+
+    # URL verification
+    curl -X POST http://localhost:3000/slack/events \
+         -H "Content-Type: application/json" \
+         -H "X-Slack-Request-Timestamp: 1700000000" \
+         -H "X-Slack-Signature: v0=..." \
+         -d '{"type": "url_verification", "challenge": "abc123", "token": "..."}'
+
+    # Health check
+    curl http://localhost:3000/health
 """
 
 from __future__ import annotations
@@ -223,7 +254,31 @@ def create_slack_app() -> FastAPI:
 
     @app.post("/slack/events")
     async def slack_events(request: Request) -> Response:
-        """Handle Slack events."""
+        """Handle Slack Events API requests.
+
+        Verifies the request signature, handles URL verification challenges,
+        and publishes valid events to the configured message queue backend.
+
+        Parameters
+        ----------
+        request : Request
+            Incoming FastAPI request from Slack Events API
+
+        Returns
+        -------
+        Response
+            JSON response acknowledging the event or returning the challenge token
+
+        Examples
+        --------
+        .. code-block:: bash
+
+            curl -X POST http://localhost:3000/slack/events \
+                 -H "Content-Type: application/json" \
+                 -H "X-Slack-Request-Timestamp: 1700000000" \
+                 -H "X-Slack-Signature: v0=..." \
+                 -d '{"type": "event_callback", "event": {"type": "app_mention"}}'
+        """
         # Verify the request is from Slack
         if not await verify_slack_request(request):
             _LOG.warning("Invalid Slack request signature")
