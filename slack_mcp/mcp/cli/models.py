@@ -13,6 +13,7 @@ Examples
     opts = _parse_args(["--transport", "sse", "--port", "8080"])  # MCPServerCliOptions
     assert opts.transport.value == "sse"
 """
+
 from __future__ import annotations
 
 import argparse

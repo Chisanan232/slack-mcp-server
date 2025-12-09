@@ -8,6 +8,7 @@ Run with:
 
 This delegates to `slack_mcp.mcp.entry.main()`.
 """
+
 from slack_mcp.mcp.entry import main
 
 if __name__ == "__main__":

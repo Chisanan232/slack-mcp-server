@@ -8,6 +8,7 @@ Run with:
 
 This delegates to `slack_mcp.webhook.entry.main()`.
 """
+
 from slack_mcp.webhook.entry import main
 
 if __name__ == "__main__":

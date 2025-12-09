@@ -135,7 +135,7 @@ class BaseSlackEventHandler(EventHandler):
 
             async def on_message__channels(self, event):
                 ...
-    
+
     Testing
     -------
     .. code-block:: python

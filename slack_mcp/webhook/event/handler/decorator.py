@@ -36,7 +36,7 @@ Quick Examples
     @handler
     def on_any(ev):
         ...
-    
+
 References
 ==========
 - Slack Events API: https://api.slack.com/apis/connections/events-api

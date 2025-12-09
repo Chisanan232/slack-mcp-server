@@ -13,6 +13,7 @@ Examples
     opts = _parse_args(["--port", "3001", "--mcp-transport", "sse"])  # WebhookServerCliOptions
     assert opts.port == 3001
 """
+
 from __future__ import annotations
 
 import argparse

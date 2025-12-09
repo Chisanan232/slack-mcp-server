@@ -58,7 +58,7 @@ Usage Examples
         async def main():
             manager = get_client_manager()
             client = manager.get_async_client(token="xoxb-...")
-            
+
             # Send a message
             response = await client.chat_postMessage(
                 channel="C12345678",

@@ -30,6 +30,7 @@ class BaseServerFactory[T](metaclass=ABCMeta):
         # Reset for tests
         mcp_factory.reset()
     """
+
     @staticmethod
     @abstractmethod
     def create(**kwargs) -> T:

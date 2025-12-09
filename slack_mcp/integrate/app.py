@@ -77,6 +77,7 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
         # Access the instance later
         app2 = IntegratedServerFactory.get()
     """
+
     @staticmethod
     def create(**kwargs) -> FastAPI:
         """Create and configure the integrated FastAPI server.
