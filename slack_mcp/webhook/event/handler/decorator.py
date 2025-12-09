@@ -1,12 +1,46 @@
-"""
-Decorator-based Slack event handler implementation.
+"""Decorator-based Slack event handler implementation.
 
-This module provides a class-based decorator handler for Slack events that can be used
-in two ways:
-1. Attribute-style: @handler.reaction_added
-2. Enum-style: @handler(SlackEvent.REACTION_ADDED)
+This module provides a class-based decorator handler for Slack Events API that
+supports two registration styles and wildcard handlers. It implements the
+``EventHandler`` protocol and can be used with
+``slack_mcp.webhook.event.consumer.SlackEventConsumer``.
 
-This handler implements the EventHandler protocol and can be registered with a SlackEventConsumer.
+Features
+========
+- Attribute-style registration: ``@handler.reaction_added``
+- Enum- or string-style registration: ``@handler(SlackEvent.REACTION_ADDED)`` or ``@handler("reaction_added")``
+- Wildcard handler: ``@handler`` (no args) captures all events
+- Multiple handlers per event type (executed in registration order)
+- Supports both sync and async handler functions
+
+Quick Examples
+==============
+.. code-block:: python
+
+    from slack_mcp.events import SlackEvent
+    from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
+
+    handler = DecoratorHandler()
+
+    # Attribute style
+    @handler.app_mention
+    async def on_mention(ev):
+        ...
+
+    # Enum style
+    @handler(SlackEvent.REACTION_ADDED)
+    def on_reaction(ev):
+        ...
+
+    # Wildcard (matches all)
+    @handler
+    def on_any(ev):
+        ...
+    
+References
+==========
+- Slack Events API: https://api.slack.com/apis/connections/events-api
+- Event Types: https://api.slack.com/events
 """
 
 from __future__ import annotations
@@ -38,36 +72,45 @@ HandlerFunc = Callable[[Dict[str, Any]], Awaitable[Any] | Any]
 
 
 class DecoratorHandler(EventHandler):
-    """Decorator-based Slack event handler.
+    """Decorator-based Slack event handler with attribute/enum styles.
 
-    This class implements the EventHandler protocol and provides decorator-style
-    registration of event handlers. It can be used in two ways:
+    Notes
+    -----
+    - Wildcard registration (``@handler``) runs for every event in addition to any
+      specific event handlers.
+    - Attribute names are normalized to event strings (``message_channels`` -> ``message.channels``).
+    - Multiple handlers for the same event are executed in registration order.
+    - Both sync and async functions are supported; async functions are awaited.
 
-    1. Attribute-style:
-       ```python
-       handler = DecoratorHandler()
+    Best Practices
+    --------------
+    - Keep handlers fast; offload slow operations to background tasks to avoid backpressure.
+    - Add structured logging with event ``type``/``subtype`` and identifiers (e.g., ``channel``, ``user``, ``ts``).
+    - Catch and log exceptions within handlers to avoid dropping subsequent handlers.
 
-       @handler.reaction_added
-       def handle_reaction(event):
-           # Handle reaction_added event
-       ```
+    Examples
+    --------
+    .. code-block:: python
 
-    2. Enum-style:
-       ```python
-       handler = DecoratorHandler()
+        handler = DecoratorHandler()
 
-       @handler(SlackEvent.REACTION_ADDED)
-       def handle_reaction(event):
-           # Handle reaction_added event
-       ```
+        # Attribute style
+        @handler.reaction_added
+        def handle_reaction(ev):
+            ...
 
-    The handler can be registered with a SlackEventConsumer:
-    ```python
-    consumer = SlackEventConsumer(backend, handler=handler)
-    ```
+        # Enum style
+        @handler(SlackEvent.REACTION_ADDED)
+        async def handle_reaction_async(ev):
+            ...
 
-    This class provides explicit methods for all Slack event types for better
-    IDE auto-completion.
+        # Wildcard
+        @handler
+        def handle_all(ev):
+            ...
+
+    This class exposes explicit helper methods for all Slack event types to enable
+    rich IDE auto-completion (e.g., ``handler.app_mention(fn)``).
     """
 
     def __init__(self) -> None:
@@ -84,22 +127,34 @@ class DecoratorHandler(EventHandler):
     def __call__[F](self, ev: F) -> F: ...
 
     def __call__[F](self, ev: SlackEvent | str | F) -> Callable[[HandlerFunc], HandlerFunc] | F:
-        """Register a function as a handler for a specific event type.
+        """Register a function to an event (or wildcard).
 
-        This method can be used in two ways:
-        1. As a direct decorator: @handler
-           In this case, registers for the wildcard event "*"
-        2. With an argument: @handler(SlackEvent.X) or @handler("event.subtype")
+        Modes
+        -----
+        1. ``@handler`` (no args) registers the function for wildcard ``"*"``
+        2. ``@handler(SlackEvent.X)`` or ``@handler("event.subtype")`` registers to a specific event
 
         Parameters
         ----------
         ev : SlackEvent | str | F
-            Either a SlackEvent enum, a string event type, or the function to decorate
+            Enum value, string event type, or the function itself when used as ``@handler``
 
         Returns
         -------
         Callable[[HandlerFunc], HandlerFunc] | F
-            Either a decorator function or the decorated function
+            Decorator or the original function when used as ``@handler``
+
+        Examples
+        --------
+        .. code-block:: python
+
+            @handler
+            def any_event(ev):
+                ...
+
+            @handler(SlackEvent.APP_MENTION)
+            async def on_mention(ev):
+                ...
         """
         # Case 1: @handler (no args) - register for wildcard "*"
         if callable(ev) and not isinstance(ev, (str, SlackEvent)):
@@ -117,23 +172,30 @@ class DecoratorHandler(EventHandler):
         return decorator
 
     def __getattr__[F](self, name: str) -> Callable[[F], F]:
-        """Support attribute-style registration (@handler.reaction_added).
+        """Support attribute-style registration (e.g., ``@handler.reaction_added``).
 
         Parameters
         ----------
         name : str
-            The attribute name, representing an event type with underscores
-            instead of dots
+            Attribute name representing an event type with underscores instead of dots
 
         Returns
         -------
         Callable
-            A decorator function that will register the decorated function
+            A decorator for the resolved event type
 
         Raises
         ------
         AttributeError
-            If the attribute doesn't correspond to a valid SlackEvent
+            If the attribute doesn't correspond to a valid Slack event name
+
+        Examples
+        --------
+        .. code-block:: python
+
+            @handler.message_channels
+            def on_channel_message(ev):
+                ...
         """
         try:
             # Try to convert attribute_name to a valid SlackEvent
@@ -157,8 +219,12 @@ class DecoratorHandler(EventHandler):
     async def handle_event(self, event: Dict[str, Any]) -> None:
         """Handle a Slack event by routing it to registered handlers.
 
-        This method implements the EventHandler protocol and is called by
-        the SlackEventConsumer.
+        Calls all matching handlers for:
+        - Wildcard ``"*"``
+        - Specific ``type``
+        - Combined ``type.subtype`` when present
+
+        Both sync and async handlers are supported; async handlers are awaited.
 
         Parameters
         ----------
