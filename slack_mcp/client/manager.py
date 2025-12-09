@@ -4,6 +4,89 @@ This module provides a centralized way to manage Slack web client instances
 created by factory objects. It implements a singleton pattern to ensure
 that only one client is created per token, improving resource utilization
 and consistency across the application.
+
+Module Overview
+===============
+The SlackClientManager is responsible for:
+- Creating and caching Slack client instances
+- Managing both async and sync clients
+- Handling retry configuration for API resilience
+- Providing token resolution from environment variables
+- Clearing and updating cached clients
+
+Usage Examples
+==============
+
+**1. Get a client from the manager:**
+
+    .. code-block:: python
+
+        from slack_mcp.client.manager import get_client_manager
+
+        manager = get_client_manager()
+        client = manager.get_async_client(token="xoxb-...")
+
+**2. Get client with retries:**
+
+    .. code-block:: python
+
+        manager = get_client_manager()
+        # Client with automatic retry on rate limits and errors
+        client = manager.get_async_client(token="xoxb-...", use_retries=True)
+
+**3. Update retry count:**
+
+    .. code-block:: python
+
+        manager = get_client_manager()
+        manager.update_retry_count(5)  # Retry up to 5 times
+
+**4. Clear cached clients:**
+
+    .. code-block:: python
+
+        manager = get_client_manager()
+        manager.clear_clients()  # Force new clients on next request
+
+**5. Using Python to interact with Slack:**
+
+    .. code-block:: python
+
+        import asyncio
+        from slack_mcp.client.manager import get_client_manager
+
+        async def main():
+            manager = get_client_manager()
+            client = manager.get_async_client(token="xoxb-...")
+            
+            # Send a message
+            response = await client.chat_postMessage(
+                channel="C12345678",
+                text="Hello from Slack!"
+            )
+            print(response)
+
+        asyncio.run(main())
+
+Client Caching
+==============
+The manager caches clients based on:
+- Token value
+- Retry setting (retryable vs non-retryable)
+
+This ensures efficient resource usage while supporting different retry configurations
+for the same token.
+
+Retry Configuration
+===================
+- **use_retries=True**: Automatic retry on rate limits, server errors, and connection issues
+- **use_retries=False**: No automatic retries
+- Default retry count: 3 (configurable via update_retry_count)
+
+Environment Variables
+=====================
+- **SLACK_BOT_TOKEN**: Primary Slack bot token
+- **SLACK_TOKEN**: Fallback Slack token (used if SLACK_BOT_TOKEN not set)
 """
 
 from __future__ import annotations
@@ -36,6 +119,44 @@ class SlackClientManager:
     This class provides a centralized way to create, retrieve, and manage
     Slack web client instances. It uses a singleton pattern to ensure that
     only one client is created per token, improving resource utilization.
+
+    The manager handles:
+    - Client creation and caching
+    - Async and sync client management
+    - Retry configuration
+    - Token resolution from environment variables
+    - Client lifecycle management
+
+    Examples
+    --------
+    **Get the singleton manager:**
+
+    .. code-block:: python
+
+        from slack_mcp.client.manager import get_client_manager
+
+        manager = get_client_manager()
+
+    **Get or create a client:**
+
+    .. code-block:: python
+
+        manager = get_client_manager()
+        client = manager.get_async_client(token="xoxb-...")
+
+    **Configure retries:**
+
+    .. code-block:: python
+
+        manager = get_client_manager()
+        manager.update_retry_count(5)
+
+    **Clear cached clients:**
+
+    .. code-block:: python
+
+        manager = get_client_manager()
+        manager.clear_clients()
     """
 
     # Class variable for the singleton instance
@@ -55,6 +176,20 @@ class SlackClientManager:
         ----------
         retry_count : int, optional
             The default retry count to use for retryable clients, by default 3.
+            Set to 0 to disable retries.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from slack_mcp.client.manager import SlackClientManager
+
+            # Get singleton instance
+            manager = SlackClientManager(retry_count=5)
+
+            # Or use the helper function
+            from slack_mcp.client.manager import get_client_manager
+            manager = get_client_manager()
         """
         # Only initialize once
         if getattr(self, "_initialized", False):
@@ -62,7 +197,7 @@ class SlackClientManager:
 
         self._default_retry_count = retry_count
 
-        # Client caches - keyed by token
+        # Client caches - keyed by token:use_retries
         self._async_clients: Dict[str, AsyncWebClient] = {}
         self._sync_clients: Dict[str, WebClient] = {}
 
