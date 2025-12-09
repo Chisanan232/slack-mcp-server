@@ -1,8 +1,35 @@
-"""
-FastAPI Web Server for ClickUp MCP.
+"""Integrated FastAPI app factory for Slack MCP + Webhook server.
 
-This module provides a FastAPI web server that mounts the MCP server
-for exposing ClickUp functionality through a RESTful API.
+This module creates a FastAPI application that integrates both the MCP server
+and the Slack webhook server into a single process. It mounts transport-specific
+MCP apps and exposes a health check router.
+
+Highlights
+==========
+- Integrated mode runs both MCP and webhook servers together
+- Supports SSE and streamable-HTTP transports for MCP
+- Uses centralized Slack client initialization with configurable retries
+- Includes a health check router for operational monitoring
+
+Quick Start
+===========
+
+.. code-block:: python
+
+    from slack_mcp.integrate.app import IntegratedServerFactory
+
+    # Create app (SSE transport, mounted at /mcp)
+    app = IntegratedServerFactory.create(mcp_transport="sse", mcp_mount_path="/mcp", retry=3)
+
+    # Or create with streamable-HTTP transport
+    app = IntegratedServerFactory.create(mcp_transport="streamable-http", retry=3)
+
+Notes
+=====
+- When retry > 0, Slack SDK retry handlers are enabled for rate limits, server
+  errors, and connection issues.
+- Token can be deferred at creation time and initialized later by the entrypoint
+  (useful for CLI-driven configuration).
 """
 
 from __future__ import annotations
@@ -29,16 +56,64 @@ _INTEGRATED_SERVER_INSTANCE: Optional[FastAPI] = None
 
 
 class IntegratedServerFactory(BaseServerFactory[FastAPI]):
+    """Factory for building the integrated Slack MCP + webhook FastAPI app.
+
+    Responsibilities
+    ----------------
+    - Create a FastAPI app with Slack webhook routes
+    - Initialize Slack client lazily with optional retries
+    - Mount MCP sub-app depending on transport (SSE or streamable-HTTP)
+    - Include health check routes
+
+    Examples
+    --------
+    .. code-block:: python
+
+        from slack_mcp.integrate.app import IntegratedServerFactory
+
+        # Create default integrated app (SSE transport)
+        app = IntegratedServerFactory.create(mcp_transport="sse", mcp_mount_path="/mcp")
+
+        # Access the instance later
+        app2 = IntegratedServerFactory.get()
+    """
     @staticmethod
     def create(**kwargs) -> FastAPI:
-        """
-        Create and configure the web API server.
+        """Create and configure the integrated FastAPI server.
 
-        Args:
-            **kwargs: Additional arguments (unused, but included for base class compatibility)
+        Parameters
+        ----------
+        **kwargs
+            token : Optional[str]
+                Slack bot token to initialize the global Slack client. If None,
+                initialization is deferred until the entrypoint provides it.
+            mcp_transport : str
+                Transport for MCP server. One of "sse" or "streamable-http".
+            mcp_mount_path : str
+                Mount path for MCP sub-app (only applicable to SSE transport).
+            retry : int
+                Retry count for Slack client operations (0 disables retries).
 
-        Returns:
-            Configured FastAPI server instance
+        Returns
+        -------
+        FastAPI
+            Configured FastAPI server instance that serves both webhook and MCP features.
+
+        Raises
+        ------
+        ValueError
+            If an invalid MCP transport is provided.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            app = IntegratedServerFactory.create(
+                token=None,
+                mcp_transport="sse",
+                mcp_mount_path="/mcp",
+                retry=3,
+            )
         """
         token: Optional[str] = kwargs.get("token", None)
         mcp_transport: str = kwargs.get("mcp_transport", "sse")
@@ -80,8 +155,18 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
     @classmethod
     def _prepare(cls, token: Optional[str] = None, retry: int = 3) -> None:
-        # Initialize the global Slack client with the provided token and retry settings
-        # Allow token to be None during app creation - it will be set later in entry.py
+        """Prepare Slack client initialization.
+
+        Initializes the global Slack client if a token is provided. If not,
+        defers initialization until later (e.g., in the CLI entry).
+
+        Parameters
+        ----------
+        token : Optional[str]
+            Slack bot token. If None, initialization is deferred.
+        retry : int
+            Retry count for Slack client operations (0 disables retries).
+        """
         if token:
             initialize_slack_client(token, retry=retry)
         else:
@@ -89,7 +174,15 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
     @classmethod
     def _mount(cls, mcp_transport: str = "sse", mcp_mount_path: str = "/mcp") -> None:
-        # mount the health check router
+        """Mount health and MCP routes into the integrated app.
+
+        Parameters
+        ----------
+        mcp_transport : str
+            MCP transport ("sse" or "streamable-http").
+        mcp_mount_path : str
+            Base mount path for MCP sub-app (for SSE transport).
+        """
         IntegratedServerFactory.get().include_router(health_check_router(mcp_transport=mcp_transport))
 
         # Get and mount the appropriate MCP app based on the transport
@@ -99,30 +192,28 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
     def _mount_mcp_service(
         cls, transport: str = MCPTransportType.SSE, mount_path: str = "", sse_mount_path: str | None = None
     ) -> None:
-        """
-        Mount an MCP (Model Context Protocol) service into the web server.
+        """Mount an MCP sub-application into the integrated FastAPI app.
 
-        This function provides a centralized way to mount MCP services with different transport
-        protocols into the FastAPI web application. It handles both SSE (Server-Sent Events)
-        and streamable HTTP transports, automatically creating the appropriate MCP app and
-        mounting it at the specified path.
+        This centralizes mounting logic for both supported MCP transports.
 
-        Args:
-            transport: The transport protocol to use for MCP. Must be either
-                MCPTransportType.SSE ("sse") or MCPTransportType.STREAMABLE_HTTP ("streamable-http").
-                Defaults to MCPTransportType.SSE.
-            mount_path: The path where the MCP service should be mounted in the web server.
-                If empty string, defaults to "/mcp" for both transport types.
-            sse_mount_path: The mount path parameter to pass to the SSE app creation.
-                Only used for SSE transport. Can be empty string or None.
+        Parameters
+        ----------
+        transport : str
+            MCP transport protocol. "sse" or "streamable-http".
+        mount_path : str
+            Path where the MCP service should be mounted. If empty, defaults to "/mcp".
+        sse_mount_path : str | None
+            Path passed to the SSE sub-app for its internal routes. Only used for SSE.
 
-        Raises:
-            ValueError: If an unknown transport protocol is provided.
+        Raises
+        ------
+        ValueError
+            If an unknown transport is provided.
 
-        Note:
-            - For SSE transport: Creates an SSE app with the specified sse_mount_path and mounts it
-            - For streamable-HTTP transport: Creates a streamable HTTP app and mounts it
-            - Both transport types default to mounting at "/mcp" if mount_path is not specified
+        Notes
+        -----
+        - SSE: Creates `mcp_factory.get().sse_app(mount_path=sse_mount_path)` and mounts at `mount_path or "/mcp"`.
+        - Streamable-HTTP: Creates `mcp_factory.get().streamable_http_app()` and mounts at `mount_path or "/mcp"`.
         """
         match transport:
             case MCPTransportType.SSE:
