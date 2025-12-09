@@ -1,8 +1,104 @@
-"""
-Slack event consumer implementation.
+"""Slack event consumer implementation.
 
-This module provides a consumer that reads events from a queue backend
-and routes them to the appropriate event handlers.
+This module provides an asynchronous consumer that reads Slack events from a
+message queue backend and routes them to the appropriate event handlers.
+
+What it does
+------------
+- Pulls events from a queue backend (memory, Redis, Kafka via ABE backends)
+- Dispatches events to handlers implementing the `EventHandler` protocol
+- Supports both OO-style and decorator-style handlers
+- Handles graceful shutdown and error logging
+
+Target audience
+---------------
+- Developers building background workers that process Slack events
+- Integrations that need to react to Slack events outside the HTTP request path
+
+Quick usage
+-----------
+
+.. code-block:: python
+
+    import asyncio
+    from abe.backends.message_queue.loader import load_backend
+    from slack_mcp.webhook.event.consumer import SlackEventConsumer
+    from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
+
+    async def main():
+        backend = load_backend()  # reads QUEUE_BACKEND env var
+        handler = DecoratorHandler()
+
+        @handler.app_mention
+        async def on_mention(ev):
+            print("Mention received:", ev)
+
+        consumer = SlackEventConsumer(backend, handler=handler)
+        await consumer.run(handler=handler.handle_event)
+
+    asyncio.run(main())
+
+Alternative wiring
+------------------
+
+.. code-block:: python
+
+    # OO-style handler
+    from slack_mcp.webhook.event.handler.base import BaseSlackEventHandler
+
+    class MyOOHandler(BaseSlackEventHandler):
+        async def on_message__channels(self, ev):
+            print("channel msg:", ev)
+
+    backend = load_backend()
+    consumer = SlackEventConsumer(backend, handler=MyOOHandler())
+    await consumer.run(handler=consumer._slack_handler.handle_event)
+
+.. code-block:: python
+
+    # Wildcard handler with DecoratorHandler
+    from slack_mcp.webhook.event.handler.decorator import DecoratorHandler
+
+    handler = DecoratorHandler()
+
+    @handler
+    def on_any(ev):
+        print("any:", ev.get("type"))
+
+    consumer = SlackEventConsumer(backend, handler=handler)
+    await consumer.run(handler=handler.handle_event)
+
+Testing
+-------
+
+.. code-block:: python
+
+    # Example: consume a single event by monkeypatching backend.consume
+    import asyncio
+    from types import SimpleNamespace
+
+    async def one_event_consume(group=None):
+        yield {"type": "message", "channel": "C123", "user": "U123", "text": "hi", "ts": "1"}
+
+    backend = load_backend()
+    backend.consume = one_event_consume  # type: ignore[attr-defined]
+
+    handler = DecoratorHandler()
+    events = []
+
+    @handler.message
+    def on_msg(ev):
+        events.append(ev)
+
+    consumer = SlackEventConsumer(backend, handler=handler)
+    asyncio.run(consumer.run(handler=handler.handle_event))
+    assert events and events[0]["type"] == "message"
+
+Guidelines
+----------
+- Use `DecoratorHandler` for simple decorator-based registrations
+- For complex logic, subclass `BaseSlackEventHandler`
+- Call `shutdown()` to stop cleanly (e.g., in signal handler)
 """
 
 from __future__ import annotations
@@ -23,12 +119,22 @@ _LOG = logging.getLogger(__name__)
 
 
 class SlackEventConsumer(AsyncLoopConsumer):
-    """Consumer that pulls events from a queue and routes them to handlers.
+    """Consume Slack events from a queue and route to handlers.
 
-    This class connects to a MessageQueueBackend to receive Slack events and passes
-    them to the appropriate handler, which can be either:
-    1. An object following the EventHandler protocol (OO style)
-    2. A DecoratorHandler instance (decorator style)
+    This class connects to a `MessageQueueBackend` to receive Slack events and
+    forwards them to an event handler.
+
+    Supported handler types
+    -----------------------
+    - An object following the `EventHandler` protocol (OO style)
+    - A `DecoratorHandler` instance (decorator style)
+
+    Examples
+    --------
+    .. code-block:: python
+
+        consumer = SlackEventConsumer(backend, handler=my_handler)
+        await consumer.run(handler=my_handler.handle_event)
     """
 
     def __init__(
@@ -55,8 +161,20 @@ class SlackEventConsumer(AsyncLoopConsumer):
     async def run(self, handler: Callable[[Dict[str, Any]], Awaitable[None]]) -> None:
         """Start consuming events from the queue.
 
-        This method will run indefinitely until shutdown() is called.
-        It pulls events from the queue backend and routes them to the handler.
+        This method runs until `shutdown()` is called. It pulls events from the
+        queue backend and routes them to the handler while providing robust
+        error logging and graceful cancellation handling.
+
+        Parameters
+        ----------
+        handler : Callable[[Dict[str, Any]], Awaitable[None]]
+            The coroutine function that processes a single Slack event payload.
+
+        Examples
+        --------
+        .. code-block:: python
+
+            await consumer.run(handler=my_handler.handle_event)
         """
         _LOG.info("Starting Slack event consumer")
         try:
