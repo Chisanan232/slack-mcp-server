@@ -1,4 +1,18 @@
-"""Command-line of Slack MCP server."""
+"""Command-line argument parsing for Slack MCP server.
+
+This module defines the argument parser and deserialization logic for the
+MCP server CLI. It returns a validated `MCPServerCliOptions` instance that
+captures all required configuration for starting the server.
+
+Examples
+--------
+.. code-block:: python
+
+    from slack_mcp.mcp.cli.options import _parse_args
+
+    opts = _parse_args(["--transport", "sse", "--port", "8080"])  # MCPServerCliOptions
+    print(opts.transport, opts.port)
+"""
 
 from __future__ import annotations
 
@@ -9,7 +23,27 @@ from slack_mcp.logging.config import add_logging_arguments
 from .models import MCPServerCliOptions, MCPTransportType
 
 
-def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:  # noqa: D401 – helper
+def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:
+    """Parse CLI args and build `MCPServerCliOptions`.
+
+    Parameters
+    ----------
+    argv : list[str] | None, optional
+        Argument list to parse. If None, uses sys.argv.
+
+    Returns
+    -------
+    MCPServerCliOptions
+        Validated immutable options for starting the MCP server.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        from slack_mcp.mcp.cli.options import _parse_args
+        opts = _parse_args(["--transport", "sse", "--port", "8080"])
+        assert opts.transport.value == "sse"
+    """
     parser = argparse.ArgumentParser(description="Run the Slack MCP server")
     parser.add_argument(
         "--host",

@@ -1,3 +1,19 @@
+"""Command-line argument parsing for Slack webhook server.
+
+This module defines the argument parser and deserialization logic for the
+webhook server CLI. It returns a validated `WebhookServerCliOptions` instance
+that captures all configuration required to start the webhook server.
+
+Examples
+--------
+.. code-block:: python
+
+    from slack_mcp.webhook.cli.options import _parse_args
+
+    opts = _parse_args(["--port", "3001"])  # WebhookServerCliOptions
+    print(opts.port)
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -8,6 +24,26 @@ from .models import WebhookServerCliOptions
 
 
 def _parse_args(argv: list[str] | None = None) -> WebhookServerCliOptions:
+    """Parse CLI args and build `WebhookServerCliOptions`.
+
+    Parameters
+    ----------
+    argv : list[str] | None, optional
+        Argument list to parse. If None, uses sys.argv.
+
+    Returns
+    -------
+    WebhookServerCliOptions
+        Validated immutable options for starting the webhook server.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        from slack_mcp.webhook.cli.options import _parse_args
+        opts = _parse_args(["--integrated", "--mcp-transport", "sse"])  # WebhookServerCliOptions
+        assert opts.integrated is True
+    """
     parser = argparse.ArgumentParser(description="Run the Slack events server")
     parser.add_argument(
         "--host",

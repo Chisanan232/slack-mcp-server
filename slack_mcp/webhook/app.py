@@ -1,8 +1,80 @@
-"""
-FastAPI Web Server for ClickUp MCP.
+"""FastAPI web server factory for Slack webhook integration.
 
-This module provides a FastAPI web server that mounts the MCP server
-for exposing ClickUp functionality through a RESTful API.
+This module provides a FastAPI web server factory that creates and manages
+the webhook server instance. The webhook server handles Slack events and
+can optionally mount the MCP server for integrated functionality.
+
+Module Overview
+===============
+The WebServerFactory is responsible for:
+- Creating and managing the FastAPI webhook server instance
+- Configuring CORS middleware for cross-origin requests
+- Managing the server lifecycle
+- Ensuring singleton pattern enforcement
+
+Usage Examples
+==============
+
+**1. Create and get webhook server instance:**
+
+    .. code-block:: python
+
+        from slack_mcp.webhook.app import web_factory
+
+        # Get the default instance (already created)
+        web_server = web_factory.get()
+
+        # Add custom routes
+        @web_server.get("/custom")
+        async def custom_endpoint():
+            return {"message": "Hello"}
+
+**2. Run the webhook server:**
+
+    .. code-block:: python
+
+        import uvicorn
+        from slack_mcp.webhook.app import web_factory
+
+        web_server = web_factory.get()
+        uvicorn.run(web_server, host="0.0.0.0", port=3000)
+
+**3. Using curl to test endpoints:**
+
+    .. code-block:: bash
+
+        # Health check
+        curl http://localhost:3000/health
+
+        # Slack events endpoint
+        curl -X POST http://localhost:3000/slack/events \\
+             -H "Content-Type: application/json" \\
+             -H "X-Slack-Request-Timestamp: ..." \\
+             -H "X-Slack-Signature: ..." \\
+             -d '{"type":"url_verification","challenge":"..."}'
+
+**4. Using Python to interact with the server:**
+
+    .. code-block:: python
+
+        import asyncio
+        from slack_mcp.webhook.entry import run_slack_server
+
+        asyncio.run(run_slack_server(host="0.0.0.0", port=3000))
+
+**5. Using wget to check server health:**
+
+    .. code-block:: bash
+
+        wget -q -O- http://localhost:3000/health | jq .
+
+Server Features
+===============
+- **CORS Support**: Configured to accept requests from any origin
+- **Slack Integration**: Handles Slack webhook events
+- **Health Checks**: Built-in health check endpoint
+- **Event Publishing**: Publishes events to message queue backends
+- **MCP Integration**: Can optionally mount MCP server
 """
 
 from __future__ import annotations
@@ -22,16 +94,87 @@ _WEB_SERVER_INSTANCE: Optional[FastAPI] = None
 
 
 class WebServerFactory(BaseServerFactory[FastAPI]):
+    """Factory for creating and managing FastAPI webhook server instances.
+
+    This factory implements the singleton pattern to ensure only one webhook server
+    instance exists per application. It provides methods for creating, accessing,
+    and resetting the server instance.
+
+    The webhook server is configured with:
+    - CORS middleware for cross-origin requests
+    - MCP server lifespan management
+    - Slack event handling endpoints
+    - Health check endpoints
+
+    Examples
+    --------
+    **Create the webhook server:**
+
+    .. code-block:: python
+
+        from slack_mcp.webhook.app import web_factory
+
+        # Create the server (usually done at module import)
+        web_server = web_factory.create()
+
+    **Get the existing server:**
+
+    .. code-block:: python
+
+        web_server = web_factory.get()
+
+    **Run the server:**
+
+    .. code-block:: python
+
+        import uvicorn
+        web_server = web_factory.get()
+        uvicorn.run(web_server, host="0.0.0.0", port=3000)
+    """
+
     @staticmethod
     def create(**kwargs) -> FastAPI:
-        """
-        Create and configure the web API server.
+        """Create and configure the webhook server.
 
-        Args:
-            **kwargs: Additional arguments (unused, but included for base class compatibility)
+        Creates a new FastAPI instance configured for Slack webhook integration.
+        This method enforces the singleton pattern - only one instance can be
+        created per application lifecycle.
 
-        Returns:
-            Configured FastAPI server instance
+        The server is configured with:
+        - Title: "Slack MCP Server"
+        - CORS middleware (allows all origins)
+        - MCP server lifespan management
+        - Slack event handling
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Additional arguments (unused, but included for base class compatibility)
+
+        Returns
+        -------
+        FastAPI
+            Configured FastAPI webhook server instance
+
+        Raises
+        ------
+        AssertionError
+            If an instance has already been created
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from slack_mcp.webhook.app import web_factory
+
+            web_server = web_factory.create()
+            print(web_server.title)  # "Slack MCP Server"
+
+        Notes
+        -----
+        - CORS is configured to allow requests from any origin
+        - In production, consider restricting CORS origins
+        - The server includes the MCP server lifespan for proper initialization
         """
         # Create a new FastAPI instance
         global _WEB_SERVER_INSTANCE
@@ -56,19 +199,62 @@ class WebServerFactory(BaseServerFactory[FastAPI]):
 
     @staticmethod
     def get() -> FastAPI:
-        """
-        Get the web API server instance
+        """Get the webhook server instance.
 
-        Returns:
-            Configured FastAPI server instance
+        Retrieves the singleton FastAPI instance. The instance must have been
+        created previously using the create() method.
+
+        Returns
+        -------
+        FastAPI
+            The configured FastAPI webhook server instance
+
+        Raises
+        ------
+        AssertionError
+            If the server instance has not been created yet
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from slack_mcp.webhook.app import web_factory
+
+            web_server = web_factory.get()
+
+            # Add custom routes
+            @web_server.get("/custom")
+            async def custom_endpoint():
+                return {"message": "Hello"}
         """
         assert _WEB_SERVER_INSTANCE is not None, "It must be created web server first."
         return _WEB_SERVER_INSTANCE
 
     @staticmethod
     def reset() -> None:
-        """
-        Reset the singleton instance (for testing purposes).
+        """Reset the singleton instance (for testing purposes).
+
+        Clears the global webhook server instance, allowing a new one to be created.
+        This is primarily used in test suites to ensure clean state between tests.
+
+        Returns
+        -------
+        None
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from slack_mcp.webhook.app import web_factory
+
+            # In test setup
+            web_factory.reset()
+            web_server = web_factory.create()
+
+            # ... run tests ...
+
+            # In test teardown
+            web_factory.reset()
         """
         global _WEB_SERVER_INSTANCE
         _WEB_SERVER_INSTANCE = None
