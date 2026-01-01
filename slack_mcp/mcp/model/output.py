@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, ConfigDict
 
 
 class SlackResponse(BaseModel):
     """Base class for Slack API responses."""
+
     model_config = ConfigDict(extra="ignore")
 
     ok: bool
@@ -46,6 +48,7 @@ class SlackChannelMessagesResponse(SlackResponse):
 
 class SlackThreadReplyResponse(BaseModel):
     """Output for :pydata:`send_slack_thread_reply`."""
+
     model_config = ConfigDict(extra="ignore")
 
     responses: List[Dict[str, Any]]
@@ -59,6 +62,7 @@ class SlackEmojiListResponse(SlackResponse):
 
 class SlackAddReactionsResponse(BaseModel):
     """Output for :pydata:`add_slack_reactions`."""
+
     model_config = ConfigDict(extra="ignore")
 
     responses: List[Dict[str, Any]]
