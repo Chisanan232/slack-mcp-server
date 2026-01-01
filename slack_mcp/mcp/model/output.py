@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, ConfigDict
 
 
-@dataclass(kw_only=True)
-class SlackResponse:
+class SlackResponse(BaseModel):
     """Base class for Slack API responses."""
+    model_config = ConfigDict(extra="ignore")
 
     ok: bool
     error: Optional[str] = None
@@ -16,7 +16,6 @@ class SlackResponse:
     provided: Optional[str] = None
 
 
-@dataclass(kw_only=True)
 class SlackMessageResponse(SlackResponse):
     """Output for :pydata:`send_slack_message`."""
 
@@ -26,7 +25,6 @@ class SlackMessageResponse(SlackResponse):
     message: Optional[Dict[str, Any]] = None
 
 
-@dataclass(kw_only=True)
 class SlackThreadMessagesResponse(SlackResponse):
     """Output for :pydata:`read_thread_messages`."""
 
@@ -34,9 +32,9 @@ class SlackThreadMessagesResponse(SlackResponse):
     ts: Optional[str] = None
     messages: Optional[List[Dict[str, Any]]] = None
     has_more: Optional[bool] = None
+    response_metadata: Optional[Dict[str, Any]] = None
 
 
-@dataclass(kw_only=True)
 class SlackChannelMessagesResponse(SlackResponse):
     """Output for :pydata:`read_slack_channel_messages`."""
 
@@ -46,22 +44,21 @@ class SlackChannelMessagesResponse(SlackResponse):
     response_metadata: Optional[Dict[str, Any]] = None
 
 
-@dataclass(kw_only=True)
-class SlackThreadReplyResponse:
+class SlackThreadReplyResponse(BaseModel):
     """Output for :pydata:`send_slack_thread_reply`."""
+    model_config = ConfigDict(extra="ignore")
 
     responses: List[Dict[str, Any]]
 
 
-@dataclass(kw_only=True)
 class SlackEmojiListResponse(SlackResponse):
     """Output for :pydata:`read_slack_emojis`."""
 
-    emoji: Optional[Dict[str, str]] = None
+    emoji: Optional[Dict[str, Any]] = None
 
 
-@dataclass(kw_only=True)
-class SlackAddReactionsResponse:
+class SlackAddReactionsResponse(BaseModel):
     """Output for :pydata:`add_slack_reactions`."""
+    model_config = ConfigDict(extra="ignore")
 
     responses: List[Dict[str, Any]]
