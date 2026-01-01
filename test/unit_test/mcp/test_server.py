@@ -16,6 +16,14 @@ from slack_mcp.mcp.model.input import (
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
 )
+from slack_mcp.mcp.model.output import (
+    SlackAddReactionsResponse,
+    SlackChannelMessagesResponse,
+    SlackEmojiListResponse,
+    SlackMessageResponse,
+    SlackThreadMessagesResponse,
+    SlackThreadReplyResponse,
+)
 
 # Ensure pytest-asyncio plugin is available for async tests
 pytest_plugins = ["pytest_asyncio"]
@@ -173,14 +181,22 @@ async def test_send_slack_message_env(monkeypatch: pytest.MonkeyPatch, env_var: 
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
 
     result = await srv.send_slack_message(input_params=SlackPostMessageInput(channel="#general", text="Hello"))
-    assert result == {"ok": True, "channel": "#general", "text": "Hello", "ts": "1620000000.000000"}
+    assert isinstance(result, SlackMessageResponse)
+    assert result.ok is True
+    assert result.channel == "#general"
+    assert result.text == "Hello"
+    assert result.ts == "1620000000.000000"
 
 
 @pytest.mark.asyncio
 async def test_send_slack_message_param() -> None:
     """Message should be sent successfully with default token."""
     result = await srv.send_slack_message(input_params=SlackPostMessageInput(channel="C123", text="Hi"))
-    assert result == {"ok": True, "channel": "C123", "text": "Hi", "ts": "1620000000.000000"}
+    assert isinstance(result, SlackMessageResponse)
+    assert result.ok is True
+    assert result.channel == "C123"
+    assert result.text == "Hi"
+    assert result.ts == "1620000000.000000"
 
 
 @pytest.mark.asyncio
@@ -225,12 +241,11 @@ async def test_read_thread_messages_env(monkeypatch: pytest.MonkeyPatch, env_var
     result = await srv.read_thread_messages(
         input_params=SlackReadThreadMessagesInput(channel="#general", thread_ts="1620000000.000000")
     )
-    assert result == {
-        "ok": True,
-        "channel": "#general",
-        "messages": [{"text": "Thread parent", "ts": "1620000000.000000"}],
-        "ts": "1620000000.000000",
-    }
+    assert isinstance(result, SlackThreadMessagesResponse)
+    assert result.ok is True
+    assert result.channel == "#general"
+    assert result.messages == [{"text": "Thread parent", "ts": "1620000000.000000"}]
+    assert result.ts == "1620000000.000000"
 
 
 @pytest.mark.asyncio
@@ -239,12 +254,11 @@ async def test_read_thread_messages_param() -> None:
     result = await srv.read_thread_messages(
         input_params=SlackReadThreadMessagesInput(channel="C123", thread_ts="1620000000.000000")
     )
-    assert result == {
-        "ok": True,
-        "channel": "C123",
-        "messages": [{"text": "Thread parent", "ts": "1620000000.000000"}],
-        "ts": "1620000000.000000",
-    }
+    assert isinstance(result, SlackThreadMessagesResponse)
+    assert result.ok is True
+    assert result.channel == "C123"
+    assert result.messages == [{"text": "Thread parent", "ts": "1620000000.000000"}]
+    assert result.ts == "1620000000.000000"
 
 
 @pytest.mark.asyncio
@@ -288,13 +302,13 @@ async def test_read_slack_channel_messages_env(monkeypatch: pytest.MonkeyPatch, 
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
 
     result = await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="#general"))
-    assert result["ok"] is True
-    assert result["channel"] == "#general"
-    assert "messages" in result
-    assert isinstance(result["messages"], list)
-    assert len(result["messages"]) > 0
-    assert "has_more" in result
-    assert "response_metadata" in result
+    assert isinstance(result, SlackChannelMessagesResponse)
+    assert result.ok is True
+    assert result.channel == "#general"
+    assert result.messages is not None
+    assert len(result.messages) > 0
+    assert result.has_more is False
+    assert result.response_metadata is not None
 
 
 @pytest.mark.asyncio
@@ -303,30 +317,28 @@ async def test_read_slack_channel_messages_limit() -> None:
     result = await srv.read_slack_channel_messages(
         input_params=SlackReadChannelMessagesInput(channel="#general", limit=1)
     )
-    assert result == {
-        "ok": True,
-        "channel": "#general",
-        "messages": [{"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"}],
-        "has_more": False,
-        "response_metadata": {"next_cursor": ""},
-    }
+    assert isinstance(result, SlackChannelMessagesResponse)
+    assert result.ok is True
+    assert result.channel == "#general"
+    assert result.messages == [{"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"}]
+    assert result.has_more is False
+    assert result.response_metadata == {"next_cursor": ""}
 
 
 @pytest.mark.asyncio
 async def test_read_slack_channel_messages_param() -> None:
     """Channel messages should be read successfully with default token."""
     result = await srv.read_slack_channel_messages(input_params=SlackReadChannelMessagesInput(channel="C123"))
-    assert result == {
-        "ok": True,
-        "channel": "C123",
-        "messages": [
-            {"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"},
-            {"type": "message", "text": "Test message 1", "ts": "165612341.00000", "user": "U123451"},
-            {"type": "message", "text": "Test message 2", "ts": "165612342.00000", "user": "U123452"},
-        ],
-        "has_more": False,
-        "response_metadata": {"next_cursor": ""},
-    }
+    assert isinstance(result, SlackChannelMessagesResponse)
+    assert result.ok is True
+    assert result.channel == "C123"
+    assert result.messages == [
+        {"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"},
+        {"type": "message", "text": "Test message 1", "ts": "165612341.00000", "user": "U123451"},
+        {"type": "message", "text": "Test message 2", "ts": "165612342.00000", "user": "U123452"},
+    ]
+    assert result.has_more is False
+    assert result.response_metadata == {"next_cursor": ""}
 
 
 @pytest.mark.asyncio
@@ -430,17 +442,16 @@ async def test_send_slack_thread_reply_env(monkeypatch: pytest.MonkeyPatch, env_
     result = await srv.send_slack_thread_reply(
         input_params=SlackThreadReplyInput(channel="#general", thread_ts=thread_ts, texts=["Hello"])
     )
-    assert result == {
-        "responses": [
-            {
-                "ok": True,
-                "channel": "#general",
-                "ts": "1620000000.000000",
-                "text": "Hello",
-                "thread_ts": "1620000000.000000",
-            }
-        ]
-    }
+    assert isinstance(result, SlackThreadReplyResponse)
+    assert result.responses == [
+        {
+            "ok": True,
+            "channel": "#general",
+            "ts": "1620000000.000000",
+            "text": "Hello",
+            "thread_ts": "1620000000.000000",
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -450,17 +461,16 @@ async def test_send_slack_thread_reply_param() -> None:
     result = await srv.send_slack_thread_reply(
         input_params=SlackThreadReplyInput(channel="C123", thread_ts=thread_ts, texts=["Hello"])
     )
-    assert result == {
-        "responses": [
-            {
-                "ok": True,
-                "channel": "C123",
-                "ts": "1620000000.000000",
-                "text": "Hello",
-                "thread_ts": "1620000000.000000",
-            }
-        ]
-    }
+    assert isinstance(result, SlackThreadReplyResponse)
+    assert result.responses == [
+        {
+            "ok": True,
+            "channel": "C123",
+            "ts": "1620000000.000000",
+            "text": "Hello",
+            "thread_ts": "1620000000.000000",
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -505,16 +515,15 @@ async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: s
     monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
 
     result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
-    assert result == {
-        "ok": True,
-        "emoji": {
-            "aliases": {
-                "thumbsup": "+1",
-                "smile": "grinning",
-            },
-            "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
-            "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+    assert isinstance(result, SlackEmojiListResponse)
+    assert result.ok is True
+    assert result.emoji == {
+        "aliases": {
+            "thumbsup": "+1",
+            "smile": "grinning",
         },
+        "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+        "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
     }
 
 
@@ -522,16 +531,31 @@ async def test_read_slack_emojis_env(monkeypatch: pytest.MonkeyPatch, env_var: s
 async def test_read_slack_emojis_param() -> None:
     """Emojis should be read successfully with default token."""
     result = await srv.read_slack_emojis(input_params=SlackReadEmojisInput())
-    assert result == {
-        "ok": True,
-        "emoji": {
-            "aliases": {
-                "thumbsup": "+1",
-                "smile": "grinning",
-            },
-            "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
-            "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+    assert isinstance(result, SlackEmojiListResponse)
+    assert result.ok is True
+    assert result.emoji == {
+        "aliases": {
+            "thumbsup": "+1",
+            "smile": "grinning",
         },
+        "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+        "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_slack_emojis_resource() -> None:
+    """Emojis should be read successfully from the resource."""
+    result = await srv.get_slack_emojis()
+    assert isinstance(result, SlackEmojiListResponse)
+    assert result.ok is True
+    assert result.emoji == {
+        "aliases": {
+            "thumbsup": "+1",
+            "smile": "grinning",
+        },
+        "custom_emoji1": "https://emoji.slack-edge.com/T12345/custom_emoji1/abc123.png",
+        "custom_emoji2": "https://emoji.slack-edge.com/T12345/custom_emoji2/def456.png",
     }
 
 
@@ -577,16 +601,15 @@ async def test_add_slack_reactions_env(monkeypatch: pytest.MonkeyPatch, env_var:
     result = await srv.add_slack_reactions(
         input_params=SlackAddReactionsInput(channel="#general", timestamp=timestamp, emojis=["thumbsup"])
     )
-    assert result == {
-        "responses": [
-            {
-                "ok": True,
-                "channel": "#general",
-                "timestamp": timestamp,
-                "name": "thumbsup",
-            }
-        ]
-    }
+    assert isinstance(result, SlackAddReactionsResponse)
+    assert result.responses == [
+        {
+            "ok": True,
+            "channel": "#general",
+            "timestamp": timestamp,
+            "name": "thumbsup",
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -596,16 +619,15 @@ async def test_add_slack_reactions_param() -> None:
     result = await srv.add_slack_reactions(
         input_params=SlackAddReactionsInput(channel="C123", timestamp=timestamp, emojis=["thumbsup"])
     )
-    assert result == {
-        "responses": [
-            {
-                "ok": True,
-                "channel": "C123",
-                "timestamp": timestamp,
-                "name": "thumbsup",
-            }
-        ]
-    }
+    assert isinstance(result, SlackAddReactionsResponse)
+    assert result.responses == [
+        {
+            "ok": True,
+            "channel": "C123",
+            "timestamp": timestamp,
+            "name": "thumbsup",
+        }
+    ]
 
 
 @pytest.mark.asyncio
