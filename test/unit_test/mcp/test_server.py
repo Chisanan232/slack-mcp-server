@@ -320,7 +320,9 @@ async def test_read_slack_channel_messages_limit() -> None:
     assert isinstance(result, SlackChannelMessagesResponse)
     assert result.ok is True
     assert result.channel == "#general"
-    assert result.messages == [{"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"}]
+    assert result.messages == [
+        {"type": "message", "text": "Test message 0", "ts": "165612340.00000", "user": "U123450"}
+    ]
     assert result.has_more is False
     assert result.response_metadata == {"next_cursor": ""}
 

@@ -8,7 +8,7 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 
 import logging
 import os
-from typing import Any, Dict, Final, Optional
+from typing import Final, Optional
 
 from slack_sdk.web.async_client import AsyncWebClient
 
