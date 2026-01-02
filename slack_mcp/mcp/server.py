@@ -8,7 +8,7 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 
 import logging
 import os
-from typing import Any, Dict, Final, Optional
+from typing import Final, Optional
 
 from slack_sdk.web.async_client import AsyncWebClient
 
@@ -23,6 +23,14 @@ from .model.input import (
     SlackReadThreadMessagesInput,
     SlackThreadReplyInput,
 )
+from .model.output import (
+    SlackAddReactionsResponse,
+    SlackChannelMessagesResponse,
+    SlackEmojiListResponse,
+    SlackMessageResponse,
+    SlackThreadMessagesResponse,
+    SlackThreadReplyResponse,
+)
 
 __all__: list[str] = [
     "mcp",
@@ -31,6 +39,7 @@ __all__: list[str] = [
     "read_slack_channel_messages",
     "send_slack_thread_reply",
     "read_slack_emojis",
+    "get_slack_emojis",
     "add_slack_reactions",
     "set_slack_client_retry_count",
     "get_slack_client",
@@ -172,11 +181,29 @@ def _get_default_client() -> AsyncWebClient:
     return client_manager.get_async_client()
 
 
-@mcp.tool("slack_post_message")
+@mcp.tool(
+    name="slack_post_message",
+    title="Slack: Post Message",
+    annotations={
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": True,
+    },
+)
 async def send_slack_message(
     input_params: SlackPostMessageInput,
-) -> Dict[str, Any]:
-    """Send *text* to the given Slack *channel*.
+) -> SlackMessageResponse:
+    """Send a textual message to a Slack channel.
+
+    Use this tool whenever you need to deliver a textual notification to a Slack
+    channel on behalf of the user. Typical scenarios include:
+     • Alerting a team channel about build/deployment status.
+     • Sending reminders or summaries after completing an automated task.
+     • Broadcasting important events (e.g., incident reports, new blog post).
+
+    Input guidelines:
+     • channel: Slack channel ID (e.g., `C12345678`) or name with `#`.
+     • text: The plain-text message to post (up to 40 kB).
 
     Parameters
     ----------
@@ -185,28 +212,41 @@ async def send_slack_message(
 
     Returns
     -------
-    Dict[str, Any]
-        The raw JSON response returned by Slack.  This is intentionally kept
-        flexible so FastMCP can serialise it to the client as-is.
-
-    Raises
-    ------
-    ValueError
-        If the relevant environment variables for Slack token are missing.
+    SlackMessageResponse
+        The structured response from Slack, including 'ok', 'channel', and 'ts'.
     """
     client = _get_default_client()
 
     response = await client.chat_postMessage(channel=input_params.channel, text=input_params.text)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
-    return response.data
+    return SlackMessageResponse(**response.data)
 
 
-@mcp.tool("slack_read_thread_messages")
+@mcp.tool(
+    name="slack_read_thread_messages",
+    title="Slack: Read Thread Messages",
+    annotations={
+        "readOnlyHint": True,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
 async def read_thread_messages(
     input_params: SlackReadThreadMessagesInput,
-) -> Dict[str, Any]:
+) -> SlackThreadMessagesResponse:
     """Read messages from a specific thread in a given Slack channel.
+
+    Use this tool whenever you need to retrieve messages from a specific thread
+    in a Slack channel. Typical scenarios include:
+     • Accessing conversation history for analysis or summarization.
+     • Following up on previous discussions or retrieving context.
+     • Monitoring responses to important announcements.
+
+    Input guidelines:
+     • channel: Slack channel ID (e.g., `C12345678`) or name with `#`.
+     • thread_ts: Timestamp ID of the parent message that started the thread.
+     • limit: Optional. Maximum number of messages to retrieve (default: 100).
 
     Parameters
     ----------
@@ -215,14 +255,8 @@ async def read_thread_messages(
 
     Returns
     -------
-    Dict[str, Any]
-        The raw JSON response returned by Slack.  This is intentionally kept
-        flexible so FastMCP can serialise it to the client as-is.
-
-    Raises
-    ------
-    ValueError
-        If the relevant environment variables for Slack token are missing.
+    SlackThreadMessagesResponse
+        The structured response from Slack, containing thread messages.
     """
     client = _get_default_client()
 
@@ -233,14 +267,35 @@ async def read_thread_messages(
     )
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
-    return response.data
+    return SlackThreadMessagesResponse(**response.data)
 
 
-@mcp.tool("slack_read_channel_messages")
+@mcp.tool(
+    name="slack_read_channel_messages",
+    title="Slack: Read Channel Messages",
+    annotations={
+        "readOnlyHint": True,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
 async def read_slack_channel_messages(
     input_params: SlackReadChannelMessagesInput,
-) -> Dict[str, Any]:
-    """Read messages from the given Slack *channel*.
+) -> SlackChannelMessagesResponse:
+    """Read messages from the given Slack channel.
+
+    Use this tool whenever you need to retrieve message history from a Slack
+    channel. Typical scenarios include:
+     • Analyzing conversation context or recent discussions.
+     • Monitoring channel activity.
+     • Retrieving important information that was previously shared.
+
+    Input guidelines:
+     • channel: Slack channel ID (e.g., `C12345678`) or name with `#`.
+     • limit: Optional. Maximum number of messages to return (default: 100, max: 1000).
+     • oldest: Optional. Start of time range; Unix timestamp (e.g., `1234567890.123456`).
+     • latest: Optional. End of time range; Unix timestamp (e.g., `1234567890.123456`).
+     • inclusive: Optional. Include messages with timestamps exactly matching oldest/latest.
 
     Parameters
     ----------
@@ -249,14 +304,8 @@ async def read_slack_channel_messages(
 
     Returns
     -------
-    Dict[str, Any]
-        The raw JSON response returned by Slack.  This is intentionally kept
-        flexible so FastMCP can serialise it to the client as-is.
-
-    Raises
-    ------
-    ValueError
-        If the relevant environment variables for Slack token are missing.
+    SlackChannelMessagesResponse
+        The structured response from Slack, containing messages and metadata.
     """
     client = _get_default_client()
 
@@ -277,14 +326,34 @@ async def read_slack_channel_messages(
     response = await client.conversations_history(**kwargs)
 
     # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
-    return response.data
+    return SlackChannelMessagesResponse(**response.data)
 
 
-@mcp.tool("slack_thread_reply")
+@mcp.tool(
+    name="slack_thread_reply",
+    title="Slack: Thread Reply",
+    annotations={
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": True,
+    },
+)
 async def send_slack_thread_reply(
     input_params: SlackThreadReplyInput,
-) -> Dict[str, Any]:
-    """Send one or more messages as replies to a specific thread in a Slack channel.
+) -> SlackThreadReplyResponse:
+    """Send one or more messages as replies to a specific thread.
+
+    Use this tool when you need to send one or more follow-up messages as replies
+    to an existing thread in a Slack channel. This is particularly useful for:
+     • Continuing a conversation in a structured thread.
+     • Breaking down a complex response into multiple messages.
+     • Sending updates to a previously initiated conversation.
+     • Keeping related messages organized in a single thread.
+
+    Input guidelines:
+     • channel: Slack channel ID (e.g., `C12345678`) or name with `#`.
+     • thread_ts: The timestamp ID of the parent message to reply to.
+     • texts: A list of text messages to send as separate replies to the thread.
 
     Parameters
     ----------
@@ -293,14 +362,8 @@ async def send_slack_thread_reply(
 
     Returns
     -------
-    Dict[str, Any]
-        A dictionary containing a list of responses under the 'responses' key.
-        Each response is the raw JSON returned by Slack for each message posted.
-
-    Raises
-    ------
-    ValueError
-        If the relevant environment variables for Slack token are missing.
+    SlackThreadReplyResponse
+        A dictionary containing a list of responses from Slack.
     """
     client = _get_default_client()
 
@@ -313,45 +376,69 @@ async def send_slack_thread_reply(
         )
         responses.append(response.data)
 
-    # Return a dictionary with a list of responses
-    return {"responses": responses}
+    # Return a structured response
+    return SlackThreadReplyResponse(responses=responses)
 
 
-@mcp.tool("slack_read_emojis")
-async def read_slack_emojis(
-    input_params: SlackReadEmojisInput,
-) -> Dict[str, Any]:
+@mcp.resource("slack://emojis", description="All emojis available in the Slack workspace")
+async def get_slack_emojis() -> SlackEmojiListResponse:
     """Get all emojis (both built-in and custom) available in the Slack workspace.
 
-    Parameters
-    ----------
-    input_params
-        SlackReadEmojisInput object.
+    This includes both standard (built-in) Slack emojis and any custom emojis that have been
+    added to the workspace. Typical scenarios include:
+     • Providing a list of available emojis for users to reference.
+     • Determining which emojis (especially custom ones) are available for use in messages.
+     • Analyzing emoji usage and availability in a workspace.
 
-    Returns
-    -------
-    Dict[str, Any]
-        The raw JSON response returned by Slack. This contains a mapping of emoji
-        names to their URLs or aliases.
-
-    Raises
-    ------
-    ValueError
-        If the relevant environment variables for Slack token are missing.
+    The response includes a mapping of emoji names to either URLs (for custom emojis) or
+    alias strings (for standard emojis that are aliased to other emojis).
     """
     client = _get_default_client()
-
     response = await client.emoji_list()
-
-    # Slack SDK returns a SlackResponse object whose ``data`` attr is JSON-serialisable.
-    return response.data
+    return SlackEmojiListResponse(**response.data)
 
 
-@mcp.tool("slack_add_reactions")
+@mcp.tool(
+    name="slack_read_emojis",
+    title="Slack: Read Emojis (Deprecated)",
+    annotations={
+        "readOnlyHint": True,
+        "idempotentHint": True,
+        "openWorldHint": True,
+    },
+)
+async def read_slack_emojis(
+    input_params: SlackReadEmojisInput,
+) -> SlackEmojiListResponse:
+    """(Deprecated) Use the slack://emojis resource instead.
+
+    Get all emojis (both built-in and custom) available in the Slack workspace.
+    """
+    return await get_slack_emojis()
+
+
+@mcp.tool(
+    name="slack_add_reactions",
+    title="Slack: Add Reactions",
+    annotations={
+        "destructiveHint": False,
+        "idempotentHint": False,
+        "openWorldHint": True,
+    },
+)
 async def add_slack_reactions(
     input_params: SlackAddReactionsInput,
-) -> Dict[str, Any]:
-    """Add one or more emoji reactions to a specific message in a Slack channel.
+) -> SlackAddReactionsResponse:
+    """Add one or more emoji reactions to a specific message.
+
+    Use this tool when you need to add one or more emoji reactions to a specific
+    message in a Slack channel. This allows adding emoji reactions to any message,
+    including those in threads.
+
+    Input guidelines:
+     • channel: Slack channel ID (e.g., `C12345678`) or name with `#`.
+     • timestamp: Timestamp ID of the message to react to.
+     • emojis: A list of emoji names to add as reactions.
 
     Parameters
     ----------
@@ -360,14 +447,8 @@ async def add_slack_reactions(
 
     Returns
     -------
-    Dict[str, Any]
-        A dictionary containing a list of responses under the 'responses' key.
-        Each response is the raw JSON returned by Slack for each emoji reaction added.
-
-    Raises
-    ------
-    ValueError
-        If the relevant environment variables for Slack token are missing.
+    SlackAddReactionsResponse
+        A dictionary containing a list of responses from Slack.
     """
     client = _get_default_client()
 
@@ -380,8 +461,8 @@ async def add_slack_reactions(
         )
         responses.append(response.data)
 
-    # Return a dictionary with a list of responses
-    return {"responses": responses}
+    # Return a structured response
+    return SlackAddReactionsResponse(responses=responses)
 
 
 # ---------------------------------------------------------------------------
