@@ -59,7 +59,7 @@ class SettingModel(BaseSettings):
     slack_bot_id: Optional[str] = Field(default=None, alias="SLACK_BOT_ID")
     slack_app_id: Optional[str] = Field(default=None, alias="SLACK_APP_ID")
     slack_bot_token: Optional[SecretStr] = Field(
-        default=None, validation_alias=AliasChoices("SLACK_BOT_TOKEN", "SLACK_TOKEN")
+        default=None, validation_alias=AliasChoices("SLACK_BOT_TOKEN", "SLACK_TOKEN", "E2E_TEST_API_TOKEN")
     )
     slack_user_token: Optional[SecretStr] = Field(default=None, alias="SLACK_USER_TOKEN")
     slack_signing_secret: Optional[SecretStr] = Field(default=None, alias="SLACK_SIGNING_SECRET")
@@ -76,6 +76,12 @@ class SettingModel(BaseSettings):
     redis_url: Optional[str] = Field(default=None, alias="REDIS_URL")
     kafka_bootstrap: Optional[str] = Field(default=None, alias="KAFKA_BOOTSTRAP")
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
+
+    # Logging settings
+    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_file: Optional[str] = Field(default=None, alias="LOG_FILE")
+    log_dir: str = Field(default="logs", alias="LOG_DIR")
+    log_format: str = Field(default="%(asctime)s [%(levelname)8s] %(name)s: %(message)s", alias="LOG_FORMAT")
 
     @classmethod
     def settings_customise_sources(
