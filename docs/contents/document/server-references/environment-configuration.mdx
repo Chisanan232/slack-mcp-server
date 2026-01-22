@@ -101,6 +101,63 @@ KAFKA_BOOTSTRAP="broker1:9092,broker2:9092"
 Queue backend implementations are provided by the **[abstract-backend](https://github.com/Chisanan232/abstract-backend)** library. For information about available backends and developing custom queue backend plugins, refer to the **[abstract-backend documentation](https://chisanan232.github.io/abstract-backend/)**.
 :::
 
+### Web Server CORS Configuration
+
+The webhook server includes configurable CORS (Cross-Origin Resource Sharing) settings to control which origins can access the server:
+
+```bash
+# Allowed origins for CORS requests
+CORS_ALLOW_ORIGINS="*"  # Default: allow all origins
+
+# Allow credentials in CORS requests (cookies, authorization headers, etc.)
+CORS_ALLOW_CREDENTIALS="true"  # Default: true
+
+# Allowed HTTP methods for CORS requests
+CORS_ALLOW_METHODS="*"  # Default: allow all methods
+
+# Allowed HTTP headers for CORS requests
+CORS_ALLOW_HEADERS="*"  # Default: allow all headers
+```
+
+**CORS Configuration Examples:**
+
+<Tabs>
+  <TabItem value="development" label="Development" default>
+  ```bash
+  # Development: Allow local origins
+  CORS_ALLOW_ORIGINS="http://localhost:3000,http://localhost:8080"
+  CORS_ALLOW_CREDENTIALS="true"
+  CORS_ALLOW_METHODS="GET,POST,PUT,DELETE,OPTIONS"
+  CORS_ALLOW_HEADERS="Content-Type,Authorization,X-Requested-With"
+  ```
+  </TabItem>
+  <TabItem value="production" label="Production">
+  ```bash
+  # Production: Restrict to specific domains
+  CORS_ALLOW_ORIGINS="https://app.yourdomain.com,https://admin.yourdomain.com"
+  CORS_ALLOW_CREDENTIALS="true"
+  CORS_ALLOW_METHODS="GET,POST,PUT"
+  CORS_ALLOW_HEADERS="Content-Type,Authorization"
+  ```
+  </TabItem>
+  <TabItem value="restricted" label="Highly Restricted">
+  ```bash
+  # High security: Minimal CORS
+  CORS_ALLOW_ORIGINS="https://app.yourdomain.com"
+  CORS_ALLOW_CREDENTIALS="false"
+  CORS_ALLOW_METHODS="GET,POST"
+  CORS_ALLOW_HEADERS="Content-Type"
+  ```
+  </TabItem>
+</Tabs>
+
+**CORS Security Considerations:**
+- **Development**: Use `"*"` or local origins for easier testing
+- **Production**: Always specify exact domains for better security
+- **Credentials**: Only enable `CORS_ALLOW_CREDENTIALS="true"` when needed
+- **Methods**: Limit to only the HTTP methods your application actually uses
+- **Headers**: Restrict to only the headers your application requires
+
 ## Environment File Loading Options
 
 Both the MCP server and webhook server support flexible environment file loading:
@@ -149,6 +206,12 @@ slack-events-server --no-env-file --slack-token xoxb-your-token
   SLACK_BOT_TOKEN="xoxb-your-development-token"
   SLACK_TEST_CHANNEL="#dev-testing"
   QUEUE_BACKEND="memory"
+  
+  # CORS: Allow local development origins
+  CORS_ALLOW_ORIGINS="http://localhost:3000,http://localhost:8080"
+  CORS_ALLOW_CREDENTIALS="true"
+  CORS_ALLOW_METHODS="GET,POST,PUT,DELETE,OPTIONS"
+  CORS_ALLOW_HEADERS="Content-Type,Authorization,X-Requested-With"
   ```
   </TabItem>
   <TabItem value="advanced" label="Advanced Setup">
@@ -161,6 +224,12 @@ slack-events-server --no-env-file --slack-token xoxb-your-token
   SLACK_TEST_CHANNEL_ID="C1234567890"
   QUEUE_BACKEND="redis"
   REDIS_URL="redis://localhost:6379/1"
+  
+  # CORS: Allow local development origins with full access
+  CORS_ALLOW_ORIGINS="http://localhost:3000,http://localhost:8080,http://localhost:5173"
+  CORS_ALLOW_CREDENTIALS="true"
+  CORS_ALLOW_METHODS="GET,POST,PUT,DELETE,PATCH,OPTIONS"
+  CORS_ALLOW_HEADERS="Content-Type,Authorization,X-Requested-With,X-Custom-Header"
   ```
   </TabItem>
 </Tabs>
@@ -174,6 +243,12 @@ slack-events-server --no-env-file --slack-token xoxb-your-token
   SLACK_BOT_TOKEN="xoxb-your-production-token"
   QUEUE_BACKEND="redis"
   REDIS_URL="redis://prod-redis:6379/0"
+  
+  # CORS: Restrict to production domains
+  CORS_ALLOW_ORIGINS="https://app.yourdomain.com"
+  CORS_ALLOW_CREDENTIALS="true"
+  CORS_ALLOW_METHODS="GET,POST,PUT"
+  CORS_ALLOW_HEADERS="Content-Type,Authorization"
   ```
   </TabItem>
   <TabItem value="advanced" label="Advanced Production">
@@ -184,6 +259,12 @@ slack-events-server --no-env-file --slack-token xoxb-your-token
   SLACK_SIGNING_SECRET="your-production-signing-secret"
   QUEUE_BACKEND="kafka"
   KAFKA_BOOTSTRAP="kafka-1:9092,kafka-2:9092,kafka-3:9092"
+  
+  # CORS: Allow multiple production domains with restricted access
+  CORS_ALLOW_ORIGINS="https://app.yourdomain.com,https://admin.yourdomain.com,https://api.yourdomain.com"
+  CORS_ALLOW_CREDENTIALS="true"
+  CORS_ALLOW_METHODS="GET,POST,PUT,DELETE"
+  CORS_ALLOW_HEADERS="Content-Type,Authorization,X-API-Key"
   ```
   </TabItem>
 </Tabs>
