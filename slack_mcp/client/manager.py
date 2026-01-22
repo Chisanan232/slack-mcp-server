@@ -103,6 +103,7 @@ from slack_mcp.client.factory import (
     RetryableSlackClientFactory,
     SlackClientFactory,
 )
+from slack_mcp.settings import get_settings
 
 __all__: list[str] = [
     "SlackClientManager",
@@ -206,14 +207,17 @@ class SlackClientManager:
 
     @property
     def _default_token(self) -> Optional[str]:
-        """Get the default token from environment variables.
+        """Get the default token from settings.
 
         Returns
         -------
         Optional[str]
-            The default token from environment variables, or None if not found.
+            The default token from settings, or None if not found.
         """
-        return os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
+        try:
+            return get_settings().slack_bot_token.get_secret_value()
+        except Exception:
+            return None
 
     def get_async_client(self, token: Optional[str] = None, use_retries: bool = True) -> AsyncWebClient:
         """Get or create an AsyncWebClient with the specified token.

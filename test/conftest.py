@@ -33,7 +33,8 @@ threading.excepthook = lambda args: tracemalloc.get_object_traceback(args.exc_va
 def set_event_loop_policy():
     """Configure the event loop policy for tests based on platform and environment."""
     # For CI environments on macOS, use a custom policy to avoid "Event loop is closed" errors
-    if sys.platform == "darwin" and os.environ.get("CI"):
+    from slack_mcp.settings import is_ci_environment
+    if sys.platform == "darwin" and is_ci_environment():
         asyncio.set_event_loop_policy(asyncio.DefaultEventLoopPolicy())
 
     # For local environments, use the default policy
@@ -75,7 +76,8 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     asyncio.set_event_loop(loop)
 
     # Increase timeouts for CI environments
-    if os.environ.get("CI", "").lower() == "true" or os.environ.get("GITHUB_ACTIONS", "").lower() == "true":
+    from slack_mcp.settings import is_ci_environment
+    if is_ci_environment():
         # CI environments might be slower, so use longer timeouts
         loop.slow_callback_duration = 1.0
         # Set a higher timeout for shutting down the loop

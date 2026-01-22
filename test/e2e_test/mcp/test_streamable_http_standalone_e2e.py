@@ -75,9 +75,17 @@ async def _add_reaction(client, channel, name, timestamp):
 )
 async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
     """Test posting a message via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
+        
     unique_text = f"mcp-e2e-streamable-http-standalone-{uuid.uuid4()}"
 
     logger.info(f"Testing Streamable-HTTP standalone with channel ID: {channel_id}")
@@ -166,9 +174,17 @@ async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D
 )
 async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     """Test adding emoji reactions via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
+        
     unique_text = f"mcp-e2e-streamable-http-standalone-reaction-{uuid.uuid4()}"
 
     logger.info(f"Testing Streamable-HTTP standalone reactions with channel ID: {channel_id}")
@@ -251,8 +267,13 @@ async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: 
 )
 async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D401 – E2E
     """Test reading emoji list via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
 
     logger.info("Testing Streamable-HTTP standalone read emojis")
 
@@ -305,9 +326,17 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
 )
 async def test_streamable_http_standalone_thread_operations_e2e() -> None:  # noqa: D401 – E2E
     """Test thread operations via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
+        
     unique_parent_text = f"mcp-e2e-streamable-http-standalone-parent-{uuid.uuid4()}"
     unique_reply_texts = [f"mcp-e2e-streamable-http-standalone-reply1-{uuid.uuid4()}"]
 

@@ -1,7 +1,8 @@
 """Unit tests for the Slack app module."""
 
-from typing import Any, AsyncIterator, Dict
+from typing import Any, AsyncIterator, Dict, Generator
 from unittest.mock import AsyncMock, MagicMock, patch
+from unittest import mock
 
 import pytest
 from abe.backends.message_queue.base.protocol import MessageQueueBackend
@@ -16,6 +17,16 @@ from slack_mcp.webhook.server import (
     create_slack_app,
     verify_slack_request,
 )
+
+
+@pytest.fixture(autouse=True)
+def reset_settings(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
+    """Reset the settings singleton before each test."""
+    from slack_mcp import settings as settings_mod
+    settings_mod._settings = None
+    monkeypatch.setenv("MCP_NO_ENV_FILE", "true")
+    yield
+    settings_mod._settings = None
 
 
 class MockMessageQueueBackend(MessageQueueBackend):
@@ -142,8 +153,13 @@ async def test_verify_slack_request_env_var(mock_request):
     """Test verifying a Slack request using the environment variable."""
     with (
         patch("slack_mcp.webhook.server.SignatureVerifier") as mock_sv,
-        patch.dict("os.environ", {"SLACK_SIGNING_SECRET": "env_secret"}),
+        patch("slack_mcp.webhook.server.get_settings") as mock_get_settings,
     ):
+        # Mock settings to return the signing secret
+        mock_settings = mock.MagicMock()
+        mock_settings.slack_signing_secret.get_secret_value.return_value = "env_secret"
+        mock_get_settings.return_value = mock_settings
+        
         mock_sv.return_value.is_valid.return_value = True
 
         result = await verify_slack_request(mock_request)
@@ -358,7 +374,10 @@ async def test_slack_events_endpoint_with_queue_backend(
         mock_deserialize.assert_called_once()
 
         # Verify event was published to the queue backend
-        mock_publish.assert_awaited_once_with("slack_events", event_model.model_dump())
+        from slack_mcp.settings import get_settings
+
+        expected_topic = get_settings().slack_events_topic
+        mock_publish.assert_awaited_once_with(expected_topic, event_model.model_dump())
 
 
 @pytest.mark.asyncio
@@ -432,7 +451,10 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error(
         mock_deserialize.assert_called_once()
 
         # Verify event was published to the queue backend
-        mock_publish.assert_awaited_once_with("slack_events", event_model.model_dump())
+        from slack_mcp.settings import get_settings
+
+        expected_topic = get_settings().slack_events_topic
+        mock_publish.assert_awaited_once_with(expected_topic, event_model.model_dump())
 
 
 @pytest.mark.asyncio
@@ -466,11 +488,17 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
     # Create a specific exception to test error logging
     test_exception = Exception("Test publish error")
 
+    # Set the environment variable for the topic name
+    from _pytest.monkeypatch import MonkeyPatch
+    mp = MonkeyPatch()
+    mp.setenv("SLACK_EVENTS_TOPIC", "test_slack_events")
+    
+    # Ensure settings are reloaded with the new env var
+    from slack_mcp import settings as settings_mod
+    settings_mod.get_settings(force_reload=True)
+
     # Create app first
-    with (
-        patch("slack_mcp.webhook.server._LOG") as mock_logger,
-        patch("slack_mcp.webhook.server.DEFAULT_SLACK_EVENTS_TOPIC", "test_slack_events"),
-    ):
+    with patch("slack_mcp.webhook.server._LOG") as mock_logger:
         app = create_slack_app()
         client = TestClient(app)
 
@@ -497,6 +525,8 @@ async def test_slack_events_endpoint_with_queue_backend_publish_error_logging(
 
             # Verify event publication was attempted with the test topic name
             mock_publish.assert_awaited_once_with("test_slack_events", event_data)
+    
+    mp.undo()
 
 
 @pytest.mark.parametrize(

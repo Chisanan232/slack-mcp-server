@@ -90,9 +90,17 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
+        
     unique_text = f"mcp-e2e-{uuid.uuid4()}"
 
     logger.info(f"Testing with channel ID: {channel_id}")
@@ -228,9 +236,16 @@ async def test_slack_read_channel_messages_e2e() -> None:
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
 
     logger.info(f"Testing read messages from channel ID: {channel_id}")
 
@@ -447,9 +462,16 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
     unique_parent_text = f"mcp-e2e-parent-{uuid.uuid4()}"
     unique_reply_texts = [f"mcp-e2e-reply1-{uuid.uuid4()}", f"mcp-e2e-reply2-{uuid.uuid4()}"]
 
@@ -627,9 +649,16 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
     unique_text = f"mcp-e2e-reaction-test-{uuid.uuid4()}"
 
     logger.info(f"Testing with channel ID: {channel_id}")

@@ -71,8 +71,13 @@ async def _get_conversation_history(client, channel, limit):
 )
 async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
     """Test health check endpoint in SSE integrated mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
 
     logger.info("Testing SSE integrated health check endpoint")
 
@@ -110,9 +115,17 @@ async def test_sse_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
 )
 async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 – E2E
     """Test MCP functionality via SSE transport in integrated mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
+        
     unique_text = f"mcp-e2e-sse-integrated-{uuid.uuid4()}"
 
     logger.info(f"Testing SSE integrated MCP functionality with channel ID: {channel_id}")
@@ -196,8 +209,13 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
 )
 async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 – E2E
     """Test webhook endpoints availability in SSE integrated mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
 
     logger.info("Testing SSE integrated webhook endpoint availability")
 
@@ -243,9 +261,16 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
 )
 async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 – E2E
     """Test concurrent access to both MCP and webhook functionality in SSE integrated mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
 
     logger.info("Testing SSE integrated concurrent access to MCP and webhook functionality")
 
@@ -320,9 +345,16 @@ async def test_sse_integrated_concurrent_access_e2e() -> None:  # noqa: D401 –
 )
 async def test_sse_integrated_multiple_mcp_sessions_e2e() -> None:  # noqa: D401 – E2E
     """Test multiple concurrent MCP sessions in SSE integrated mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    from slack_mcp.settings import get_settings
+    settings = get_settings()
+    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    channel_id = settings.slack_test_channel_id
+    
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
+    if not channel_id:
+        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
 
     logger.info("Testing SSE integrated multiple concurrent MCP sessions")
 

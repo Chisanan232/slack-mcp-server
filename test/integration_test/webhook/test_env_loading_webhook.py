@@ -30,9 +30,11 @@ def test_webhook_dotenv_loading_with_valid_env_file():
                         # Run the main function which should load the .env file
                         main()
 
-                        # Check if environment variables were loaded
-                        assert os.environ.get("SLACK_BOT_TOKEN") == test_bot_token
-                        assert os.environ.get("SLACK_SIGNING_SECRET") == test_signing_secret
+                        # Check if environment variables were loaded using settings
+                        from slack_mcp.settings import get_settings
+                        settings = get_settings()
+                        assert settings.slack_bot_token.get_secret_value() == test_bot_token
+                        assert settings.slack_signing_secret.get_secret_value() == test_signing_secret
 
                         # Verify that run_slack_server was called with the default host/port
                         mock_run.assert_called_once()

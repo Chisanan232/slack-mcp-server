@@ -13,6 +13,7 @@ from typing import Final, Optional
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.client.manager import get_client_manager
+from slack_mcp.settings import get_settings
 
 from .app import mcp
 from .model.input import (
@@ -50,8 +51,8 @@ __all__: list[str] = [
 # Logger for this module
 _LOG: Final[logging.Logger] = logging.getLogger(__name__)
 
-# Default token from environment
-_DEFAULT_TOKEN = os.environ.get("SLACK_BOT_TOKEN") or os.environ.get("SLACK_TOKEN")
+# For backward compatibility with tests
+_DEFAULT_TOKEN: Optional[str] = None
 
 
 def set_slack_client_retry_count(retry: int) -> None:
@@ -80,7 +81,7 @@ def get_slack_client(token: Optional[str] = None) -> AsyncWebClient:
     Parameters
     ----------
     token : Optional[str], optional
-        The Slack token to use. If None, will use environment variables.
+        The Slack token to use. If None, will use settings.
 
     Returns
     -------
@@ -102,7 +103,7 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
     Parameters
     ----------
     token : Optional[str], optional
-        The Slack token to use. If None, will use environment variables.
+        The Slack token to use. If None, will use settings.
     client : Optional[AsyncWebClient], optional
         The client to update. If None, a new client will be created.
 
@@ -119,8 +120,9 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
     # Get the client manager
     client_manager = get_client_manager()
 
-    # Check if we're in a test environment (indicated by PYTEST_CURRENT_TEST env var)
-    in_test_env = "PYTEST_CURRENT_TEST" in os.environ
+    # Check if we're in a test environment
+    from slack_mcp.settings import is_test_environment
+    in_test_env = is_test_environment()
 
     if not token:
         if in_test_env:
@@ -153,7 +155,7 @@ def clear_slack_clients() -> None:
 
 
 def _get_default_client() -> AsyncWebClient:
-    """Get a Slack client using the default token from environment variables.
+    """Get a Slack client using the default token from settings.
 
     This function doesn't require a token parameter and relies on the
     SlackClientManager's default token resolution logic.
