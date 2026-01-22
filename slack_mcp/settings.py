@@ -1,10 +1,28 @@
 from typing import Optional
-from pydantic import AliasChoices, Field, SecretStr
+from enum import Enum
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
     SettingsConfigDict,
 )
+
+
+class QueueBackend(str, Enum):
+    """Supported message queue backends."""
+    MEMORY = "memory"
+    REDIS = "redis"
+    KAFKA = "kafka"
+
+
+class LogLevel(str, Enum):
+    """Supported logging levels."""
+    CRITICAL = "CRITICAL"
+    ERROR = "ERROR"
+    WARNING = "WARNING"
+    INFO = "INFO"
+    DEBUG = "DEBUG"
+    NOTSET = "NOTSET"
 
 
 class TestEnvironment(BaseSettings):
@@ -21,12 +39,22 @@ class TestEnvironment(BaseSettings):
     
     # Test detection
     pytest_current_test: Optional[str] = Field(default=None, alias="PYTEST_CURRENT_TEST")
-    ci: Optional[str] = Field(default=None, alias="CI")
-    github_actions: Optional[str] = Field(default=None, alias="GITHUB_ACTIONS")
+    ci: bool = Field(default=False, alias="CI")
+    github_actions: bool = Field(default=False, alias="GITHUB_ACTIONS")
     
     # Test configuration
     mcp_no_env_file: bool = Field(default=False, alias="MCP_NO_ENV_FILE")
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
+    
+    @field_validator('ci', 'github_actions', mode='before')
+    @classmethod
+    def parse_bool_from_string(cls, v):
+        """Parse boolean values from environment variables (accepts common string representations)."""
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            return v.lower() in ('true', '1', 'yes', 'on', 'enabled')
+        return bool(v)
     
     @property
     def is_test_environment(self) -> bool:
@@ -36,10 +64,7 @@ class TestEnvironment(BaseSettings):
     @property
     def is_ci_environment(self) -> bool:
         """Check if we're running in a CI environment."""
-        return (
-            (self.ci and self.ci.lower() == "true") or
-            (self.github_actions and self.github_actions.lower() == "true")
-        )
+        return self.ci or self.github_actions
 
 
 class SettingModel(BaseSettings):
@@ -72,13 +97,13 @@ class SettingModel(BaseSettings):
     e2e_test_api_token: Optional[SecretStr] = Field(default=None, alias="E2E_TEST_API_TOKEN")
 
     # Message queue backend settings
-    queue_backend: str = Field(default="memory", alias="QUEUE_BACKEND")
+    queue_backend: QueueBackend = Field(default=QueueBackend.MEMORY, alias="QUEUE_BACKEND")
     redis_url: Optional[str] = Field(default=None, alias="REDIS_URL")
     kafka_bootstrap: Optional[str] = Field(default=None, alias="KAFKA_BOOTSTRAP")
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
 
     # Logging settings
-    log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+    log_level: LogLevel = Field(default=LogLevel.INFO, alias="LOG_LEVEL")
     log_file: Optional[str] = Field(default=None, alias="LOG_FILE")
     log_dir: str = Field(default="logs", alias="LOG_DIR")
     log_format: str = Field(default="%(asctime)s [%(levelname)8s] %(name)s: %(message)s", alias="LOG_FORMAT")
