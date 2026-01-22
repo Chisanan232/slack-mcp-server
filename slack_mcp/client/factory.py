@@ -28,6 +28,8 @@ from slack_sdk.web.client import WebClient
 
 from slack_mcp.mcp.model.input import _BaseInput
 
+from slack_mcp.settings import get_settings
+
 
 class SlackClientFactory(ABC):
     """Abstract base class for Slack client factories.
@@ -124,13 +126,20 @@ class DefaultSlackClientFactory(SlackClientFactory):
         ValueError
             If no token can be resolved
         """
-        resolved_token = token or os.getenv("SLACK_BOT_TOKEN") or os.getenv("SLACK_TOKEN")
-        if resolved_token is None:
-            raise ValueError(
-                "Slack token not found. Provide one via the 'token' argument or set "
-                "the SLACK_BOT_TOKEN/SLACK_TOKEN environment variable."
-            )
-        return resolved_token
+        # First try the provided token
+        if token:
+            return token
+        
+        # Then try settings
+        settings = get_settings()
+        if settings.slack_bot_token:
+            return settings.slack_bot_token.get_secret_value()
+        
+        # No token found in settings
+        raise ValueError(
+            "Slack token not found. Provide one via the 'token' argument or set "
+            "the SLACK_BOT_TOKEN environment variable."
+        )
 
     def create_async_client(self, token: Optional[str] = None) -> AsyncWebClient:
         """Create an AsyncWebClient using the provided token or environment variables.
