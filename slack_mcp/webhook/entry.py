@@ -149,7 +149,6 @@ import os
 import pathlib
 from typing import Any, Dict, Final, Optional
 
-from dotenv import load_dotenv
 from mcp.server import FastMCP
 
 from slack_mcp.integrate.app import integrated_factory
@@ -515,21 +514,16 @@ def main(argv: Optional[list[str]] = None) -> None:
     if args.slack_token:
         settings_kwargs["slack_bot_token"] = args.slack_token
 
-    # 2. Load environment variables from .env file if not disabled
-    # This will override CLI arguments, giving .env file priority
-    # We also call load_dotenv here to ensure os.environ is populated for 
-    # external libraries that might not use SettingModel.
-    if not args.no_env_file:
-        env_path = pathlib.Path(args.env_file)
-        if env_path.exists():
-            _LOG.info(f"Loading environment variables from {env_path.resolve()}")
-            load_dotenv(dotenv_path=env_path, override=True)
-        else:
-            _LOG.warning(f"Environment file not found: {env_path.resolve()}")
-
-    # 3. Initialize SettingModel which will pick up values from .env file, 
+    # 2. Initialize SettingModel which will pick up values from .env file, 
     # environment variables, and CLI fallbacks
+    # Note: pydantic-settings handles .env file loading automatically
     try:
+        # Check if .env file exists and warn if it doesn't (for user feedback)
+        if not args.no_env_file and args.env_file:
+            env_path = pathlib.Path(args.env_file)
+            if not env_path.exists():
+                _LOG.warning(f"Environment file not found: {env_path.resolve()}")
+        
         get_settings(env_file=args.env_file, no_env_file=args.no_env_file, force_reload=True, **settings_kwargs)
     except Exception as e:
         _LOG.error(f"Failed to load configuration: {e}")
