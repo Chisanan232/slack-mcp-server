@@ -7,6 +7,41 @@ from pydantic_settings import (
 )
 
 
+class TestEnvironment(BaseSettings):
+    """
+    Test-specific environment settings.
+    """
+    
+    model_config = SettingsConfigDict(
+        env_file=".env.test",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
+    )
+    
+    # Test detection
+    pytest_current_test: Optional[str] = Field(default=None, alias="PYTEST_CURRENT_TEST")
+    ci: Optional[str] = Field(default=None, alias="CI")
+    github_actions: Optional[str] = Field(default=None, alias="GITHUB_ACTIONS")
+    
+    # Test configuration
+    mcp_no_env_file: bool = Field(default=False, alias="MCP_NO_ENV_FILE")
+    slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
+    
+    @property
+    def is_test_environment(self) -> bool:
+        """Check if we're running in a test environment."""
+        return self.pytest_current_test is not None
+    
+    @property
+    def is_ci_environment(self) -> bool:
+        """Check if we're running in a CI environment."""
+        return (
+            (self.ci and self.ci.lower() == "true") or
+            (self.github_actions and self.github_actions.lower() == "true")
+        )
+
+
 class SettingModel(BaseSettings):
     """
     Configuration model for the Slack MCP server.
@@ -59,6 +94,7 @@ class SettingModel(BaseSettings):
 
 
 _settings: Optional[SettingModel] = None
+_test_env: Optional[TestEnvironment] = None
 
 
 def get_settings(
@@ -85,12 +121,57 @@ def get_settings(
     """
     global _settings
     
-    # Check if we should skip .env loading based on environment variable (useful for tests)
-    import os
-    if os.environ.get("MCP_NO_ENV_FILE", "").lower() == "true":
+    # Check if we should skip .env loading based on test environment settings
+    test_env = get_test_environment()
+    if test_env.mcp_no_env_file:
         no_env_file = True
         
     if _settings is None or force_reload:
         actual_env_file = None if no_env_file else env_file
         _settings = SettingModel(_env_file=actual_env_file, **kwargs)
     return _settings
+
+
+def get_test_environment(force_reload: bool = False) -> TestEnvironment:
+    """
+    Get the test environment settings instance.
+
+    Parameters
+    ----------
+    force_reload : bool, optional
+        Whether to force a reload of the test environment settings, by default False
+
+    Returns
+    -------
+    TestEnvironment
+        The test environment settings instance
+    """
+    global _test_env
+    
+    if _test_env is None or force_reload:
+        _test_env = TestEnvironment()
+    return _test_env
+
+
+def is_test_environment() -> bool:
+    """
+    Check if we're running in a test environment.
+    
+    Returns
+    -------
+    bool
+        True if running in test environment
+    """
+    return get_test_environment().is_test_environment
+
+
+def is_ci_environment() -> bool:
+    """
+    Check if we're running in a CI environment.
+    
+    Returns
+    -------
+    bool
+        True if running in CI environment
+    """
+    return get_test_environment().is_ci_environment
