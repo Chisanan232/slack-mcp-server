@@ -80,42 +80,40 @@ class SettingModel(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
-        populate_by_name=True,
+        case_sensitive=False,
     )
 
     # Slack API credentials
-    slack_bot_id: Optional[str] = Field(default=None, alias="SLACK_BOT_ID")
-    slack_app_id: Optional[str] = Field(default=None, alias="SLACK_APP_ID")
-    slack_bot_token: Optional[SecretStr] = Field(
-        default=None, validation_alias=AliasChoices("SLACK_BOT_TOKEN", "SLACK_TOKEN", "E2E_TEST_API_TOKEN")
-    )
-    slack_user_token: Optional[SecretStr] = Field(default=None, alias="SLACK_USER_TOKEN")
-    slack_signing_secret: Optional[SecretStr] = Field(default=None, alias="SLACK_SIGNING_SECRET")
+    slack_bot_id: Optional[str] = Field(default=None)
+    slack_app_id: Optional[str] = Field(default=None)
+    slack_bot_token: Optional[SecretStr] = Field(default=None)
+    slack_user_token: Optional[SecretStr] = Field(default=None)
+    slack_signing_secret: Optional[SecretStr] = Field(default=None)
 
     # Slack test configuration
-    slack_test_channel: Optional[str] = Field(default=None, alias="SLACK_TEST_CHANNEL")
-    slack_test_channel_id: Optional[str] = Field(default=None, alias="SLACK_TEST_CHANNEL_ID")
+    slack_test_channel: Optional[str] = Field(default=None)
+    slack_test_channel_id: Optional[str] = Field(default=None)
 
     # End-to-end test credentials
-    e2e_test_api_token: Optional[SecretStr] = Field(default=None, alias="E2E_TEST_API_TOKEN")
+    e2e_test_api_token: Optional[SecretStr] = Field(default=None)
 
     # Message queue backend settings
-    queue_backend: QueueBackend = Field(default=QueueBackend.MEMORY, alias="QUEUE_BACKEND")
-    redis_url: Optional[str] = Field(default=None, alias="REDIS_URL")
-    kafka_bootstrap: Optional[str] = Field(default=None, alias="KAFKA_BOOTSTRAP")
-    slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
+    queue_backend: QueueBackend = Field(default=QueueBackend.MEMORY)
+    redis_url: Optional[str] = Field(default=None)
+    kafka_bootstrap: Optional[str] = Field(default=None)
+    slack_events_topic: str = Field(default="slack_events")
 
     # Logging settings
-    log_level: LogLevel = Field(default=LogLevel.INFO, alias="LOG_LEVEL")
-    log_file: Optional[str] = Field(default=None, alias="LOG_FILE")
-    log_dir: str = Field(default="logs", alias="LOG_DIR")
-    log_format: str = Field(default="%(asctime)s [%(levelname)8s] %(name)s: %(message)s", alias="LOG_FORMAT")
+    log_level: LogLevel = Field(default=LogLevel.INFO)
+    log_file: Optional[str] = Field(default=None)
+    log_dir: str = Field(default="logs")
+    log_format: str = Field(default="%(asctime)s [%(levelname)8s] %(name)s: %(message)s")
 
     # Web server CORS settings
-    cors_allow_origins: str = Field(default="*", alias="CORS_ALLOW_ORIGINS")
-    cors_allow_credentials: bool = Field(default=True, alias="CORS_ALLOW_CREDENTIALS")
-    cors_allow_methods: str = Field(default="*", alias="CORS_ALLOW_METHODS")
-    cors_allow_headers: str = Field(default="*", alias="CORS_ALLOW_HEADERS")
+    cors_allow_origins: str = Field(default="*")
+    cors_allow_credentials: bool = Field(default=True)
+    cors_allow_methods: str = Field(default="*")
+    cors_allow_headers: str = Field(default="*")
 
     @field_validator("cors_allow_origins", mode="before")
     @classmethod
