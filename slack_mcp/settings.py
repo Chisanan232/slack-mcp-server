@@ -108,6 +108,45 @@ class SettingModel(BaseSettings):
     log_dir: str = Field(default="logs", alias="LOG_DIR")
     log_format: str = Field(default="%(asctime)s [%(levelname)8s] %(name)s: %(message)s", alias="LOG_FORMAT")
 
+    # Web server CORS settings
+    cors_allow_origins: str = Field(default="*", alias="CORS_ALLOW_ORIGINS")
+    cors_allow_credentials: bool = Field(default=True, alias="CORS_ALLOW_CREDENTIALS")
+    cors_allow_methods: str = Field(default="*", alias="CORS_ALLOW_METHODS")
+    cors_allow_headers: str = Field(default="*", alias="CORS_ALLOW_HEADERS")
+
+    @field_validator("cors_allow_origins", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS origins from string."""
+        if isinstance(v, str):
+            # Handle empty string
+            if not v.strip():
+                return "*"
+            return v.strip()
+        return v or "*"
+
+    @field_validator("cors_allow_methods", mode="before")
+    @classmethod
+    def parse_cors_methods(cls, v):
+        """Parse CORS methods from string."""
+        if isinstance(v, str):
+            # Handle empty string
+            if not v.strip():
+                return "*"
+            return v.strip()
+        return v or "*"
+
+    @field_validator("cors_allow_headers", mode="before")
+    @classmethod
+    def parse_cors_headers(cls, v):
+        """Parse CORS headers from string."""
+        if isinstance(v, str):
+            # Handle empty string
+            if not v.strip():
+                return "*"
+            return v.strip()
+        return v or "*"
+
     @classmethod
     def settings_customise_sources(
         cls,
