@@ -20,6 +20,7 @@ from test.e2e_test.slack_retry_utils import retry_slack_api_call
 import httpx
 import pytest
 from dotenv import load_dotenv
+from test.e2e_test.common_utils import should_run_e2e_tests, get_e2e_credentials
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 
@@ -66,18 +67,13 @@ async def _get_conversation_history(client, channel, limit):
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D401 – E2E
     """Test health check endpoint in Streamable-HTTP integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings
-    settings = get_settings()
-    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    
-    if not bot_token:
-        pytest.fail("E2E_TEST_API_TOKEN not set")
+    bot_token, _ = get_e2e_credentials()  # Only need bot_token for health check
 
     logger.info("Testing Streamable-HTTP integrated health check endpoint")
 
@@ -110,7 +106,7 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 – E2E
@@ -206,7 +202,7 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  # noqa: D401 – E2E
@@ -268,7 +264,7 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None:  # noqa: D401 – E2E
@@ -366,7 +362,7 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # noqa: D401 – E2E
@@ -432,7 +428,7 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa: D401 – E2E

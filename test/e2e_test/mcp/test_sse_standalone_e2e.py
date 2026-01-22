@@ -18,6 +18,7 @@ from test.e2e_test.mcp.http_test_utils import (
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
+from test.e2e_test.common_utils import should_run_e2e_tests, get_e2e_credentials
 from dotenv import load_dotenv
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
@@ -65,21 +66,14 @@ async def _get_conversation_history(client, channel, limit):
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
     """Test posting a message via SSE transport in standalone mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings
-    settings = get_settings()
-    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    channel_id = settings.slack_test_channel_id
+    bot_token, channel_id = get_e2e_credentials()
     
-    if not bot_token:
-        pytest.fail("E2E_TEST_API_TOKEN not set")
-    if not channel_id:
-        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
     unique_text = f"mcp-e2e-sse-standalone-{uuid.uuid4()}"
 
     logger.info(f"Testing SSE standalone with channel ID: {channel_id}")
@@ -162,21 +156,14 @@ async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     """Test sending thread replies via SSE transport in standalone mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings
-    settings = get_settings()
-    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    channel_id = settings.slack_test_channel_id
+    bot_token, channel_id = get_e2e_credentials()
     
-    if not bot_token:
-        pytest.fail("E2E_TEST_API_TOKEN not set")
-    if not channel_id:
-        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
     unique_parent_text = f"mcp-e2e-sse-standalone-parent-{uuid.uuid4()}"
     unique_reply_texts = [
         f"mcp-e2e-sse-standalone-reply1-{uuid.uuid4()}",
@@ -248,21 +235,13 @@ async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_sse_standalone_read_channel_messages_e2e() -> None:  # noqa: D401 – E2E
     """Test reading channel messages via SSE transport in standalone mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings
-    settings = get_settings()
-    bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    channel_id = settings.slack_test_channel_id
-    
-    if not bot_token:
-        pytest.fail("E2E_TEST_API_TOKEN not set")
-    if not channel_id:
-        pytest.fail("SLACK_TEST_CHANNEL_ID not set")
+    bot_token, channel_id = get_e2e_credentials()
 
     logger.info(f"Testing SSE standalone read messages from channel ID: {channel_id}")
 

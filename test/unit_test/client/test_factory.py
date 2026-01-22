@@ -56,51 +56,59 @@ class TestDefaultSlackClientFactory:
         resolved = factory._resolve_token(test_token)
         assert resolved == test_token
 
-    def test_resolve_token_from_bot_env(self, factory, mock_env_tokens):
-        """Test resolving token from SLACK_BOT_TOKEN environment variable."""
+    def test_resolve_token_from_bot_env(self, factory):
+        """Test resolving token from SLACK_BOT_TOKEN setting."""
         test_token = "xoxb-test-bot-env"
-        mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
+        
+        with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = test_token
+            mock_get_settings.return_value = mock_settings
 
-        resolved = factory._resolve_token()
-        assert resolved == test_token
+            resolved = factory._resolve_token()
+            assert resolved == test_token
 
-    def test_resolve_token_from_generic_env(self, factory, mock_env_tokens):
-        """Test resolving token from SLACK_TOKEN environment variable."""
+    def test_resolve_token_from_generic_env(self, factory):
+        """Test resolving token from SLACK_TOKEN setting (now deprecated)."""
         test_token = "xoxb-test-generic-env"
-        mock_env_tokens.setenv("SLACK_TOKEN", test_token)
+        
+        with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = test_token
+            mock_get_settings.return_value = mock_settings
 
-        resolved = factory._resolve_token()
-        assert resolved == test_token
+            resolved = factory._resolve_token()
+            assert resolved == test_token
 
-    def test_resolve_token_precedence(self, factory, mock_env_tokens):
-        """Test token resolution precedence: explicit > SLACK_BOT_TOKEN > SLACK_TOKEN."""
+    def test_resolve_token_precedence(self, factory):
+        """Test token resolution precedence: explicit > settings."""
         explicit_token = "xoxb-explicit"
         bot_token = "xoxb-bot-env"
-        generic_token = "xoxb-generic-env"
 
-        # Set both environment variables
-        mock_env_tokens.setenv("SLACK_BOT_TOKEN", bot_token)
-        mock_env_tokens.setenv("SLACK_TOKEN", generic_token)
-
-        # Test explicit token takes precedence over both env vars
+        # Test explicit token takes precedence over settings
         assert factory._resolve_token(explicit_token) == explicit_token
 
-        # Test SLACK_BOT_TOKEN takes precedence over SLACK_TOKEN
-        assert factory._resolve_token() == bot_token
+        # Test settings token is used when no explicit token
+        with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = bot_token
+            mock_get_settings.return_value = mock_settings
 
-        # Remove SLACK_BOT_TOKEN and verify SLACK_TOKEN is used
-        mock_env_tokens.delenv("SLACK_BOT_TOKEN")
-        assert factory._resolve_token() == generic_token
+            assert factory._resolve_token() == bot_token
 
-    def test_resolve_token_error_when_missing(self, factory, mock_env_tokens):
+    def test_resolve_token_error_when_missing(self, factory):
         """Test error is raised when no token can be resolved."""
-        with pytest.raises(ValueError) as excinfo:
-            factory._resolve_token()
+        with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token = None
+            mock_get_settings.return_value = mock_settings
+            
+            with pytest.raises(ValueError) as excinfo:
+                factory._resolve_token()
 
-        # Verify error message is informative
-        assert "Slack token not found" in str(excinfo.value)
-        assert "SLACK_BOT_TOKEN" in str(excinfo.value)
-        assert "SLACK_TOKEN" in str(excinfo.value)
+            # Verify error message is informative
+            assert "Slack token not found" in str(excinfo.value)
+            assert "SLACK_BOT_TOKEN" in str(excinfo.value)
 
     def test_create_async_client_initializes_correctly(self, factory):
         """Test AsyncWebClient is initialized with the correct token."""
@@ -185,15 +193,19 @@ class TestDefaultSlackClientFactory:
                 # Verify client was initialized with token from environment
                 mock_client.assert_called_once_with(token=env_token)
 
-    def test_handle_empty_string_token(self, factory, mock_env_tokens):
+    def test_handle_empty_string_token(self, factory):
         """Test handling of empty string tokens."""
         env_token = "xoxb-from-env"
-        mock_env_tokens.setenv("SLACK_BOT_TOKEN", env_token)
 
-        # Empty string should be treated like None and fall back to env
+        # Empty string should be treated like None and fall back to settings
         with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
-            factory.create_async_client(token="")
-            mock_client.assert_called_once_with(token=env_token)
+            with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+                mock_settings = mock.MagicMock()
+                mock_settings.slack_bot_token.get_secret_value.return_value = env_token
+                mock_get_settings.return_value = mock_settings
+                
+                factory.create_async_client(token="")
+                mock_client.assert_called_once_with(token=env_token)
 
     def test_default_factory_instance(self):
         """Test that the default_factory instance is of the correct type."""
@@ -236,15 +248,12 @@ class TestDefaultSlackClientFactory:
         # threading or asyncio to test concurrent access patterns
         test_token = "xoxb-thread-safe-test"
 
-        # Patch os.getenv to simulate potential thread race conditions
-        original_getenv = os.getenv
-
-        def mock_getenv(key, default=None):
-            if key == "SLACK_BOT_TOKEN":
-                return test_token
-            return original_getenv(key, default)
-
-        with mock.patch("os.getenv", side_effect=mock_getenv):
+        # Patch get_settings to simulate potential thread race conditions
+        with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = test_token
+            mock_get_settings.return_value = mock_settings
+            
             with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
                 factory.create_async_client()
                 mock_client.assert_called_once_with(token=test_token)
@@ -397,19 +406,25 @@ class TestRetryableSlackClientFactory:
                 assert any(isinstance(h, AsyncServerErrorRetryHandler) for h in client.retry_handlers)
                 assert any(isinstance(h, AsyncConnectionErrorRetryHandler) for h in client.retry_handlers)
 
-    def test_inheritance_maintains_token_resolution(self, factory, mock_env_tokens):
+    def test_inheritance_maintains_token_resolution(self, factory):
         """Test that token resolution still works correctly in retryable factory."""
         test_token = "xoxb-explicit-test"
+        retry_token = "xoxb-test-retry-token"
 
         # Test explicit token
         with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_async:
             factory.create_async_client(test_token)
             mock_async.assert_called_once_with(token=test_token)
 
-        # Test env fallback
+        # Test settings fallback
         with mock.patch("slack_mcp.client.factory.WebClient") as mock_web:
-            factory.create_sync_client()
-            mock_web.assert_called_once_with(token="xoxb-test-retry-token")
+            with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+                mock_settings = mock.MagicMock()
+                mock_settings.slack_bot_token.get_secret_value.return_value = retry_token
+                mock_get_settings.return_value = mock_settings
+                
+                factory.create_sync_client()
+                mock_web.assert_called_once_with(token=retry_token)
 
     def test_retryable_factory_global_instance(self):
         """Test the global retryable factory instance."""

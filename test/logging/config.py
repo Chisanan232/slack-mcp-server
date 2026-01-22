@@ -9,6 +9,8 @@ import logging.config
 import os
 from typing import Optional
 
+from slack_mcp.settings import get_settings
+
 # Default test log level - higher than INFO to reduce noise
 DEFAULT_TEST_LOG_LEVEL = "WARNING"
 
@@ -18,7 +20,7 @@ def setup_test_logging(level: Optional[str] = None, verbose: bool = False) -> No
 
     Args:
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).
-               If None, uses DEFAULT_TEST_LOG_LEVEL or TEST_LOG_LEVEL env var.
+               If None, uses DEFAULT_TEST_LOG_LEVEL or settings.log_level.
         verbose: If True, enables more verbose logging (INFO level).
     """
     # Determine log level
@@ -26,7 +28,9 @@ def setup_test_logging(level: Optional[str] = None, verbose: bool = False) -> No
         if verbose:
             level = "INFO"
         else:
-            level = os.getenv("TEST_LOG_LEVEL", DEFAULT_TEST_LOG_LEVEL)
+            # Use settings for test log level, fallback to default
+            settings = get_settings()
+            level = settings.log_level if settings.log_level != "INFO" else DEFAULT_TEST_LOG_LEVEL
 
     level = level.upper()
 

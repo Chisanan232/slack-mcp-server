@@ -114,29 +114,20 @@ class SlackClientFactoryContractTest(ABC):
         sync_args, sync_kwargs = mock_web_client_class.call_args
         assert sync_kwargs.get("token") == test_token
 
-    @patch("slack_mcp.client.factory.AsyncWebClient")
-    def test_client_creation_from_input(self, mock_async_client_class, factory, monkeypatch):
+    def test_client_creation_from_input(self, factory, monkeypatch):
         """
         CONTRACT: A factory must be able to create a client from an input object
-        and use the default token from environment for the client.
+        and use the default token from settings for the client.
         """
         # Setup mock
         mock_async_instance = MagicMock()
         mock_async_instance.retry_handlers = []
-        mock_async_client_class.return_value = mock_async_instance
-
+        
         test_token = "xoxb-from-env"
 
-        # Set the environment token
-        monkeypatch.setenv("SLACK_BOT_TOKEN", test_token)
-
-        # Patch the SlackClientManager._default_token property
-        from slack_mcp.client.manager import SlackClientManager
-
-        def mock_env_token(self):
-            return test_token
-
-        monkeypatch.setattr(SlackClientManager, "_default_token", property(mock_env_token))
+        # Mock client manager to return our test token
+        mock_manager = MagicMock()
+        mock_manager._default_token = test_token
 
         # Create input objects without token
         message_input = SlackPostMessageInput(channel="test-channel", text="test message")
@@ -147,29 +138,39 @@ class SlackClientFactoryContractTest(ABC):
         # Reset the mock between calls
         inputs = [message_input, thread_input]
         for input_obj in inputs:
-            mock_async_client_class.reset_mock()
-            client = factory.create_async_client_from_input(input_obj)
+            with patch("slack_mcp.client.manager.get_client_manager") as mock_get_client_manager:
+                mock_get_client_manager.return_value = mock_manager
+                with patch("slack_mcp.client.factory.AsyncWebClient") as mock_async_client_class:
+                    mock_async_client_class.return_value = mock_async_instance
+                    mock_async_client_class.reset_mock()
+                    client = factory.create_async_client_from_input(input_obj)
 
-            # Verify correct token from environment was used
-            mock_async_client_class.assert_called_once()
-            args, kwargs = mock_async_client_class.call_args
-            assert kwargs.get("token") == test_token
+                    # Verify correct token from settings was used
+                    mock_async_client_class.assert_called_once()
+                    args, kwargs = mock_async_client_class.call_args
+                    assert kwargs.get("token") == test_token
 
     def test_required_token_error(self, factory, monkeypatch):
         """
         CONTRACT: A factory must raise a ValueError when no token is provided
-        and none can be resolved from environment.
+        and none can be resolved from settings.
         """
-        # Ensure no token environment variables are set
-        monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
-        monkeypatch.delenv("E2E_TEST_API_TOKEN", raising=False)
-        monkeypatch.delenv("SLACK_TOKEN", raising=False)
+        # Mock client manager with no token available
+        mock_manager = MagicMock()
+        mock_manager._default_token = None
 
         # Should raise ValueError when no token is available
-        with pytest.raises(ValueError) as excinfo:
-            factory.create_async_client()
+        with patch("slack_mcp.client.manager.get_client_manager") as mock_get_client_manager:
+            mock_get_client_manager.return_value = mock_manager
+            with patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
+                mock_settings = MagicMock()
+                mock_settings.slack_bot_token = None
+                mock_get_settings.return_value = mock_settings
+                
+                with pytest.raises(ValueError) as excinfo:
+                    factory.create_async_client_from_input(SlackPostMessageInput(channel="test", text="test"))
 
-        assert "token" in str(excinfo.value).lower()
+                assert "token" in str(excinfo.value).lower()
 
     # === BEHAVIORAL CONTRACT REQUIREMENTS ===
 
