@@ -189,13 +189,14 @@ class WebServerFactory(BaseServerFactory[FastAPI]):
 
         # Configure CORS
         from slack_mcp.settings import get_settings
+
         settings = get_settings()
-        
+
         # Parse comma-separated strings into lists
         origins = [origin.strip() for origin in settings.cors_allow_origins.split(",") if origin.strip()]
         methods = [method.strip() for method in settings.cors_allow_methods.split(",") if method.strip()]
         headers = [header.strip() for header in settings.cors_allow_headers.split(",") if header.strip()]
-        
+
         _WEB_SERVER_INSTANCE.add_middleware(
             CORSMiddleware,
             allow_origins=origins,

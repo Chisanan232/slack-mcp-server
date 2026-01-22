@@ -6,7 +6,6 @@ consistent and clean logging behavior during test execution.
 
 import logging
 import logging.config
-import os
 from typing import Optional
 
 from slack_mcp.settings import get_settings

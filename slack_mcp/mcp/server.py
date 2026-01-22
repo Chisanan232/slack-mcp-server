@@ -7,13 +7,11 @@ applications or test-suites may interact with the exported ``mcp`` instance.
 """
 
 import logging
-import os
 from typing import Final, Optional
 
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.client.manager import get_client_manager
-from slack_mcp.settings import get_settings
 
 from .app import mcp
 from .model.input import (
@@ -122,6 +120,7 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
 
     # Check if we're in a test environment
     from slack_mcp.settings import is_test_environment
+
     in_test_env = is_test_environment()
 
     if not token:

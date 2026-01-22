@@ -33,6 +33,7 @@ def test_dotenv_loading_with_valid_env_file():
 
                     # Check if environment variables were loaded using settings
                     from slack_mcp.settings import get_settings
+
                     settings = get_settings()
                     assert settings.slack_bot_token.get_secret_value() == test_bot_token
                     assert settings.slack_signing_secret.get_secret_value() == test_signing_secret
@@ -219,6 +220,7 @@ def test_sse_transport_with_token():
 
                         # Check environment was loaded
                         from slack_mcp.settings import get_settings
+
                         settings = get_settings()
                         assert settings.slack_bot_token.get_secret_value() == test_bot_token
 

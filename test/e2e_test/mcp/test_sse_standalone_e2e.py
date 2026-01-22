@@ -5,9 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import uuid
-from pathlib import Path
+from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 from test.e2e_test.mcp.http_test_utils import (
     get_free_port,
     http_mcp_client_session,
@@ -18,7 +17,6 @@ from test.e2e_test.mcp.http_test_utils import (
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
-from test.e2e_test.common_utils import should_run_e2e_tests, get_e2e_credentials
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 
@@ -33,8 +31,9 @@ def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
     # Note: pydantic-settings handles .env file loading automatically
     from slack_mcp.settings import get_settings
+
     settings = get_settings(force_reload=True)  # Force reload for test isolation
-    
+
     token_value = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     logger.info(f"Using E2E_TEST_API_TOKEN: {'***' + token_value[-4:] if token_value else 'None'}")
 
@@ -71,7 +70,7 @@ async def test_sse_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
     """Test posting a message via SSE transport in standalone mode."""
     # Get required values from settings
     bot_token, channel_id = get_e2e_credentials()
-    
+
     unique_text = f"mcp-e2e-sse-standalone-{uuid.uuid4()}"
 
     logger.info(f"Testing SSE standalone with channel ID: {channel_id}")
@@ -161,7 +160,7 @@ async def test_sse_standalone_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     """Test sending thread replies via SSE transport in standalone mode."""
     # Get required values from settings
     bot_token, channel_id = get_e2e_credentials()
-    
+
     unique_parent_text = f"mcp-e2e-sse-standalone-parent-{uuid.uuid4()}"
     unique_reply_texts = [
         f"mcp-e2e-sse-standalone-reply1-{uuid.uuid4()}",

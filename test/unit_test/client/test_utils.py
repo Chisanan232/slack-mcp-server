@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from typing import Generator
-from unittest.mock import MagicMock, patch
 from unittest import mock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
+from slack_mcp import settings as settings_mod
 from slack_mcp.client.manager import SlackClientManager, get_client_manager
 from slack_mcp.mcp import server as srv
-from slack_mcp import settings as settings_mod
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def reset_slack_clients(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None
     # Create fresh instances for testing
     SlackClientManager._instance = None
     settings_mod._settings = None
-    
+
     # Ensure settings don't load from .env by default in tests
     monkeypatch.setenv("MCP_NO_ENV_FILE", "true")
 
@@ -152,7 +152,7 @@ class TestGetSlackClient:
             mock_settings = mock.MagicMock()
             mock_settings.slack_bot_token.get_secret_value.return_value = None
             mock_get_settings.return_value = mock_settings
-            
+
             # Call without token and no environment variables
             with pytest.raises(ValueError, match="Slack token not found"):
                 srv.get_slack_client()

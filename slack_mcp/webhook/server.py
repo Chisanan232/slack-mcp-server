@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Final, Optional
 
 from abe.backends.message_queue.base.protocol import MessageQueueBackend

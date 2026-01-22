@@ -5,11 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import uuid
-from pathlib import Path
-from typing import Dict, Any
-
+from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 from test.e2e_test.mcp.http_test_utils import (
     get_free_port,
     http_mcp_client_session,
@@ -18,10 +15,10 @@ from test.e2e_test.mcp.http_test_utils import (
     safe_call_tool,
 )
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
+from typing import Any, Dict
 
 import httpx
 import pytest
-from test.e2e_test.common_utils import should_run_e2e_tests, get_e2e_credentials
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 
@@ -36,8 +33,9 @@ def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
     # Note: pydantic-settings handles .env file loading automatically
     from slack_mcp.settings import get_settings
+
     settings = get_settings(force_reload=True)  # Force reload for test isolation
-    
+
     token_value = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     logger.info(f"Using E2E_TEST_API_TOKEN: {'***' + token_value[-4:] if token_value else 'None'}")
 
@@ -113,15 +111,16 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
     """Test MCP functionality via Streamable-HTTP transport in integrated mode."""
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     channel_id = settings.slack_test_channel_id
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
     if not channel_id:
         pytest.fail("SLACK_TEST_CHANNEL_ID not set")
-        
+
     unique_text = f"mcp-e2e-streamable-http-integrated-{uuid.uuid4()}"
 
     logger.info(f"Testing Streamable-HTTP integrated MCP functionality with channel ID: {channel_id}")
@@ -209,9 +208,10 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
     """Test webhook functionality in Streamable-HTTP integrated mode."""
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
 
@@ -271,9 +271,10 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
     """Test concurrent MCP and webhook operations in Streamable-HTTP integrated mode."""
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
     channel_id = settings.slack_test_channel_id
@@ -369,9 +370,10 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
     """Test streaming behavior specific to Streamable-HTTP transport in integrated mode."""
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
     channel_id = settings.slack_test_channel_id
@@ -435,9 +437,10 @@ async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa:
     """Test error handling in Streamable-HTTP integrated mode."""
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
 

@@ -176,7 +176,7 @@ def test_main(
         # Verify env file handling
         if "--no-env-file" not in cmd_args:
             env_file = "custom.env" if "--env-file" in cmd_args else ".env"
-            
+
             # Verify get_settings was called with correct parameters
             mock_get_settings.assert_called_once()
             call_kwargs = mock_get_settings.call_args[1]
@@ -283,17 +283,14 @@ async def test_run_integrated_server(host, port, token, mcp_transport, mcp_mount
 
 def test_webhook_entry_dotenv_priority_over_cli():
     """Test that .env file values take priority over CLI arguments in webhook entry."""
-    import os
     from unittest.mock import MagicMock, patch
 
     # Mock get_settings to simulate .env file loading
     def mock_get_settings(**kwargs):
         from slack_mcp.settings import SettingModel
+
         # Simulate .env file having priority by returning settings with .env value
-        return SettingModel(
-            _env_file=None,
-            slack_bot_token="xoxb-from-dotenv-file"  # This simulates .env file content
-        )
+        return SettingModel(_env_file=None, slack_bot_token="xoxb-from-dotenv-file")  # This simulates .env file content
 
     with (
         patch("sys.argv", ["entry.py", "--slack-token", "xoxb-from-cli-argument"]),

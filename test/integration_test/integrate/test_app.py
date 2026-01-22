@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, Generator, List
 
 import pytest
@@ -18,14 +17,17 @@ def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
     from slack_mcp.settings import get_settings
+
     original_settings = get_settings()
     original_token = original_settings.slack_bot_token.get_secret_value() if original_settings.slack_bot_token else None
-    original_secret = original_settings.slack_signing_secret.get_secret_value() if original_settings.slack_signing_secret else None
+    original_secret = (
+        original_settings.slack_signing_secret.get_secret_value() if original_settings.slack_signing_secret else None
+    )
 
     # Set fake values for testing by creating a new settings instance
     fake_token = "xoxb-fake-token-for-testing"
     fake_secret = "fake-signing-secret"
-    
+
     # Temporarily update settings for testing
     settings = get_settings(force_reload=True, slack_bot_token=fake_token, slack_signing_secret=fake_secret)
 

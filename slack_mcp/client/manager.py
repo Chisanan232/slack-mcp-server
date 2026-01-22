@@ -92,7 +92,6 @@ Environment Variables
 from __future__ import annotations
 
 import logging
-import os
 from typing import ClassVar, Dict, Final, Optional
 
 from slack_sdk.web.async_client import AsyncWebClient

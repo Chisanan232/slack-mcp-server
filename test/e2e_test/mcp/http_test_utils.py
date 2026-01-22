@@ -13,10 +13,10 @@ from typing import Any, AsyncGenerator
 
 import httpx
 from mcp import ClientSession
-
-from slack_mcp.settings import get_settings
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
+
+from slack_mcp.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ class HttpServerManager:
             if env:
                 server_env.update(env)
 
-            # Note: The server will automatically read E2E_TEST_API_TOKEN 
+            # Note: The server will automatically read E2E_TEST_API_TOKEN
             # from settings thanks to the AliasChoices in the settings model
 
             # Start server process with error handling

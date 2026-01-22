@@ -122,7 +122,7 @@ class SlackClientFactoryContractTest(ABC):
         # Setup mock
         mock_async_instance = MagicMock()
         mock_async_instance.retry_handlers = []
-        
+
         test_token = "xoxb-from-env"
 
         # Mock client manager to return our test token
@@ -166,7 +166,7 @@ class SlackClientFactoryContractTest(ABC):
                 mock_settings = MagicMock()
                 mock_settings.slack_bot_token = None
                 mock_get_settings.return_value = mock_settings
-                
+
                 with pytest.raises(ValueError) as excinfo:
                     factory.create_async_client_from_input(SlackPostMessageInput(channel="test", text="test"))
 

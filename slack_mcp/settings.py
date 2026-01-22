@@ -1,5 +1,6 @@
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
 from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
@@ -10,6 +11,7 @@ from pydantic_settings import (
 
 class QueueBackend(str, Enum):
     """Supported message queue backends."""
+
     MEMORY = "memory"
     REDIS = "redis"
     KAFKA = "kafka"
@@ -17,6 +19,7 @@ class QueueBackend(str, Enum):
 
 class LogLevel(str, Enum):
     """Supported logging levels."""
+
     CRITICAL = "CRITICAL"
     ERROR = "ERROR"
     WARNING = "WARNING"
@@ -29,38 +32,38 @@ class TestEnvironment(BaseSettings):
     """
     Test-specific environment settings.
     """
-    
+
     model_config = SettingsConfigDict(
         env_file=".env.test",
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
     )
-    
+
     # Test detection
     pytest_current_test: Optional[str] = Field(default=None, alias="PYTEST_CURRENT_TEST")
     ci: bool = Field(default=False, alias="CI")
     github_actions: bool = Field(default=False, alias="GITHUB_ACTIONS")
-    
+
     # Test configuration
     mcp_no_env_file: bool = Field(default=False, alias="MCP_NO_ENV_FILE")
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
-    
-    @field_validator('ci', 'github_actions', mode='before')
+
+    @field_validator("ci", "github_actions", mode="before")
     @classmethod
     def parse_bool_from_string(cls, v):
         """Parse boolean values from environment variables (accepts common string representations)."""
         if isinstance(v, bool):
             return v
         if isinstance(v, str):
-            return v.lower() in ('true', '1', 'yes', 'on', 'enabled')
+            return v.lower() in ("true", "1", "yes", "on", "enabled")
         return bool(v)
-    
+
     @property
     def is_test_environment(self) -> bool:
         """Check if we're running in a test environment."""
         return self.pytest_current_test is not None
-    
+
     @property
     def is_ci_environment(self) -> bool:
         """Check if we're running in a CI environment."""
@@ -190,12 +193,12 @@ def get_settings(
         The settings instance
     """
     global _settings
-    
+
     # Check if we should skip .env loading based on test environment settings
     test_env = get_test_environment()
     if test_env.mcp_no_env_file:
         no_env_file = True
-        
+
     if _settings is None or force_reload:
         actual_env_file = None if no_env_file else env_file
         _settings = SettingModel(_env_file=actual_env_file, **kwargs)
@@ -217,7 +220,7 @@ def get_test_environment(force_reload: bool = False) -> TestEnvironment:
         The test environment settings instance
     """
     global _test_env
-    
+
     if _test_env is None or force_reload:
         _test_env = TestEnvironment()
     return _test_env
@@ -226,7 +229,7 @@ def get_test_environment(force_reload: bool = False) -> TestEnvironment:
 def is_test_environment() -> bool:
     """
     Check if we're running in a test environment.
-    
+
     Returns
     -------
     bool
@@ -238,7 +241,7 @@ def is_test_environment() -> bool:
 def is_ci_environment() -> bool:
     """
     Check if we're running in a CI environment.
-    
+
     Returns
     -------
     bool

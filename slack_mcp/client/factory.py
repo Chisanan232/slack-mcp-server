@@ -7,7 +7,6 @@ by abstracting the client creation process.
 
 from __future__ import annotations
 
-import os
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
@@ -27,7 +26,6 @@ from slack_sdk.web.async_client import AsyncWebClient
 from slack_sdk.web.client import WebClient
 
 from slack_mcp.mcp.model.input import _BaseInput
-
 from slack_mcp.settings import get_settings
 
 
@@ -129,12 +127,12 @@ class DefaultSlackClientFactory(SlackClientFactory):
         # First try the provided token
         if token:
             return token
-        
+
         # Then try settings
         settings = get_settings()
         if settings.slack_bot_token:
             return settings.slack_bot_token.get_secret_value()
-        
+
         # No token found in settings
         raise ValueError(
             "Slack token not found. Provide one via the 'token' argument or set "

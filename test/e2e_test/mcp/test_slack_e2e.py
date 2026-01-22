@@ -9,16 +9,13 @@ import os
 import sys
 import uuid
 from datetime import timedelta
-from pathlib import Path
-from typing import Dict, Any
-
+from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
+from typing import Any, Dict
 
 import pytest
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
-from slack_mcp.settings import get_settings
-from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 
 pytestmark = pytest.mark.asyncio
 
@@ -31,8 +28,9 @@ def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
     # Note: pydantic-settings handles .env file loading automatically
     from slack_mcp.settings import get_settings
+
     settings = get_settings(force_reload=True)  # Force reload for test isolation
-    
+
     token_value = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     logger.info(f"Using E2E_TEST_API_TOKEN: {'***' + token_value[-4:] if token_value else 'None'}")
 
@@ -93,7 +91,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
 
     # Get required values from settings
     bot_token, channel_id = get_e2e_credentials()
-    
+
     unique_text = f"mcp-e2e-{uuid.uuid4()}"
 
     logger.info(f"Testing with channel ID: {channel_id}")
@@ -111,7 +109,7 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Note: The server will automatically read E2E_TEST_API_TOKEN 
+    # Note: The server will automatically read E2E_TEST_API_TOKEN
     # from settings thanks to the AliasChoices in the settings model
 
     # Use simple transport args with explicit log level and stdio transport
@@ -230,10 +228,11 @@ async def test_slack_read_channel_messages_e2e() -> None:
 
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     channel_id = settings.slack_test_channel_id
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
     if not channel_id:
@@ -308,7 +307,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
         custom_env: Dict[str, Any] = {**os.environ}
         custom_env["E2E_TEST_API_TOKEN"] = bot_token
 
-        # Note: The server will automatically read E2E_TEST_API_TOKEN 
+        # Note: The server will automatically read E2E_TEST_API_TOKEN
         # from settings thanks to the AliasChoices in the settings model
 
         # Use simple transport args with explicit log level and stdio transport
@@ -455,10 +454,11 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     channel_id = settings.slack_test_channel_id
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
     if not channel_id:
@@ -492,7 +492,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     custom_env: Dict[str, Any] = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Note: The server will automatically read E2E_TEST_API_TOKEN 
+    # Note: The server will automatically read E2E_TEST_API_TOKEN
     # from settings thanks to the AliasChoices in the settings model
 
     # Use simple transport args with explicit log level and stdio transport
@@ -641,10 +641,11 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
 
     # Get required values from settings
     from slack_mcp.settings import get_settings
+
     settings = get_settings()
     bot_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     channel_id = settings.slack_test_channel_id
-    
+
     if not bot_token:
         pytest.fail("E2E_TEST_API_TOKEN not set")
     if not channel_id:
@@ -674,7 +675,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     custom_env: Dict[str, Any] = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Note: The server will automatically read E2E_TEST_API_TOKEN 
+    # Note: The server will automatically read E2E_TEST_API_TOKEN
     # from settings thanks to the AliasChoices in the settings model
 
     # Use simple transport args with stdio transport

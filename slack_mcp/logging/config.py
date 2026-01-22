@@ -180,7 +180,7 @@ def add_logging_arguments(parser):
     """
     # Get settings for defaults
     settings = get_settings()
-    
+
     log_group = parser.add_argument_group("Logging Options")
 
     log_group.add_argument(

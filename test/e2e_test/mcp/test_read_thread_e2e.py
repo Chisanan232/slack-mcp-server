@@ -9,11 +9,10 @@ import os
 import sys
 import uuid
 from datetime import timedelta
-from pathlib import Path
+from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
-from test.e2e_test.common_utils import should_run_e2e_tests, get_e2e_credentials
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 
@@ -28,8 +27,9 @@ def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
     # Note: pydantic-settings handles .env file loading automatically
     from slack_mcp.settings import get_settings
+
     settings = get_settings(force_reload=True)  # Force reload for test isolation
-    
+
     token_value = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     logger.info(f"Using E2E_TEST_API_TOKEN: {'***' + token_value[-4:] if token_value else 'None'}")
 
@@ -65,7 +65,7 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
 
     # Get required values from settings
     bot_token, channel_id = get_e2e_credentials()
-        
+
     unique_text = f"mcp-e2e-thread-test-{uuid.uuid4()}"
 
     logger.info(f"Testing with channel ID: {channel_id}")
@@ -84,7 +84,7 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Note: The server will automatically read E2E_TEST_API_TOKEN 
+    # Note: The server will automatically read E2E_TEST_API_TOKEN
     # from settings thanks to the AliasChoices in the settings model
 
     # Use simple transport args with explicit log level and stdio transport

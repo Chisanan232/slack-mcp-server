@@ -6,7 +6,6 @@ DefaultSlackClientFactory, while the contract tests ensure adherence to
 the abstract interface requirements.
 """
 
-import os
 from unittest import mock
 
 import pytest
@@ -59,7 +58,7 @@ class TestDefaultSlackClientFactory:
     def test_resolve_token_from_bot_env(self, factory):
         """Test resolving token from SLACK_BOT_TOKEN setting."""
         test_token = "xoxb-test-bot-env"
-        
+
         with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
             mock_settings = mock.MagicMock()
             mock_settings.slack_bot_token.get_secret_value.return_value = test_token
@@ -71,7 +70,7 @@ class TestDefaultSlackClientFactory:
     def test_resolve_token_from_generic_env(self, factory):
         """Test resolving token from SLACK_TOKEN setting (now deprecated)."""
         test_token = "xoxb-test-generic-env"
-        
+
         with mock.patch("slack_mcp.client.factory.get_settings") as mock_get_settings:
             mock_settings = mock.MagicMock()
             mock_settings.slack_bot_token.get_secret_value.return_value = test_token
@@ -102,7 +101,7 @@ class TestDefaultSlackClientFactory:
             mock_settings = mock.MagicMock()
             mock_settings.slack_bot_token = None
             mock_get_settings.return_value = mock_settings
-            
+
             with pytest.raises(ValueError) as excinfo:
                 factory._resolve_token()
 
@@ -203,7 +202,7 @@ class TestDefaultSlackClientFactory:
                 mock_settings = mock.MagicMock()
                 mock_settings.slack_bot_token.get_secret_value.return_value = env_token
                 mock_get_settings.return_value = mock_settings
-                
+
                 factory.create_async_client(token="")
                 mock_client.assert_called_once_with(token=env_token)
 
@@ -253,7 +252,7 @@ class TestDefaultSlackClientFactory:
             mock_settings = mock.MagicMock()
             mock_settings.slack_bot_token.get_secret_value.return_value = test_token
             mock_get_settings.return_value = mock_settings
-            
+
             with mock.patch("slack_mcp.client.factory.AsyncWebClient") as mock_client:
                 factory.create_async_client()
                 mock_client.assert_called_once_with(token=test_token)
@@ -422,7 +421,7 @@ class TestRetryableSlackClientFactory:
                 mock_settings = mock.MagicMock()
                 mock_settings.slack_bot_token.get_secret_value.return_value = retry_token
                 mock_get_settings.return_value = mock_settings
-                
+
                 factory.create_sync_client()
                 mock_web.assert_called_once_with(token=retry_token)
 

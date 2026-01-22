@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import socket
 import warnings
 from contextlib import asynccontextmanager, suppress
@@ -73,17 +72,23 @@ class UvicornTestServer(uvicorn.Server):
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+
     original_settings = get_settings()
-    original_token = original_settings.e2e_test_api_token.get_secret_value() if original_settings.e2e_test_api_token else None
-    original_secret = original_settings.slack_signing_secret.get_secret_value() if original_settings.slack_signing_secret else None
+    original_token = (
+        original_settings.e2e_test_api_token.get_secret_value() if original_settings.e2e_test_api_token else None
+    )
+    original_secret = (
+        original_settings.slack_signing_secret.get_secret_value() if original_settings.slack_signing_secret else None
+    )
 
     # Set fake values for testing by creating a new settings instance
     fake_token = "xoxb-fake-token-for-testing"
     fake_secret = "fake-signing-secret"
-    
+
     # Temporarily update settings for testing
     from slack_mcp.settings import get_settings
+
     settings = get_settings(force_reload=True, e2e_test_api_token=fake_token, slack_signing_secret=fake_secret)
 
     yield {"token": fake_token, "secret": fake_secret}
@@ -188,8 +193,10 @@ async def sse_server(
     """Test SSE integrated server configuration without starting real server."""
     # Set environment variables for the test using settings
     import os
+
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
     from slack_mcp.settings import get_test_environment
+
     test_env = get_test_environment(force_reload=True)
 
     # Reset MCP factory before creating integrated app to prevent singleton conflicts
@@ -236,8 +243,10 @@ async def http_server(
     """Test streamable-HTTP integrated server configuration without starting real server."""
     # Set environment variables for the test using settings
     import os
+
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
     from slack_mcp.settings import get_test_environment
+
     test_env = get_test_environment(force_reload=True)
 
     # Reset MCP factory before creating integrated app to prevent singleton conflicts

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import importlib
 import logging
-import os
 import pathlib
 import sys
 import threading
@@ -204,11 +203,13 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -
 
     # Track get_settings calls
     get_settings_calls: list[dict[str, Any]] = []
+
     def mock_get_settings(**kwargs):
         get_settings_calls.append(kwargs)
         from slack_mcp.settings import SettingModel
+
         return SettingModel(_env_file=None)  # Return empty settings for test
-    
+
     monkeypatch.setattr("slack_mcp.mcp.entry.get_settings", mock_get_settings)
 
     # Case 1: .env file exists
@@ -281,47 +282,47 @@ def test_entry_env_file_loading(_patch_entry, monkeypatch: pytest.MonkeyPatch) -
 
 
 def test_entry_slack_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test setting Slack token from command line argument when .env file is disabled."""
-        entry = _patch_entry.entry
+    """Test setting Slack token from command line argument when .env file is disabled."""
+    entry = _patch_entry.entry
 
-        # Mock get_settings to track how it's called
-        with mock.patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
-            mock_settings = mock.MagicMock()
-            mock_settings.slack_bot_token.get_secret_value.return_value = "xoxb-test-token-123456"
-            mock_get_settings.return_value = mock_settings
+    # Mock get_settings to track how it's called
+    with mock.patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
+        mock_settings = mock.MagicMock()
+        mock_settings.slack_bot_token.get_secret_value.return_value = "xoxb-test-token-123456"
+        mock_get_settings.return_value = mock_settings
 
-            # Case 1: Slack token provided via command line with --no-env-file
-            # This ensures CLI token is used since .env file loading is disabled
-            test_token = "xoxb-test-token-123456"
-            argv: list[str] = ["--slack-token", test_token, "--no-env-file"]
+        # Case 1: Slack token provided via command line with --no-env-file
+        # This ensures CLI token is used since .env file loading is disabled
+        test_token = "xoxb-test-token-123456"
+        argv: list[str] = ["--slack-token", test_token, "--no-env-file"]
 
-            def run_with_timeout() -> None:
-                entry.main(argv)
+        def run_with_timeout() -> None:
+            entry.main(argv)
 
-            thread = threading.Thread(target=run_with_timeout)
-            thread.start()
-            thread.join(timeout=1)
+        thread = threading.Thread(target=run_with_timeout)
+        thread.start()
+        thread.join(timeout=1)
 
-            # Verify get_settings was called with the CLI token as kwargs
-            mock_get_settings.assert_called_with(
-                env_file='.env', no_env_file=True, force_reload=True, slack_bot_token=test_token
-            )
+        # Verify get_settings was called with the CLI token as kwargs
+        mock_get_settings.assert_called_with(
+            env_file=".env", no_env_file=True, force_reload=True, slack_bot_token=test_token
+        )
 
-            # Case 2: No token provided, and prevent .env file loading
-            mock_get_settings.reset_mock()
+        # Case 2: No token provided, and prevent .env file loading
+        mock_get_settings.reset_mock()
 
-            # Add --no-env-file flag to prevent loading from .env file
-            argv = ["--no-env-file"]
+        # Add --no-env-file flag to prevent loading from .env file
+        argv = ["--no-env-file"]
 
-            def run_with_timeout_no_token() -> None:
-                entry.main(argv)
+        def run_with_timeout_no_token() -> None:
+            entry.main(argv)
 
-            thread = threading.Thread(target=run_with_timeout_no_token)
-            thread.start()
-            thread.join(timeout=1)
+        thread = threading.Thread(target=run_with_timeout_no_token)
+        thread.start()
+        thread.join(timeout=1)
 
-            # Verify get_settings was called with no_env_file but no token
-            mock_get_settings.assert_called_with(env_file='.env', no_env_file=True, force_reload=True)
+        # Verify get_settings was called with no_env_file but no token
+        mock_get_settings.assert_called_with(env_file=".env", no_env_file=True, force_reload=True)
 
 
 def test_entry_integrated_mode_sse(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -412,11 +413,9 @@ def test_entry_dotenv_priority_over_cli(_patch_entry, monkeypatch: pytest.Monkey
     # Mock get_settings to simulate .env file loading
     def mock_get_settings(**kwargs):
         from slack_mcp.settings import SettingModel
+
         # Simulate .env file having priority by returning settings with .env value
-        return SettingModel(
-            _env_file=None,
-            slack_bot_token="xoxb-from-dotenv-file"  # This simulates .env file content
-        )
+        return SettingModel(_env_file=None, slack_bot_token="xoxb-from-dotenv-file")  # This simulates .env file content
 
     monkeypatch.setattr("slack_mcp.mcp.entry.get_settings", mock_get_settings)
     monkeypatch.setattr(pathlib.Path, "exists", lambda self: True)

@@ -145,7 +145,6 @@ Docker deployment instructions.
 """
 
 import logging
-import os
 import pathlib
 from typing import Final, Optional
 
@@ -254,7 +253,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     if args.slack_token:
         settings_kwargs["slack_bot_token"] = args.slack_token
 
-    # 2. Initialize SettingModel which will pick up values from .env file, 
+    # 2. Initialize SettingModel which will pick up values from .env file,
     # environment variables, and CLI fallbacks
     # Note: pydantic-settings handles .env file loading automatically
     try:
@@ -263,8 +262,10 @@ def main(argv: Optional[list[str]] = None) -> None:
             env_path = pathlib.Path(args.env_file)
             if not env_path.exists():
                 _LOG.warning(f"Environment file not found: {env_path.resolve()}")
-        
-        settings = get_settings(env_file=args.env_file, no_env_file=args.no_env_file, force_reload=True, **settings_kwargs)
+
+        settings = get_settings(
+            env_file=args.env_file, no_env_file=args.no_env_file, force_reload=True, **settings_kwargs
+        )
     except Exception as e:
         _LOG.error(f"Failed to load configuration: {e}")
         return

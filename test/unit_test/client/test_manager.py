@@ -29,6 +29,7 @@ class TestSlackClientManager:
 
         # Reset settings as well
         from slack_mcp import settings as settings_mod
+
         settings_mod._settings = None
 
         yield
@@ -146,7 +147,7 @@ class TestSlackClientManager:
     def test_get_async_client_from_env(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test getting an async client using environment variables."""
         test_token = "xoxb-test-env"
-        
+
         # Mock settings to return the test token
         with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
             mock_settings = mock.MagicMock()
@@ -174,7 +175,7 @@ class TestSlackClientManager:
     def test_get_sync_client_from_env(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test getting a sync client using environment variables."""
         test_token = "xoxb-test-env"
-        
+
         # Mock settings to return the test token
         with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
             mock_settings = mock.MagicMock()
@@ -466,7 +467,7 @@ class TestSlackClientManager:
             mock_settings = mock.MagicMock()
             mock_settings.slack_bot_token.get_secret_value.return_value = None
             mock_get_settings.return_value = mock_settings
-            
+
             with pytest.raises(ValueError) as excinfo:
                 manager.get_async_client()
 
