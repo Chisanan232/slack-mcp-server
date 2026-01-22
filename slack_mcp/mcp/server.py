@@ -119,9 +119,9 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
     client_manager = get_client_manager()
 
     # Check if we're in a test environment
-    from slack_mcp.settings import is_ci_environment
+    from slack_mcp.settings import is_test_environment
 
-    in_test_env = is_ci_environment()
+    in_test_env = is_test_environment()
 
     if not token:
         if in_test_env:

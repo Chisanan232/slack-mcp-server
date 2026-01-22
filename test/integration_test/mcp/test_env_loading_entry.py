@@ -77,7 +77,7 @@ def test_cmd_line_token_overrides_env_file():
 
                     # Check that .env file token was used (has priority over CLI argument)
                     settings = get_settings()
-                    assert settings.slack_bot_token.get_secret_value() == env_file_token
+                    assert settings.slack_bot_token.get_secret_value() == cmd_line_token
 
                     # Verify that the server would have been started
                     mock_run.assert_called_once()

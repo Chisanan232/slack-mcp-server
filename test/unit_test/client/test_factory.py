@@ -345,7 +345,7 @@ class TestRetryableSlackClientFactory:
         mock_client_constructor = mock.MagicMock(return_value=mock_client)
 
         with mock.patch("slack_mcp.client.factory.AsyncWebClient", mock_client_constructor):
-            client = factory.create_async_client()
+            client = factory.create_async_client("xoxb-test-retry-token")
 
             # Client should have 3 retry handlers attached (default configuration)
             assert len(client.retry_handlers) == 3
@@ -366,7 +366,7 @@ class TestRetryableSlackClientFactory:
         mock_client_constructor = mock.MagicMock(return_value=mock_client)
 
         with mock.patch("slack_mcp.client.factory.WebClient", mock_client_constructor):
-            client = factory.create_sync_client()
+            client = factory.create_sync_client("xoxb-test-retry-token")
 
             # Client should have 3 retry handlers attached (default configuration)
             assert len(client.retry_handlers) == 3
