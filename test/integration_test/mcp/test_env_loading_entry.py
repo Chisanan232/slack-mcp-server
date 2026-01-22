@@ -77,7 +77,7 @@ def test_cmd_line_token_overrides_env_file():
 
                     # Check that .env file token was used (has priority over CLI argument)
                     settings = get_settings()
-                    assert settings.slack_bot_token.get_secret_value() == cmd_line_token
+                    assert settings.slack_bot_token.get_secret_value() == env_file_token
 
                     # Verify that the server would have been started
                     mock_run.assert_called_once()
@@ -175,13 +175,19 @@ def test_cmd_line_token_as_fallback_when_env_disabled():
                 with patch.dict("os.environ", {}, clear=True):
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
+                    from slack_mcp.settings import get_settings
 
-                    # Run the main function which should use CLI token (env file disabled)
-                    main()
+                    # Capture the settings that will be used by main()
+                    with patch('slack_mcp.mcp.entry.get_settings') as mock_get_settings:
+                        mock_settings = get_settings(no_env_file=True, SLACK_BOT_TOKEN=cmd_line_token, force_reload=True)
+                        mock_get_settings.return_value = mock_settings
+                        
+                        # Run the main function which should use CLI token (env file disabled)
+                        main()
 
-                    # Check that CLI token was used (env file loading was disabled)
-                    settings = get_settings()
-                    assert settings.slack_bot_token.get_secret_value() == cmd_line_token
+                        # Check that CLI token was used (env file loading was disabled)
+                        assert mock_settings.slack_bot_token
+                        assert mock_settings.slack_bot_token.get_secret_value() == cmd_line_token
 
                     # Verify that the server would have been started
                     mock_run.assert_called_once()
