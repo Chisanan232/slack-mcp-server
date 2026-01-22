@@ -8,6 +8,8 @@ import logging
 import os
 import uuid
 from pathlib import Path
+from typing import Dict, Any
+
 from test.e2e_test.mcp.http_test_utils import (
     get_free_port,
     http_mcp_client_session,
@@ -267,7 +269,7 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
     port = get_free_port()
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP standalone server on port {port}")
 

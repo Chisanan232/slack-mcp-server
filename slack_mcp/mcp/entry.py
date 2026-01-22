@@ -284,6 +284,7 @@ def main(argv: Optional[list[str]] = None) -> None:
         _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {args.host}:{args.port}")
 
         # Get effective token from settings
+        assert settings.slack_bot_token
         effective_token = settings.slack_bot_token.get_secret_value()
 
         # Create integrated app with both MCP and webhook functionality

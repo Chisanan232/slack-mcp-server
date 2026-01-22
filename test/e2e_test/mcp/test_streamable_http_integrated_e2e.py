@@ -8,6 +8,8 @@ import logging
 import os
 import uuid
 from pathlib import Path
+from typing import Dict, Any
+
 from test.e2e_test.mcp.http_test_utils import (
     get_free_port,
     http_mcp_client_session,
@@ -140,7 +142,7 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -222,7 +224,7 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -287,7 +289,7 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -385,7 +387,7 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 
@@ -448,7 +450,7 @@ async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa:
     mount_path = None  # Fix: mount_path should be None for streamable-http integrated to avoid double mounting
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP integrated server on port {port}")
 

@@ -8,6 +8,8 @@ import logging
 import os
 import uuid
 from pathlib import Path
+from typing import Dict, Any
+
 from test.e2e_test.mcp.http_test_utils import (
     get_free_port,
     http_mcp_client_session,
@@ -212,7 +214,7 @@ async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 
     mount_path = None  # Fix: mount_path should be None for integrated mode to avoid double mounting
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting SSE integrated server on port {port}")
 

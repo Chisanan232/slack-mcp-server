@@ -10,6 +10,8 @@ import sys
 import uuid
 from datetime import timedelta
 from pathlib import Path
+from typing import Dict, Any
+
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
@@ -311,7 +313,7 @@ async def test_slack_read_channel_messages_e2e() -> None:
     # Stage 3: Start server and test MCP function
     if not should_fail:
         # Prepare server with explicit environment set
-        custom_env = {**os.environ}
+        custom_env: Dict[str, Any] = {**os.environ}
         custom_env["E2E_TEST_API_TOKEN"] = bot_token
 
         # Note: The server will automatically read E2E_TEST_API_TOKEN 
@@ -495,7 +497,7 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
         pytest.fail(f"Failed to post parent message: {e}")
 
     # Prepare server with explicit environment set
-    custom_env = {**os.environ}  # Create a copy
+    custom_env: Dict[str, Any] = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
     # Note: The server will automatically read E2E_TEST_API_TOKEN 
@@ -677,7 +679,7 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
         pytest.fail(f"Slack API setup failed: {e}")
 
     # Prepare server with explicit environment set
-    custom_env = {**os.environ}  # Create a copy
+    custom_env: Dict[str, Any] = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
     # Note: The server will automatically read E2E_TEST_API_TOKEN 

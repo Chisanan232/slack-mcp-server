@@ -215,7 +215,8 @@ class SlackClientManager:
             The default token from settings, or None if not found.
         """
         try:
-            return get_settings().slack_bot_token.get_secret_value()
+            token_secret = get_settings().slack_bot_token
+            return token_secret.get_secret_value() if token_secret else None
         except Exception:
             return None
 
