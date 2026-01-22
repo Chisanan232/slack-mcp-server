@@ -15,7 +15,6 @@ from typing import Dict, Any
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
-from dotenv import load_dotenv
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 from slack_mcp.settings import get_settings
@@ -30,17 +29,10 @@ logger = logging.getLogger(__name__)
 
 def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
-    env_path = Path("./.env")
-    logger.info(f"Loading secrets from {env_path}")
-    if env_path.exists():
-        load_dotenv(env_path)
-        logger.info("Environment loaded")
-    else:
-        logger.warning(f"Environment file not found: {env_path}")
-    
-    # Log token from settings instead of direct environment access
+    # Note: pydantic-settings handles .env file loading automatically
     from slack_mcp.settings import get_settings
-    settings = get_settings()
+    settings = get_settings(force_reload=True)  # Force reload for test isolation
+    
     token_value = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
     logger.info(f"Using E2E_TEST_API_TOKEN: {'***' + token_value[-4:] if token_value else 'None'}")
 
