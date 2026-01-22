@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import AliasChoices, Field, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -86,7 +86,9 @@ class SettingModel(BaseSettings):
     # Slack API credentials
     slack_bot_id: Optional[str] = Field(default=None)
     slack_app_id: Optional[str] = Field(default=None)
-    slack_bot_token: Optional[SecretStr] = Field(default=None)
+    slack_bot_token: Optional[SecretStr] = Field(
+        default=None, validation_alias=AliasChoices("SLACK_BOT_TOKEN", "SLACK_TOKEN", "E2E_TEST_API_TOKEN")
+    )
     slack_user_token: Optional[SecretStr] = Field(default=None)
     slack_signing_secret: Optional[SecretStr] = Field(default=None)
 
