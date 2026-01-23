@@ -237,7 +237,8 @@ async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: 
 async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D401 – E2E
     """Test reading emoji list via Streamable-HTTP transport in standalone mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()

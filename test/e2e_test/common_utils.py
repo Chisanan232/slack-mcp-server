@@ -1,6 +1,6 @@
 """Common utilities for E2E tests."""
 
-from slack_mcp.settings import get_test_environment
+from test.settings import get_test_environment
 
 
 def should_run_e2e_tests() -> bool:

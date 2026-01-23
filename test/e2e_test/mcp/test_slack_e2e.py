@@ -213,7 +213,8 @@ async def test_slack_read_channel_messages_e2e() -> None:
     from mcp.client.stdio import stdio_client
 
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -440,7 +441,8 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     from mcp.client.stdio import stdio_client
 
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -628,7 +630,8 @@ async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     from mcp.client.stdio import stdio_client
 
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()

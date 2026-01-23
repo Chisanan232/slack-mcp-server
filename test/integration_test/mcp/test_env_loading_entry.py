@@ -25,7 +25,7 @@ def test_dotenv_loading_with_valid_env_file():
         with patch("sys.argv", ["slack-mcp-server", "--env-file", temp_env_path, "--transport", "stdio"]):
             with patch.object(mcp_factory.get(), "run") as mock_run:
                 # Patch the test environment to allow env file loading
-                with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                with patch("test.settings.get_test_environment") as mock_get_test_env:
                     mock_test_env = MagicMock()
                     mock_test_env.mcp_no_env_file = False
                     mock_get_test_env.return_value = mock_test_env
@@ -74,7 +74,7 @@ def test_cmd_line_token_overrides_env_file():
         ):
             with patch.object(mcp_factory.get(), "run") as mock_run:
                 # Patch the test environment to allow env file loading
-                with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                with patch("test.settings.get_test_environment") as mock_get_test_env:
                     mock_test_env = MagicMock()
                     mock_test_env.mcp_no_env_file = False
                     mock_get_test_env.return_value = mock_test_env
@@ -230,7 +230,7 @@ def test_sse_transport_with_token():
                     mock_sse_app.return_value = mock_app
 
                     # Patch the test environment to allow env file loading
-                    with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                    with patch("test.settings.get_test_environment") as mock_get_test_env:
                         mock_test_env = MagicMock()
                         mock_test_env.mcp_no_env_file = False
                         mock_get_test_env.return_value = mock_test_env

@@ -16,7 +16,8 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
 
-from slack_mcp.settings import get_settings, get_test_environment
+from slack_mcp.settings import get_settings
+from test.settings import get_test_environment
 
 logger = logging.getLogger(__name__)
 

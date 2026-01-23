@@ -96,7 +96,8 @@ async def test_streamable_http_integrated_health_check_e2e() -> None:  # noqa: D
 async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 – E2E
     """Test MCP functionality via Streamable-HTTP transport in integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -194,7 +195,8 @@ async def test_streamable_http_integrated_mcp_functionality_e2e() -> None:  # no
 async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  # noqa: D401 – E2E
     """Test webhook functionality in Streamable-HTTP integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -258,7 +260,8 @@ async def test_streamable_http_integrated_webhook_functionality_e2e() -> None:  
 async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None:  # noqa: D401 – E2E
     """Test concurrent MCP and webhook operations in Streamable-HTTP integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -358,7 +361,8 @@ async def test_streamable_http_integrated_concurrent_mcp_webhook_e2e() -> None: 
 async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # noqa: D401 – E2E
     """Test streaming behavior specific to Streamable-HTTP transport in integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -426,7 +430,8 @@ async def test_streamable_http_integrated_streaming_behavior_e2e() -> None:  # n
 async def test_streamable_http_integrated_error_handling_e2e() -> None:  # noqa: D401 – E2E
     """Test error handling in Streamable-HTTP integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()

@@ -72,7 +72,8 @@ class UvicornTestServer(uvicorn.Server):
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     original_test_env = get_test_environment()
     settings = get_settings()
@@ -88,7 +89,8 @@ def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     fake_secret = "fake-signing-secret"
 
     # Temporarily update settings for testing
-    from slack_mcp.settings import get_settings, get_test_environment
+    from slack_mcp.settings import get_settings
+    from test.settings import get_test_environment
 
     settings = get_settings(force_reload=True, slack_signing_secret=fake_secret)
 
@@ -198,7 +200,7 @@ async def sse_server(
     import os
 
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
-    from slack_mcp.settings import get_test_environment
+    from test.settings import get_test_environment
 
     test_env = get_test_environment(force_reload=True)
 
@@ -248,7 +250,7 @@ async def http_server(
     import os
 
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
-    from slack_mcp.settings import get_test_environment
+    from test.settings import get_test_environment
 
     test_env = get_test_environment(force_reload=True)
 

@@ -24,7 +24,7 @@ def test_webhook_dotenv_loading_with_valid_env_file():
                     mock_run.side_effect = lambda coro: None  # Don't actually run the coroutine
 
                     # Patch the test environment to allow env file loading
-                    with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                    with patch("test.settings.get_test_environment") as mock_get_test_env:
                         mock_test_env = MagicMock()
                         mock_test_env.mcp_no_env_file = False
                         mock_get_test_env.return_value = mock_test_env
