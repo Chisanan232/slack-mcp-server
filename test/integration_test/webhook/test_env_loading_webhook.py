@@ -23,7 +23,12 @@ def test_webhook_dotenv_loading_with_valid_env_file():
                 with patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock) as mock_server_run:
                     mock_run.side_effect = lambda coro: None  # Don't actually run the coroutine
 
-                    with patch.dict("os.environ", {}, clear=True):
+                    # Patch the test environment to allow env file loading
+                    with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                        mock_test_env = MagicMock()
+                        mock_test_env.mcp_no_env_file = False
+                        mock_get_test_env.return_value = mock_test_env
+                        
                         # Import here to ensure clean environment
                         from slack_mcp.webhook.entry import main
 
@@ -33,7 +38,7 @@ def test_webhook_dotenv_loading_with_valid_env_file():
                         # Check if environment variables were loaded using settings
                         from slack_mcp.settings import get_settings
 
-                        settings = get_settings()
+                        settings = get_settings(env_file=temp_env_path, no_env_file=False, force_reload=True)
                         assert settings.slack_bot_token.get_secret_value() == test_bot_token
                         assert settings.slack_signing_secret.get_secret_value() == test_signing_secret
 

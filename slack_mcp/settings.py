@@ -57,11 +57,6 @@ class TestEnvironment(BaseSettings):
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
 
     @property
-    def is_test_environment(self) -> bool:
-        """Check if we're running in a test environment."""
-        return self.pytest_current_test is not None
-
-    @property
     def is_ci_environment(self) -> bool:
         """Check if we're running in a CI environment."""
         return self.ci or self.github_actions
@@ -214,18 +209,6 @@ def get_test_environment(force_reload: bool = False) -> TestEnvironment:
     if _test_env is None or force_reload:
         _test_env = TestEnvironment()
     return _test_env
-
-
-def is_test_environment() -> bool:
-    """
-    Check if we're running in a test environment.
-
-    Returns
-    -------
-    bool
-        True if running in test environment
-    """
-    return get_test_environment().is_test_environment
 
 
 def is_ci_environment() -> bool:

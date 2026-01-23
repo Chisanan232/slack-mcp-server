@@ -24,7 +24,12 @@ def test_dotenv_loading_with_valid_env_file():
         # Run entry.main with our temp .env file
         with patch("sys.argv", ["slack-mcp-server", "--env-file", temp_env_path, "--transport", "stdio"]):
             with patch.object(mcp_factory.get(), "run") as mock_run:
-                with patch.dict("os.environ", {}, clear=True):
+                # Patch the test environment to allow env file loading
+                with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                    mock_test_env = MagicMock()
+                    mock_test_env.mcp_no_env_file = False
+                    mock_get_test_env.return_value = mock_test_env
+                    
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
 
@@ -34,7 +39,7 @@ def test_dotenv_loading_with_valid_env_file():
                     # Check if environment variables were loaded using settings
                     from slack_mcp.settings import get_settings
 
-                    settings = get_settings()
+                    settings = get_settings(env_file=temp_env_path, no_env_file=False, force_reload=True)
                     assert settings.slack_bot_token.get_secret_value() == test_bot_token
                     assert settings.slack_signing_secret.get_secret_value() == test_signing_secret
 
@@ -68,7 +73,12 @@ def test_cmd_line_token_overrides_env_file():
             ["slack-mcp-server", "--env-file", temp_env_path, "--slack-token", cmd_line_token, "--transport", "stdio"],
         ):
             with patch.object(mcp_factory.get(), "run") as mock_run:
-                with patch.dict("os.environ", {}, clear=True):
+                # Patch the test environment to allow env file loading
+                with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                    mock_test_env = MagicMock()
+                    mock_test_env.mcp_no_env_file = False
+                    mock_get_test_env.return_value = mock_test_env
+                    
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
 
@@ -76,7 +86,7 @@ def test_cmd_line_token_overrides_env_file():
                     main()
 
                     # Check that .env file token was used (has priority over CLI argument)
-                    settings = get_settings()
+                    settings = get_settings(env_file=temp_env_path, no_env_file=False, force_reload=True)
                     assert settings.slack_bot_token.get_secret_value() == env_file_token
 
                     # Verify that the server would have been started
@@ -219,7 +229,12 @@ def test_sse_transport_with_token():
                     mock_app = MagicMock()
                     mock_sse_app.return_value = mock_app
 
-                    with patch.dict("os.environ", {}, clear=True):
+                    # Patch the test environment to allow env file loading
+                    with patch("slack_mcp.settings.get_test_environment") as mock_get_test_env:
+                        mock_test_env = MagicMock()
+                        mock_test_env.mcp_no_env_file = False
+                        mock_get_test_env.return_value = mock_test_env
+                        
                         # Import here to ensure clean environment
                         from slack_mcp.mcp.entry import main
 
@@ -229,7 +244,7 @@ def test_sse_transport_with_token():
                         # Check environment was loaded
                         from slack_mcp.settings import get_settings
 
-                        settings = get_settings()
+                        settings = get_settings(env_file=temp_env_path, no_env_file=False, force_reload=True)
                         assert settings.slack_bot_token.get_secret_value() == test_bot_token
 
                         # Verify FastAPI app was created with correct mount path
