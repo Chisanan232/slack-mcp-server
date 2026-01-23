@@ -336,7 +336,7 @@ class TestUpdateSlackClient:
         client = AsyncWebClient(token="any-token")
 
         with pytest.raises(ValueError, match="Token cannot be empty or None"):
-            srv.update_slack_client(invalid_token, client)
+            srv.update_slack_client(invalid_token, client)  # type: ignore[arg-type]
 
 
 class TestSetSlackClientRetryCount:
