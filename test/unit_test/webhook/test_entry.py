@@ -357,11 +357,11 @@ def test_webhook_entry_handles_settings_load_failure():
             with patch("slack_mcp.webhook.entry.setup_logging_from_args"):
                 with patch("slack_mcp.webhook.entry.mcp_factory") as mock_factory:
                     mock_factory.get.return_value.sse_app.return_value = MagicMock()
-                    
+
                     with patch("slack_mcp.webhook.entry._LOG") as mock_log:
                         # This should not raise an exception
                         result = main([])
-                        
+
                         # Should return None (early exit) when configuration fails
                         assert result is None
                         # Should log the error

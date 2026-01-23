@@ -4,10 +4,6 @@ This module tests the field validators in the settings models,
 including CORS field validation logic.
 """
 
-import os
-from unittest.mock import MagicMock, patch
-import pytest
-
 from slack_mcp.settings import SettingModel
 
 

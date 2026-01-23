@@ -173,21 +173,21 @@ async def test_verify_slack_request_env_var(mock_request):
 async def test_verify_slack_request_missing_signing_secret(mock_request):
     """Test verify_slack_request when signing secret is missing (line 176-178)."""
     from unittest.mock import AsyncMock
-    
+
     # Mock settings with no signing secret
     with patch("slack_mcp.webhook.server.get_settings") as mock_get_settings:
         mock_settings = MagicMock()
         mock_settings.slack_signing_secret = None
         mock_get_settings.return_value = mock_settings
-        
+
         with patch("slack_mcp.webhook.server._LOG") as mock_log:
             # Create a mock request with async body method
             mock_request.body = AsyncMock(return_value=b"test body")
             mock_request.headers = {}
-            
+
             # Should return False and log error
             result = await verify_slack_request(mock_request)
-            
+
             assert result is False
             mock_log.error.assert_called_once_with("SLACK_SIGNING_SECRET not set in settings or environment")
 
