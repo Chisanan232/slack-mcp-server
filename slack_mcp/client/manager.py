@@ -213,11 +213,8 @@ class SlackClientManager:
         Optional[str]
             The default token from settings, or None if not found.
         """
-        try:
-            token_secret = get_settings().slack_bot_token
-            return token_secret.get_secret_value() if token_secret else None
-        except Exception:
-            return None
+        token_secret = get_settings().slack_bot_token
+        return token_secret.get_secret_value() if token_secret else None
 
     def get_async_client(self, token: Optional[str] = None, use_retries: bool = True) -> AsyncWebClient:
         """Get or create an AsyncWebClient with the specified token.

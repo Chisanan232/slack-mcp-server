@@ -49,16 +49,6 @@ class TestEnvironment(BaseSettings):
     mcp_no_env_file: bool = Field(default=False, alias="MCP_NO_ENV_FILE")
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
 
-    @field_validator("ci", "github_actions", mode="before")
-    @classmethod
-    def parse_bool_from_string(cls, v):
-        """Parse boolean values from environment variables (accepts common string representations)."""
-        if isinstance(v, bool):
-            return v
-        if isinstance(v, str):
-            return v.lower() in ("true", "1", "yes", "on", "enabled")
-        return bool(v)
-
     @property
     def is_test_environment(self) -> bool:
         """Check if we're running in a test environment."""
