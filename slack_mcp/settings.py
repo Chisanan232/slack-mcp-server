@@ -179,11 +179,6 @@ def get_settings(
     """
     global _settings
 
-    # Check if we should skip .env loading based on test environment settings
-    test_env = get_test_environment()
-    if test_env.mcp_no_env_file:
-        no_env_file = True
-
     if _settings is None or force_reload:
         actual_env_file = None if no_env_file else env_file
         _settings = SettingModel(_env_file=actual_env_file, **kwargs)
