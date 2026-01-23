@@ -178,10 +178,12 @@ def test_cmd_line_token_as_fallback_when_env_disabled():
                     from slack_mcp.settings import get_settings
 
                     # Capture the settings that will be used by main()
-                    with patch('slack_mcp.mcp.entry.get_settings') as mock_get_settings:
-                        mock_settings = get_settings(no_env_file=True, SLACK_BOT_TOKEN=cmd_line_token, force_reload=True)
+                    with patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
+                        mock_settings = get_settings(
+                            no_env_file=True, SLACK_BOT_TOKEN=cmd_line_token, force_reload=True
+                        )
                         mock_get_settings.return_value = mock_settings
-                        
+
                         # Run the main function which should use CLI token (env file disabled)
                         main()
 
