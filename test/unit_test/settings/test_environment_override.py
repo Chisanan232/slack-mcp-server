@@ -6,7 +6,6 @@ configuration loading logic.
 
 from unittest.mock import MagicMock, patch
 
-
 from slack_mcp.settings import get_settings
 
 

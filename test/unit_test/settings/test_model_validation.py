@@ -7,7 +7,6 @@ including field validation and model instantiation.
 import os
 from unittest.mock import patch
 
-
 from slack_mcp.settings import SettingModel
 
 
