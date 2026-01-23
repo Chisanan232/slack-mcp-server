@@ -16,7 +16,7 @@ from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
 
-from slack_mcp.settings import get_settings
+from slack_mcp.settings import get_settings, get_test_environment
 
 logger = logging.getLogger(__name__)
 
@@ -55,8 +55,9 @@ class HttpServerManager:
             if self.integrated:
                 args.append("--integrated")
                 # Pass Slack token for integrated mode
+                test_env = get_test_environment()
                 settings = get_settings()
-                slack_token = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+                slack_token = test_env.e2e_test_api_token.get_secret_value() if test_env.e2e_test_api_token else None
                 if slack_token:
                     args.extend(["--slack-token", slack_token])
 

@@ -30,11 +30,12 @@ logger = logging.getLogger(__name__)
 def load_env() -> None:  # noqa: D401 – fixture
     """Load secrets from ``test/e2e_test/.env`` if present."""
     # Note: pydantic-settings handles .env file loading automatically
-    from slack_mcp.settings import get_settings
+    from slack_mcp.settings import get_settings, get_test_environment
 
+    test_env = get_test_environment()
     settings = get_settings(force_reload=True)  # Force reload for test isolation
 
-    token_value = settings.e2e_test_api_token.get_secret_value() if settings.e2e_test_api_token else None
+    token_value = test_env.e2e_test_api_token.get_secret_value() if test_env.e2e_test_api_token else None
     logger.info(f"Using E2E_TEST_API_TOKEN: {'***' + token_value[-4:] if token_value else 'None'}")
 
 

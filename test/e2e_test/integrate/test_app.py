@@ -72,14 +72,15 @@ class UvicornTestServer(uvicorn.Server):
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    from slack_mcp.settings import get_settings
+    from slack_mcp.settings import get_settings, get_test_environment
 
-    original_settings = get_settings()
+    original_test_env = get_test_environment()
+    settings = get_settings()
     original_token = (
-        original_settings.e2e_test_api_token.get_secret_value() if original_settings.e2e_test_api_token else None
+        original_test_env.e2e_test_api_token.get_secret_value() if original_test_env.e2e_test_api_token and hasattr(original_test_env.e2e_test_api_token, 'get_secret_value') else original_test_env.e2e_test_api_token
     )
     original_secret = (
-        original_settings.slack_signing_secret.get_secret_value() if original_settings.slack_signing_secret else None
+        settings.slack_signing_secret.get_secret_value() if settings.slack_signing_secret else None
     )
 
     # Set fake values for testing by creating a new settings instance
@@ -87,15 +88,17 @@ def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     fake_secret = "fake-signing-secret"
 
     # Temporarily update settings for testing
-    from slack_mcp.settings import get_settings
+    from slack_mcp.settings import get_settings, get_test_environment
 
-    settings = get_settings(force_reload=True, e2e_test_api_token=fake_token, slack_signing_secret=fake_secret)
+    settings = get_settings(force_reload=True, slack_signing_secret=fake_secret)
+
+    # Update test environment for E2E token
+    test_env = get_test_environment(force_reload=True)
+    test_env.e2e_test_api_token = fake_token
 
     yield {"token": fake_token, "secret": fake_secret}
 
     # Restore originals by forcing reload
-    if original_token:
-        get_settings(force_reload=True, e2e_test_api_token=original_token)
     if original_secret:
         get_settings(force_reload=True, slack_signing_secret=original_secret)
     else:

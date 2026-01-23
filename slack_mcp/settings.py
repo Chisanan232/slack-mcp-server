@@ -34,7 +34,7 @@ class TestEnvironment(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=".env.test",
+        env_file="./test/.env.test",
         env_file_encoding="utf-8",
         extra="ignore",
         populate_by_name=True,
@@ -47,6 +47,13 @@ class TestEnvironment(BaseSettings):
 
     # Test configuration
     mcp_no_env_file: bool = Field(default=False, alias="MCP_NO_ENV_FILE")
+
+    # Slack test configuration
+    slack_test_channel: Optional[str] = Field(default=None, alias="SLACK_TEST_CHANNEL")
+    slack_test_channel_id: Optional[str] = Field(default=None, alias="SLACK_TEST_CHANNEL_ID")
+
+    # End-to-end test credentials
+    e2e_test_api_token: Optional[SecretStr] = Field(default=None, alias="E2E_TEST_API_TOKEN")
     slack_events_topic: str = Field(default="slack_events", alias="SLACK_EVENTS_TOPIC")
 
     @property
@@ -81,13 +88,6 @@ class SettingModel(BaseSettings):
     )
     slack_user_token: Optional[SecretStr] = Field(default=None)
     slack_signing_secret: Optional[SecretStr] = Field(default=None)
-
-    # Slack test configuration
-    slack_test_channel: Optional[str] = Field(default=None)
-    slack_test_channel_id: Optional[str] = Field(default=None)
-
-    # End-to-end test credentials
-    e2e_test_api_token: Optional[SecretStr] = Field(default=None)
 
     # Message queue backend settings
     queue_backend: QueueBackend = Field(default=QueueBackend.MEMORY)
