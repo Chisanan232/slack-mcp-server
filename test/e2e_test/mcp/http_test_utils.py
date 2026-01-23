@@ -9,12 +9,15 @@ import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager
+from test.settings import get_test_environment
 from typing import Any, AsyncGenerator
 
 import httpx
 from mcp import ClientSession
 from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
+
+from slack_mcp.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +56,9 @@ class HttpServerManager:
             if self.integrated:
                 args.append("--integrated")
                 # Pass Slack token for integrated mode
-                slack_token = os.getenv("E2E_TEST_API_TOKEN")
+                test_env = get_test_environment()
+                settings = get_settings()
+                slack_token = test_env.e2e_test_api_token.get_secret_value() if test_env.e2e_test_api_token else None
                 if slack_token:
                     args.extend(["--slack-token", slack_token])
 
@@ -64,14 +69,8 @@ class HttpServerManager:
             if env:
                 server_env.update(env)
 
-            # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
-            # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
-            if "E2E_TEST_API_TOKEN" in server_env:
-                server_env["SLACK_BOT_TOKEN"] = server_env["E2E_TEST_API_TOKEN"]
-            else:
-                e2e_token = os.getenv("E2E_TEST_API_TOKEN")
-                if e2e_token:
-                    server_env["SLACK_BOT_TOKEN"] = e2e_token
+            # Note: The server will automatically read E2E_TEST_API_TOKEN
+            # from settings thanks to the AliasChoices in the settings model
 
             # Start server process with error handling
             try:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from typing import Any, Dict, Generator, List
 
 import pytest
@@ -17,25 +16,30 @@ from slack_mcp.integrate.app import integrated_factory
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    original_token = os.environ.get("SLACK_BOT_TOKEN")
-    original_secret = os.environ.get("SLACK_SIGNING_SECRET")
+    from slack_mcp.settings import get_settings
 
-    # Set fake values for testing
-    os.environ["SLACK_BOT_TOKEN"] = "xoxb-fake-token-for-testing"
-    os.environ["SLACK_SIGNING_SECRET"] = "fake-signing-secret"
+    original_settings = get_settings()
+    original_token = original_settings.slack_bot_token.get_secret_value() if original_settings.slack_bot_token else None
+    original_secret = (
+        original_settings.slack_signing_secret.get_secret_value() if original_settings.slack_signing_secret else None
+    )
 
-    yield {"token": os.environ["SLACK_BOT_TOKEN"], "secret": os.environ["SLACK_SIGNING_SECRET"]}
+    # Set fake values for testing by creating a new settings instance
+    fake_token = "xoxb-fake-token-for-testing"
+    fake_secret = "fake-signing-secret"
 
-    # Restore originals
-    if original_token is not None:
-        os.environ["SLACK_BOT_TOKEN"] = original_token
+    # Temporarily update settings for testing
+    settings = get_settings(force_reload=True, slack_bot_token=fake_token, slack_signing_secret=fake_secret)
+
+    yield {"token": fake_token, "secret": fake_secret}
+
+    # Restore originals by forcing reload
+    if original_token:
+        get_settings(force_reload=True, slack_bot_token=original_token)
+    if original_secret:
+        get_settings(force_reload=True, slack_signing_secret=original_secret)
     else:
-        del os.environ["SLACK_BOT_TOKEN"]
-
-    if original_secret is not None:
-        os.environ["SLACK_SIGNING_SECRET"] = original_secret
-    else:
-        del os.environ["SLACK_SIGNING_SECRET"]
+        get_settings(force_reload=True)
 
 
 @pytest.fixture

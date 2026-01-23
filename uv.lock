@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.12, <3.14"
 
 [[package]]
@@ -1047,17 +1047,20 @@ all = [
     { name = "fastapi" },
     { name = "mcp", extra = ["cli"] },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "slack-sdk" },
     { name = "uvicorn" },
 ]
 mcp = [
     { name = "mcp", extra = ["cli"] },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "slack-sdk" },
 ]
 webhook = [
     { name = "fastapi" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
     { name = "uvicorn" },
 ]
 
@@ -1071,7 +1074,6 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "pytest-rerunfailures" },
-    { name = "python-dotenv" },
 ]
 pre-commit-ci = [
     { name = "mypy" },
@@ -1089,6 +1091,9 @@ requires-dist = [
     { name = "pydantic", marker = "extra == 'all'", specifier = ">=2.11.7" },
     { name = "pydantic", marker = "extra == 'mcp'", specifier = ">=2.11.7" },
     { name = "pydantic", marker = "extra == 'webhook'", specifier = ">=2.11.7" },
+    { name = "pydantic-settings", marker = "extra == 'all'", specifier = ">=2.7.1" },
+    { name = "pydantic-settings", marker = "extra == 'mcp'", specifier = ">=2.7.1" },
+    { name = "pydantic-settings", marker = "extra == 'webhook'", specifier = ">=2.7.1" },
     { name = "slack-sdk", marker = "extra == 'all'", specifier = ">=3.36.0" },
     { name = "slack-sdk", marker = "extra == 'mcp'", specifier = ">=3.36.0" },
     { name = "uvicorn", marker = "extra == 'all'", specifier = ">=0.35.0" },
@@ -1106,7 +1111,6 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.2.1,<8" },
     { name = "pytest-mock", specifier = ">=3.14.1,<4" },
     { name = "pytest-rerunfailures", specifier = ">=15.1,<17" },
-    { name = "python-dotenv", specifier = ">=1.1.1,<2" },
 ]
 pre-commit-ci = [
     { name = "mypy", specifier = ">=1.16.1,<2" },

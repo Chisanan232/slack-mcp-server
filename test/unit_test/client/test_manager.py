@@ -26,9 +26,16 @@ class TestSlackClientManager:
         """Reset the singleton instance before each test."""
         # Reset the singleton instance
         SlackClientManager._instance = None
+
+        # Reset settings as well
+        from slack_mcp import settings as settings_mod
+
+        settings_mod._settings = None
+
         yield
         # Clean up after test
         SlackClientManager._instance = None
+        settings_mod._settings = None
 
     @pytest.fixture
     def manager(self) -> SlackClientManager:
@@ -41,6 +48,7 @@ class TestSlackClientManager:
         # Clear any existing token environment variables
         monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
         monkeypatch.delenv("SLACK_TOKEN", raising=False)
+        monkeypatch.setenv("MCP_NO_ENV_FILE", "true")
         return monkeypatch
 
     def test_initialization(self) -> None:
@@ -139,48 +147,58 @@ class TestSlackClientManager:
     def test_get_async_client_from_env(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test getting an async client using environment variables."""
         test_token = "xoxb-test-env"
-        mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
 
-        # Mock RetryableSlackClientFactory and its create_async_client method
-        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
-            mock_factory = mock.MagicMock()
-            mock_factory_class.return_value = mock_factory
+        # Mock settings to return the test token
+        with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = test_token
+            mock_get_settings.return_value = mock_settings
 
-            mock_client = mock.MagicMock()
-            mock_client.retry_handlers = []
-            mock_factory.create_async_client.return_value = mock_client
+            # Mock RetryableSlackClientFactory and its create_async_client method
+            with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
+                mock_factory = mock.MagicMock()
+                mock_factory_class.return_value = mock_factory
 
-            client = manager.get_async_client()
+                mock_client = mock.MagicMock()
+                mock_client.retry_handlers = []
+                mock_factory.create_async_client.return_value = mock_client
 
-            # Verify client was created with the token from env
-            mock_factory.create_async_client.assert_called_once_with(test_token)
-            assert client is mock_client
+                client = manager.get_async_client()
 
-            # Verify client is cached
-            assert f"{test_token}:True" in manager._async_clients
+                # Verify client was created with the token from settings
+                mock_factory.create_async_client.assert_called_once_with(test_token)
+                assert client is mock_client
+
+                # Verify client is cached
+                assert f"{test_token}:True" in manager._async_clients
 
     def test_get_sync_client_from_env(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test getting a sync client using environment variables."""
         test_token = "xoxb-test-env"
-        mock_env_tokens.setenv("SLACK_BOT_TOKEN", test_token)
 
-        # Mock RetryableSlackClientFactory and its create_sync_client method
-        with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
-            mock_factory = mock.MagicMock()
-            mock_factory_class.return_value = mock_factory
+        # Mock settings to return the test token
+        with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = test_token
+            mock_get_settings.return_value = mock_settings
 
-            mock_client = mock.MagicMock()
-            mock_client.retry_handlers = []
-            mock_factory.create_sync_client.return_value = mock_client
+            # Mock RetryableSlackClientFactory and its create_sync_client method
+            with mock.patch("slack_mcp.client.manager.RetryableSlackClientFactory") as mock_factory_class:
+                mock_factory = mock.MagicMock()
+                mock_factory_class.return_value = mock_factory
 
-            client = manager.get_sync_client()
+                mock_client = mock.MagicMock()
+                mock_client.retry_handlers = []
+                mock_factory.create_sync_client.return_value = mock_client
 
-            # Verify client was created with the token from env
-            mock_factory.create_sync_client.assert_called_once_with(test_token)
-            assert client is mock_client
+                client = manager.get_sync_client()
 
-            # Verify client is cached
-            assert f"{test_token}:True" in manager._sync_clients
+                # Verify client was created with the token from settings
+                mock_factory.create_sync_client.assert_called_once_with(test_token)
+                assert client is mock_client
+
+                # Verify client is cached
+                assert f"{test_token}:True" in manager._sync_clients
 
     def test_get_async_client_without_retries(self, manager: SlackClientManager) -> None:
         """Test getting an async client without retries."""
@@ -444,15 +462,21 @@ class TestSlackClientManager:
 
     def test_no_token_error(self, manager: SlackClientManager, mock_env_tokens: MonkeyPatch) -> None:
         """Test error when no token is available."""
-        with pytest.raises(ValueError) as excinfo:
-            manager.get_async_client()
+        # Mock settings to return None for token
+        with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = None
+            mock_get_settings.return_value = mock_settings
 
-        assert "Slack token not found" in str(excinfo.value)
+            with pytest.raises(ValueError) as excinfo:
+                manager.get_async_client()
 
-        with pytest.raises(ValueError) as excinfo:
-            manager.get_sync_client()
+            assert "Slack token not found" in str(excinfo.value)
 
-        assert "Slack token not found" in str(excinfo.value)
+            with pytest.raises(ValueError) as excinfo:
+                manager.get_sync_client()
+
+            assert "Slack token not found" in str(excinfo.value)
 
 
 class TestGetClientManager:

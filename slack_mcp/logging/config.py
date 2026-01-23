@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from slack_mcp.settings import get_settings
+
 # Default log format
 DEFAULT_LOG_FORMAT = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
 DEFAULT_DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
@@ -176,36 +178,39 @@ def add_logging_arguments(parser):
     Args:
         parser: Argument parser to add logging options to.
     """
+    # Get settings for defaults
+    settings = get_settings()
+
     log_group = parser.add_argument_group("Logging Options")
 
     log_group.add_argument(
         "--log-level",
         dest="log_level",
         type=str.upper,
-        default=os.getenv("LOG_LEVEL", DEFAULT_LEVEL),
+        default=settings.log_level,
         choices=LOG_LEVELS,
-        help=f"Set the logging level (default: {DEFAULT_LEVEL})",
+        help=f"Set the logging level (default: {settings.log_level})",
     )
 
     log_group.add_argument(
         "--log-file",
         dest="log_file",
-        default=os.getenv("LOG_FILE"),
+        default=settings.log_file,
         help="Path to log file. If not set, logs to console only.",
     )
 
     log_group.add_argument(
         "--log-dir",
         dest="log_dir",
-        default=os.getenv("LOG_DIR", DEFAULT_LOG_DIR),
-        help=f"Directory to store log files (default: {DEFAULT_LOG_DIR})",
+        default=settings.log_dir,
+        help=f"Directory to store log files (default: {settings.log_dir})",
     )
 
     log_group.add_argument(
         "--log-format",
         dest="log_format",
-        default=os.getenv("LOG_FORMAT", DEFAULT_LOG_FORMAT),
-        help="Log message format (default: '%%(asctime)s [%%(levelname)8s] %%(name)s: %%(message)s')",
+        default=settings.log_format,
+        help=f"Log message format (default: '{settings.log_format}')",
     )
 
     return parser

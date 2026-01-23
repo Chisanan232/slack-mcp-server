@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Generator
+from typing import Generator, Optional
+from unittest import mock
 from unittest.mock import MagicMock, patch
 
 import pytest
 from slack_sdk.web.async_client import AsyncWebClient
 
+from slack_mcp import settings as settings_mod
 from slack_mcp.client.manager import SlackClientManager, get_client_manager
 from slack_mcp.mcp import server as srv
 
@@ -20,21 +22,26 @@ def clean_env(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def reset_slack_clients() -> Generator[None, None, None]:
+def reset_slack_clients(monkeypatch: pytest.MonkeyPatch) -> Generator[None, None, None]:
     """Reset the SlackClientManager singleton for each test."""
-    # Save original instance
+    # Save original instances
     original_instance = SlackClientManager._instance
     original_default_token = srv._DEFAULT_TOKEN
+    original_settings = settings_mod._settings
 
-    # Create a fresh instance for testing
+    # Create fresh instances for testing
     SlackClientManager._instance = None
-    manager = get_client_manager()
+    settings_mod._settings = None
+
+    # Ensure settings don't load from .env by default in tests
+    monkeypatch.setenv("MCP_NO_ENV_FILE", "true")
 
     yield
 
     # Restore original values
     SlackClientManager._instance = original_instance
     srv._DEFAULT_TOKEN = original_default_token
+    settings_mod._settings = original_settings
 
 
 class TestGetSlackClient:
@@ -104,41 +111,51 @@ class TestGetSlackClient:
 
     def test_get_client_from_env(self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch) -> None:
         """Should use token from SLACK_BOT_TOKEN environment variable."""
-        # Set environment variable
-        monkeypatch.setenv("SLACK_BOT_TOKEN", "xoxb-bot-token")
-        monkeypatch.delenv("SLACK_TOKEN", raising=False)
+        # Mock settings to return the test token
+        with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = "xoxb-bot-token"
+            mock_get_settings.return_value = mock_settings
 
-        # Call without token parameter
-        client: AsyncWebClient = srv.get_slack_client()
+            # Call without token parameter
+            client: AsyncWebClient = srv.get_slack_client()
 
-        # Should use token from environment
-        assert client.token == "xoxb-bot-token"
-        manager = get_client_manager()
-        cache_key = "xoxb-bot-token:True"  # Default is use_retries=True
-        assert cache_key in manager._async_clients
+            # Should use token from settings
+            assert client.token == "xoxb-bot-token"
+            manager = get_client_manager()
+            cache_key = "xoxb-bot-token:True"  # Default is use_retries=True
+            assert cache_key in manager._async_clients
 
     def test_get_client_fallback_to_slack_token(
         self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         """Should fallback to SLACK_TOKEN if SLACK_BOT_TOKEN is not set."""
-        # Set only SLACK_TOKEN
-        monkeypatch.delenv("SLACK_BOT_TOKEN", raising=False)
-        monkeypatch.setenv("SLACK_TOKEN", "xoxp-user-token")
+        # Mock settings to return the test token
+        with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = "xoxp-user-token"
+            mock_get_settings.return_value = mock_settings
 
-        # Call without token parameter
-        client: AsyncWebClient = srv.get_slack_client()
+            # Call without token parameter
+            client: AsyncWebClient = srv.get_slack_client()
 
-        # Should use token from SLACK_TOKEN
-        assert client.token == "xoxp-user-token"
-        manager = get_client_manager()
-        cache_key = "xoxp-user-token:True"  # Default is use_retries=True
-        assert cache_key in manager._async_clients
+            # Should use token from settings
+            assert client.token == "xoxp-user-token"
+            manager = get_client_manager()
+            cache_key = "xoxp-user-token:True"  # Default is use_retries=True
+            assert cache_key in manager._async_clients
 
     def test_get_client_no_token_raises_error(self, reset_slack_clients: None, clean_env: None) -> None:
         """Should raise ValueError if no token is provided or found in environment."""
-        # Call without token and no environment variables
-        with pytest.raises(ValueError, match="Slack token not found"):
-            srv.get_slack_client()
+        # Mock settings to return None for token
+        with mock.patch("slack_mcp.client.manager.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_bot_token.get_secret_value.return_value = None
+            mock_get_settings.return_value = mock_settings
+
+            # Call without token and no environment variables
+            with pytest.raises(ValueError, match="Slack token not found"):
+                srv.get_slack_client()
 
     @pytest.mark.parametrize(
         "initial_retry,new_retry,should_be_different",
@@ -300,37 +317,24 @@ class TestUpdateSlackClient:
             assert manager._async_clients[cache_key] is replacement_client
             assert manager._async_clients[cache_key] is not original_client
 
-    def test_update_with_empty_token_raises_error(
-        self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Should raise ValueError when token is empty in non-test environments."""
+    @pytest.mark.parametrize(
+        "invalid_token",
+        [
+            # Try to update with empty token
+            "",
+            # Try with None token
+            None,
+            # Try with whitespace-only token
+            "   ",
+        ],
+    )
+    def test_update_with_invalid_tokens(self, reset_slack_clients: None, invalid_token: Optional[str]) -> None:
+        """Should raise ValueError for invalid tokens."""
         # Setup
         client = AsyncWebClient(token="any-token")
 
-        # Remove PYTEST_CURRENT_TEST environment variable to simulate non-test environment
-        monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
-
-        # Try to update with empty token
         with pytest.raises(ValueError, match="Token cannot be empty or None"):
-            srv.update_slack_client("", client)
-
-        # Try with None token
-        with pytest.raises(ValueError, match="Token cannot be empty or None"):
-            srv.update_slack_client(None, client)
-
-    def test_update_with_empty_token_in_test_environment(self, reset_slack_clients: None) -> None:
-        """Should use a dummy token when token is empty in test environments."""
-        # Setup
-        client = AsyncWebClient(token="any-token")
-
-        # In test environment (PYTEST_CURRENT_TEST is set by pytest), empty tokens should be replaced with dummy token
-        # Try to update with empty token
-        updated_client = srv.update_slack_client("", client)
-        assert updated_client.token == "xoxb-test-token-for-pytest"
-
-        # Try with None token
-        updated_client = srv.update_slack_client(None, client)
-        assert updated_client.token == "xoxb-test-token-for-pytest"
+            srv.update_slack_client(invalid_token, client)  # type: ignore[arg-type]
 
 
 class TestSetSlackClientRetryCount:

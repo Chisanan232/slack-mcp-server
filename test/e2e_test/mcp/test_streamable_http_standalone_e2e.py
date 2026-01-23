@@ -5,9 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import uuid
-from pathlib import Path
+from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 from test.e2e_test.mcp.http_test_utils import (
     get_free_port,
     http_mcp_client_session,
@@ -16,9 +15,9 @@ from test.e2e_test.mcp.http_test_utils import (
     safe_call_tool,
 )
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
+from typing import Any, Dict
 
 import pytest
-from dotenv import load_dotenv
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 
@@ -27,20 +26,6 @@ pytestmark = pytest.mark.asyncio
 # Set up logging for better diagnostics
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def load_env() -> None:  # noqa: D401 – fixture
-    """Load secrets from ``test/e2e_test/.env`` if present."""
-    env_path = Path("./.env")
-    logger.info(f"Loading secrets from {env_path}")
-    if env_path.exists():
-        load_dotenv(env_path)
-        logger.info("Environment loaded")
-    else:
-        logger.warning(f"Environment file not found: {env_path}")
-
-
-load_env()
 
 # Create a retry-enabled client factory with a higher retry count for e2e tests
 client_factory = RetryableSlackClientFactory(max_retry_count=5)
@@ -70,14 +55,14 @@ async def _add_reaction(client, channel, name, timestamp):
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D401 – E2E
     """Test posting a message via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    bot_token, channel_id = get_e2e_credentials()
+
     unique_text = f"mcp-e2e-streamable-http-standalone-{uuid.uuid4()}"
 
     logger.info(f"Testing Streamable-HTTP standalone with channel ID: {channel_id}")
@@ -161,14 +146,14 @@ async def test_streamable_http_standalone_post_message_e2e() -> None:  # noqa: D
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     """Test adding emoji reactions via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    bot_token, channel_id = get_e2e_credentials()
+
     unique_text = f"mcp-e2e-streamable-http-standalone-reaction-{uuid.uuid4()}"
 
     logger.info(f"Testing Streamable-HTTP standalone reactions with channel ID: {channel_id}")
@@ -246,13 +231,22 @@ async def test_streamable_http_standalone_add_reactions_e2e() -> None:  # noqa: 
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D401 – E2E
     """Test reading emoji list via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
+    # Get required values from settings
+    from test.settings import get_test_environment
+
+    from slack_mcp.settings import get_settings
+
+    test_env = get_test_environment()
+    settings = get_settings()
+    bot_token = test_env.e2e_test_api_token.get_secret_value() if test_env.e2e_test_api_token else None
+
+    if not bot_token:
+        pytest.fail("E2E_TEST_API_TOKEN not set")
 
     logger.info("Testing Streamable-HTTP standalone read emojis")
 
@@ -260,7 +254,7 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
     port = get_free_port()
 
     # Prepare server environment
-    server_env = {"E2E_TEST_API_TOKEN": bot_token}
+    server_env: Dict[str, Any] = {"E2E_TEST_API_TOKEN": bot_token}
 
     logger.info(f"Starting Streamable-HTTP standalone server on port {port}")
 
@@ -300,14 +294,14 @@ async def test_streamable_http_standalone_read_emojis_e2e() -> None:  # noqa: D4
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_streamable_http_standalone_thread_operations_e2e() -> None:  # noqa: D401 – E2E
     """Test thread operations via Streamable-HTTP transport in standalone mode."""
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    bot_token, channel_id = get_e2e_credentials()
+
     unique_parent_text = f"mcp-e2e-streamable-http-standalone-parent-{uuid.uuid4()}"
     unique_reply_texts = [f"mcp-e2e-streamable-http-standalone-reply1-{uuid.uuid4()}"]
 

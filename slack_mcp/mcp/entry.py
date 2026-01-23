@@ -145,15 +145,14 @@ Docker deployment instructions.
 """
 
 import logging
-import os
 import pathlib
 from typing import Final, Optional
 
 import uvicorn
-from dotenv import load_dotenv
 
 from slack_mcp.integrate.app import integrated_factory
 from slack_mcp.logging.config import setup_logging_from_args
+from slack_mcp.settings import get_settings
 
 from .app import mcp_factory
 from .cli import _parse_args
@@ -248,20 +247,28 @@ def main(argv: Optional[list[str]] = None) -> None:
     # Use centralized logging configuration
     setup_logging_from_args(args)
 
-    # Set Slack token from command line argument first (as fallback)
+    # Initialize settings using SettingModel (pydantic-settings)
+    # 1. Prepare kwargs for settings with CLI token as fallback
+    settings_kwargs = {}
     if args.slack_token:
-        os.environ["SLACK_BOT_TOKEN"] = args.slack_token
-        _LOG.info("Using Slack token from command line argument (fallback)")
+        settings_kwargs["slack_bot_token"] = args.slack_token
 
-    # Load environment variables from .env file if not disabled
-    # This will override CLI arguments, giving .env file priority
-    if not args.no_env_file:
-        env_path = pathlib.Path(args.env_file)
-        if env_path.exists():
-            _LOG.info(f"Loading environment variables from {env_path.resolve()}")
-            load_dotenv(dotenv_path=env_path, override=True)
-        else:
-            _LOG.warning(f"Environment file not found: {env_path.resolve()}")
+    # 2. Initialize SettingModel which will pick up values from .env file,
+    # environment variables, and CLI fallbacks
+    # Note: pydantic-settings handles .env file loading automatically
+    try:
+        # Check if .env file exists and warn if it doesn't (for user feedback)
+        if not args.no_env_file and args.env_file:
+            env_path = pathlib.Path(args.env_file)
+            if not env_path.exists():
+                _LOG.warning(f"Environment file not found: {env_path.resolve()}")
+
+        settings = get_settings(
+            env_file=args.env_file, no_env_file=args.no_env_file, force_reload=True, **settings_kwargs
+        )
+    except Exception as e:
+        _LOG.error(f"Failed to load configuration: {e}")
+        return
 
     # Determine if we should run the integrated server
     if args.integrated:
@@ -271,8 +278,9 @@ def main(argv: Optional[list[str]] = None) -> None:
 
         _LOG.info(f"Starting integrated Slack server (MCP + Webhook) on {args.host}:{args.port}")
 
-        # Get effective token (CLI argument or environment variable)
-        effective_token = args.slack_token or os.environ.get("SLACK_BOT_TOKEN")
+        # Get effective token from settings
+        assert settings.slack_bot_token
+        effective_token = settings.slack_bot_token.get_secret_value()
 
         # Create integrated app with both MCP and webhook functionality
         app = integrated_factory.create(

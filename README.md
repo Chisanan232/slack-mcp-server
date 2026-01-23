@@ -110,12 +110,27 @@ poetry add slack-mcp -E all
 
 #### 1. Set Up Environment Variables
 
+**For Production/Development:**
 ```bash
+# Copy the production environment template
+cp .env.example .env
+
+# Edit with your actual values
 # Required: Slack bot token
 export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
 
 # Optional: For webhook server
 export SLACK_SIGNING_SECRET="your-signing-secret"
+```
+
+**For Testing:**
+```bash
+# Copy the test environment template
+cp test/.env.test.example test/.env.test
+
+# Edit with your test values (used by pytest)
+# Required: E2E test token
+export E2E_TEST_API_TOKEN="xoxb-your-test-token"
 ```
 
 #### 2. Start MCP Server (Standalone)

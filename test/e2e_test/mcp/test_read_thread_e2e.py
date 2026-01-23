@@ -9,11 +9,10 @@ import os
 import sys
 import uuid
 from datetime import timedelta
-from pathlib import Path
+from test.e2e_test.common_utils import get_e2e_credentials, should_run_e2e_tests
 from test.e2e_test.slack_retry_utils import retry_slack_api_call
 
 import pytest
-from dotenv import load_dotenv
 
 from slack_mcp.client.factory import RetryableSlackClientFactory
 
@@ -22,20 +21,6 @@ pytestmark = pytest.mark.asyncio
 # Set up logging for better diagnostics
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-def load_env() -> None:  # noqa: D401 – fixture
-    """Load secrets from ``test/e2e_test/.env`` if present."""
-    env_path = Path("./.env")
-    logger.info(f"Loading secrets from {env_path}")
-    if env_path.exists():
-        load_dotenv(env_path)
-        logger.info("Environment loaded")
-    else:
-        logger.warning(f"Environment file not found: {env_path}")
-
-
-load_env()
 
 # Create a retry-enabled client factory with a higher retry count for e2e tests
 client_factory = RetryableSlackClientFactory(max_retry_count=5)
@@ -55,7 +40,7 @@ async def _post_message(client, channel, text, thread_ts=None):
 
 
 @pytest.mark.skipif(
-    not os.getenv("E2E_TEST_API_TOKEN") or not os.getenv("SLACK_TEST_CHANNEL_ID"),
+    not should_run_e2e_tests(),
     reason="Real Slack credentials (E2E_TEST_API_TOKEN, SLACK_TEST_CHANNEL_ID) not provided – skipping E2E test.",
 )
 async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
@@ -64,9 +49,9 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    # Get required values from environment
-    bot_token = os.environ["E2E_TEST_API_TOKEN"]
-    channel_id = os.environ["SLACK_TEST_CHANNEL_ID"]
+    # Get required values from settings
+    bot_token, channel_id = get_e2e_credentials()
+
     unique_text = f"mcp-e2e-thread-test-{uuid.uuid4()}"
 
     logger.info(f"Testing with channel ID: {channel_id}")
@@ -85,9 +70,8 @@ async def test_read_thread_messages_e2e() -> None:  # noqa: D401 – E2E
     custom_env = {**os.environ}  # Create a copy
     custom_env["E2E_TEST_API_TOKEN"] = bot_token  # Ensure token is explicitly set
 
-    # Map E2E_TEST_API_TOKEN to SLACK_BOT_TOKEN for the server
-    # The server application expects SLACK_BOT_TOKEN, but E2E tests use E2E_TEST_API_TOKEN
-    custom_env["SLACK_BOT_TOKEN"] = bot_token
+    # Note: The server will automatically read E2E_TEST_API_TOKEN
+    # from settings thanks to the AliasChoices in the settings model
 
     # Use simple transport args with explicit log level and stdio transport
     server_params = StdioServerParameters(

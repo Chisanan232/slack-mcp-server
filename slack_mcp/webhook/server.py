@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Final, Optional
 
 from abe.backends.message_queue.base.protocol import MessageQueueBackend
@@ -50,6 +49,7 @@ from slack_sdk.signature import SignatureVerifier
 from slack_sdk.web.async_client import AsyncWebClient
 
 from slack_mcp.client.manager import get_client_manager
+from slack_mcp.settings import get_settings
 
 from .app import web_factory
 from .models import SlackEventModel, UrlVerificationModel, deserialize
@@ -160,7 +160,7 @@ async def verify_slack_request(request: Request, signing_secret: str | None = No
     request : Request
         The FastAPI request object
     signing_secret : str | None
-        The Slack signing secret to use for verification. If None, will use SLACK_SIGNING_SECRET env var.
+        The Slack signing secret to use for verification. If None, will use SLACK_SIGNING_SECRET from settings.
 
     Returns
     -------
@@ -168,9 +168,12 @@ async def verify_slack_request(request: Request, signing_secret: str | None = No
         True if the request is valid, False otherwise
     """
     if signing_secret is None:
-        signing_secret = os.environ.get("SLACK_SIGNING_SECRET", "")
+        settings = get_settings()
+        if settings.slack_signing_secret:
+            signing_secret = settings.slack_signing_secret.get_secret_value()
+
         if not signing_secret:
-            _LOG.error("SLACK_SIGNING_SECRET not set in environment")
+            _LOG.error("SLACK_SIGNING_SECRET not set in settings or environment")
             return False
 
     verifier = SignatureVerifier(signing_secret)
@@ -318,8 +321,8 @@ def create_slack_app() -> FastAPI:
 
             # Publish event to queue
             try:
-                # Get the topic for Slack events from environment or use default (read at runtime)
-                slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
+                # Get the topic for Slack events from settings
+                slack_events_topic = get_settings().slack_events_topic
                 await backend.publish(slack_events_topic, event_dict)
                 _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
             except Exception as e:
@@ -331,8 +334,8 @@ def create_slack_app() -> FastAPI:
 
             # Publish event to queue
             try:
-                # Get the topic for Slack events from environment or use default (read at runtime)
-                slack_events_topic = os.environ.get("SLACK_EVENTS_TOPIC", DEFAULT_SLACK_EVENTS_TOPIC)
+                # Get the topic for Slack events from settings
+                slack_events_topic = get_settings().slack_events_topic
                 await backend.publish(slack_events_topic, slack_event_dict)
                 _LOG.info(f"Published event of type '{event_type}' to queue topic '{slack_events_topic}'")
             except Exception as e:

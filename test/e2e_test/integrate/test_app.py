@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import socket
 import warnings
 from contextlib import asynccontextmanager, suppress
@@ -73,25 +72,41 @@ class UvicornTestServer(uvicorn.Server):
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    original_token = os.environ.get("E2E_TEST_API_TOKEN")
-    original_secret = os.environ.get("SLACK_SIGNING_SECRET")
+    from test.settings import get_test_environment
 
-    # Set fake values for testing
-    os.environ["E2E_TEST_API_TOKEN"] = "xoxb-fake-token-for-testing"
-    os.environ["SLACK_SIGNING_SECRET"] = "fake-signing-secret"
+    from slack_mcp.settings import get_settings
 
-    yield {"token": os.environ["E2E_TEST_API_TOKEN"], "secret": os.environ["SLACK_SIGNING_SECRET"]}
+    original_test_env = get_test_environment()
+    settings = get_settings()
+    original_token = (
+        original_test_env.e2e_test_api_token.get_secret_value()
+        if original_test_env.e2e_test_api_token and hasattr(original_test_env.e2e_test_api_token, "get_secret_value")
+        else original_test_env.e2e_test_api_token
+    )
+    original_secret = settings.slack_signing_secret.get_secret_value() if settings.slack_signing_secret else None
 
-    # Restore originals
-    if original_token is not None:
-        os.environ["E2E_TEST_API_TOKEN"] = original_token
+    # Set fake values for testing by creating a new settings instance
+    fake_token = "xoxb-fake-token-for-testing"
+    fake_secret = "fake-signing-secret"
+
+    # Temporarily update settings for testing
+    from test.settings import get_test_environment
+
+    from slack_mcp.settings import get_settings
+
+    settings = get_settings(force_reload=True, slack_signing_secret=fake_secret)
+
+    # Update test environment for E2E token
+    test_env = get_test_environment(force_reload=True)
+    test_env.e2e_test_api_token = fake_token
+
+    yield {"token": fake_token, "secret": fake_secret}
+
+    # Restore originals by forcing reload
+    if original_secret:
+        get_settings(force_reload=True, slack_signing_secret=original_secret)
     else:
-        del os.environ["E2E_TEST_API_TOKEN"]
-
-    if original_secret is not None:
-        os.environ["SLACK_SIGNING_SECRET"] = original_secret
-    else:
-        del os.environ["SLACK_SIGNING_SECRET"]
+        get_settings(force_reload=True)
 
 
 @pytest.fixture(autouse=True)
@@ -183,8 +198,13 @@ async def sse_server(
     fake_slack_credentials: Dict[str, str], real_queue_backend: Any
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """Test SSE integrated server configuration without starting real server."""
-    # Set environment variables for the test
+    # Set environment variables for the test using settings
+    import os
+
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
+    from test.settings import get_test_environment
+
+    test_env = get_test_environment(force_reload=True)
 
     # Reset MCP factory before creating integrated app to prevent singleton conflicts
     MCPServerFactory.reset()
@@ -228,8 +248,13 @@ async def http_server(
     fake_slack_credentials: Dict[str, str], real_queue_backend: Any
 ) -> AsyncGenerator[Dict[str, Any], None]:
     """Test streamable-HTTP integrated server configuration without starting real server."""
-    # Set environment variables for the test
+    # Set environment variables for the test using settings
+    import os
+
     os.environ["SLACK_EVENTS_TOPIC"] = "test_slack_events"
+    from test.settings import get_test_environment
+
+    test_env = get_test_environment(force_reload=True)
 
     # Reset MCP factory before creating integrated app to prevent singleton conflicts
     MCPServerFactory.reset()
