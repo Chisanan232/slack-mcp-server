@@ -155,10 +155,23 @@ def test_main(
         patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock) as mock_run_slack_server,
         patch("slack_mcp.webhook.entry.mcp_factory.get") as mock_mcp_factory_get,
         patch("slack_mcp.webhook.entry.get_settings") as mock_get_settings,
+        patch("slack_mcp.logging.config.get_settings") as mock_logging_get_settings,
     ):
         # Configure the mock MCP factory to return a mock FastMCP instance
         mock_mcp_instance = MagicMock(spec=FastMCP)
         mock_mcp_factory_get.return_value = mock_mcp_instance
+
+        # Configure mock_get_settings to return a proper settings object with string values
+        mock_settings = MagicMock()
+        mock_settings.slack_bot_token = None
+        mock_settings.slack_signing_secret = None
+        mock_settings.slack_events_topic = "slack_events"
+        mock_settings.log_level = "INFO"
+        mock_settings.log_file = None
+        mock_settings.log_dir = "logs"
+        mock_settings.log_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+        mock_get_settings.return_value = mock_settings
+        mock_logging_get_settings.return_value = mock_settings
 
         # Run the main function
         main()
@@ -297,6 +310,7 @@ def test_webhook_entry_dotenv_priority_over_cli():
         patch("slack_mcp.webhook.entry.asyncio.run") as mock_run,
         patch("slack_mcp.webhook.entry.setup_logging_from_args"),
         patch("slack_mcp.webhook.entry.get_settings", side_effect=mock_get_settings),
+        patch("slack_mcp.logging.config.get_settings", side_effect=mock_get_settings),
         patch("slack_mcp.webhook.entry.pathlib.Path") as mock_path,
         patch("slack_mcp.webhook.entry.register_mcp_tools"),
         patch("slack_mcp.webhook.entry.run_slack_server", new_callable=MagicMock),
@@ -314,3 +328,41 @@ def test_webhook_entry_dotenv_priority_over_cli():
         # Verify that get_settings was called with CLI token as kwargs
         # but the .env file (simulated in mock) would take priority
         # This tests the priority mechanism in pydantic-settings
+
+
+def test_webhook_entry_handles_settings_load_failure():
+    """Test that webhook main() handles get_settings() exceptions gracefully (line 527-530)."""
+    # Mock _parse_args to return a simple mock that avoids validation issues
+    with patch("slack_mcp.webhook.entry._parse_args") as mock_parse_args:
+        mock_args = MagicMock()
+        mock_args.slack_token = None
+        mock_args.env_file = ".env"
+        mock_args.no_env_file = False
+        mock_args.host = "0.0.0.0"
+        mock_args.port = 8000
+        mock_args.mount_path = None
+        mock_args.integrated = False
+        mock_args.mcp_transport = "sse"
+        mock_args.mcp_mount_path = "/mcp"
+        mock_args.retry = 3
+        mock_args.log_level = "INFO"
+        mock_args.log_file = None
+        mock_args.log_dir = "logs"
+        mock_args.log_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+        mock_parse_args.return_value = mock_args
+
+        # Mock get_settings to raise an exception only in the main logic, not during parsing
+        with patch("slack_mcp.webhook.entry.get_settings", side_effect=Exception("Configuration load failed")):
+            # Don't mock logging.config.get_settings here so CLI parsing works
+            with patch("slack_mcp.webhook.entry.setup_logging_from_args"):
+                with patch("slack_mcp.webhook.entry.mcp_factory") as mock_factory:
+                    mock_factory.get.return_value.sse_app.return_value = MagicMock()
+                    
+                    with patch("slack_mcp.webhook.entry._LOG") as mock_log:
+                        # This should not raise an exception
+                        result = main([])
+                        
+                        # Should return None (early exit) when configuration fails
+                        assert result is None
+                        # Should log the error
+                        mock_log.error.assert_called_once()
