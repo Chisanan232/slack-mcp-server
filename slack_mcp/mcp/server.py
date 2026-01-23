@@ -95,13 +95,13 @@ def get_slack_client(token: Optional[str] = None) -> AsyncWebClient:
     return client_manager.get_async_client(token=token)
 
 
-def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebClient] = None) -> AsyncWebClient:
+def update_slack_client(token: str, client: Optional[AsyncWebClient] = None) -> AsyncWebClient:
     """Update the token used by a Slack client.
 
     Parameters
     ----------
-    token : Optional[str], optional
-        The Slack token to use. If None, will use settings.
+    token : str
+        The Slack token to use. Must be a non-empty string.
     client : Optional[AsyncWebClient], optional
         The client to update. If None, a new client will be created.
 
@@ -113,23 +113,14 @@ def update_slack_client(token: Optional[str] = None, client: Optional[AsyncWebCl
     Raises
     ------
     ValueError
-        If token is None or empty and not in a test environment
+        If token is empty or None
     """
     # Get the client manager
     client_manager = get_client_manager()
 
-    # Check if we're in a test environment
-    from slack_mcp.settings import is_test_environment
-
-    in_test_env = is_test_environment()
-
-    if not token:
-        if in_test_env:
-            # In test environment, use a dummy token if none provided
-            token = "xoxb-test-token-for-pytest"
-            _LOG.debug("Using dummy token in test environment")
-        else:
-            raise ValueError("Token cannot be empty or None")
+    # Validate token
+    if not token or not token.strip():
+        raise ValueError("Token cannot be empty or None")
 
     if client:
         # Update the existing client's token

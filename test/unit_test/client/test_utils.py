@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Generator
+from typing import Generator, Optional
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -317,40 +317,26 @@ class TestUpdateSlackClient:
             assert manager._async_clients[cache_key] is replacement_client
             assert manager._async_clients[cache_key] is not original_client
 
-    def test_update_with_empty_token_raises_error(
-        self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch
+    @pytest.mark.parametrize(
+        "invalid_token",
+        [
+            # Try to update with empty token
+            "",
+            # Try with None token
+            None,
+            # Try with whitespace-only token
+            "   ",
+        ],
+    )
+    def test_update_with_invalid_tokens(
+        self, reset_slack_clients: None, invalid_token: Optional[str]
     ) -> None:
-        """Should raise ValueError when token is empty in non-test environments."""
+        """Should raise ValueError for invalid tokens."""
         # Setup
         client = AsyncWebClient(token="any-token")
 
-        # Mock is_test_environment to return False (non-test environment)
-        with mock.patch("slack_mcp.settings.is_test_environment", return_value=False):
-            # Try to update with empty token
-            with pytest.raises(ValueError, match="Token cannot be empty or None"):
-                srv.update_slack_client("", client)
-
-            # Try with None token
-            with pytest.raises(ValueError, match="Token cannot be empty or None"):
-                srv.update_slack_client(None, client)
-
-    # TODO: Remove this test because it's not reasonable
-    # def test_update_with_empty_token_in_test_environment(self, reset_slack_clients: None, monkeypatch: pytest.MonkeyPatch) -> None:
-    #     """Should use a dummy token when token is empty in test environments."""
-    #     # Setup
-    #     client = AsyncWebClient(token="any-token")
-    #
-    #     # Set the PYTEST_CURRENT_TEST environment variable to simulate test environment
-    #     monkeypatch.setenv("PYTEST_CURRENT_TEST", "test_update_with_empty_token_in_test_environment.py")
-    #
-    #     # In test environment (PYTEST_CURRENT_TEST is set by pytest), empty tokens should be replaced with dummy token
-    #     # Try to update with empty token
-    #     updated_client = srv.update_slack_client("", client)
-    #     assert updated_client.token == "xoxb-test-token-for-pytest"
-    #
-    #     # Try with None token
-    #     updated_client = srv.update_slack_client(None, client)
-    #     assert updated_client.token == "xoxb-test-token-for-pytest"
+        with pytest.raises(ValueError, match="Token cannot be empty or None"):
+            srv.update_slack_client(invalid_token, client)
 
 
 class TestSetSlackClientRetryCount:
