@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 from contextlib import asynccontextmanager
+from test.settings import get_test_environment
 from typing import Any, AsyncGenerator
 
 import httpx
@@ -17,7 +18,6 @@ from mcp.client.sse import sse_client
 from mcp.client.streamable_http import streamablehttp_client
 
 from slack_mcp.settings import get_settings
-from test.settings import get_test_environment
 
 logger = logging.getLogger(__name__)
 

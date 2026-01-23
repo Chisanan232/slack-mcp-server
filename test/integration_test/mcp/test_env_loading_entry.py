@@ -29,7 +29,7 @@ def test_dotenv_loading_with_valid_env_file():
                     mock_test_env = MagicMock()
                     mock_test_env.mcp_no_env_file = False
                     mock_get_test_env.return_value = mock_test_env
-                    
+
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
 
@@ -78,7 +78,7 @@ def test_cmd_line_token_overrides_env_file():
                     mock_test_env = MagicMock()
                     mock_test_env.mcp_no_env_file = False
                     mock_get_test_env.return_value = mock_test_env
-                    
+
                     # Import here to ensure clean environment
                     from slack_mcp.mcp.entry import main
 
@@ -234,7 +234,7 @@ def test_sse_transport_with_token():
                         mock_test_env = MagicMock()
                         mock_test_env.mcp_no_env_file = False
                         mock_get_test_env.return_value = mock_test_env
-                        
+
                         # Import here to ensure clean environment
                         from slack_mcp.mcp.entry import main
 

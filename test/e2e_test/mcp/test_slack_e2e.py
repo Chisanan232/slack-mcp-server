@@ -209,12 +209,13 @@ async def test_slack_post_message_e2e() -> None:  # noqa: D401 – E2E
 async def test_slack_read_channel_messages_e2e() -> None:
     """Spawn the server via stdio and read messages from a channel."""
     # Import here to avoid heavy dependencies at collection time
+    from test.settings import get_test_environment
+
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
     # Get required values from settings
     from slack_mcp.settings import get_settings
-    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -437,12 +438,13 @@ async def test_slack_read_channel_messages_e2e() -> None:
 async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
     """Spawn the server via stdio, post a parent message, then reply to it with multiple thread messages."""
     # Import here to avoid heavy dependencies at collection time
+    from test.settings import get_test_environment
+
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
     # Get required values from settings
     from slack_mcp.settings import get_settings
-    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()
@@ -626,12 +628,13 @@ async def test_slack_thread_reply_e2e() -> None:  # noqa: D401 – E2E
 async def test_slack_add_reactions_e2e() -> None:  # noqa: D401 – E2E
     """Spawn the server via stdio, post a message, then add emoji reactions to it."""
     # Import here to avoid heavy dependencies at collection time
+    from test.settings import get_test_environment
+
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
     # Get required values from settings
     from slack_mcp.settings import get_settings
-    from test.settings import get_test_environment
 
     test_env = get_test_environment()
     settings = get_settings()

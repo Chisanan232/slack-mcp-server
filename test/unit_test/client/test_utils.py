@@ -328,9 +328,7 @@ class TestUpdateSlackClient:
             "   ",
         ],
     )
-    def test_update_with_invalid_tokens(
-        self, reset_slack_clients: None, invalid_token: Optional[str]
-    ) -> None:
+    def test_update_with_invalid_tokens(self, reset_slack_clients: None, invalid_token: Optional[str]) -> None:
         """Should raise ValueError for invalid tokens."""
         # Setup
         client = AsyncWebClient(token="any-token")

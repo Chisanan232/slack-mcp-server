@@ -182,8 +182,9 @@ async def test_sse_integrated_mcp_functionality_e2e() -> None:  # noqa: D401 –
 async def test_sse_integrated_webhook_availability_e2e() -> None:  # noqa: D401 – E2E
     """Test webhook endpoints availability in SSE integrated mode."""
     # Get required values from settings
-    from slack_mcp.settings import get_settings
     from test.settings import get_test_environment
+
+    from slack_mcp.settings import get_settings
 
     test_env = get_test_environment()
     settings = get_settings()

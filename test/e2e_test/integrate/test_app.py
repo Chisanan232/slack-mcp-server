@@ -72,25 +72,27 @@ class UvicornTestServer(uvicorn.Server):
 def fake_slack_credentials() -> Generator[Dict[str, str], None, None]:
     """Provide fake Slack credentials for testing and restore the originals after."""
     # Store original env vars
-    from slack_mcp.settings import get_settings
     from test.settings import get_test_environment
+
+    from slack_mcp.settings import get_settings
 
     original_test_env = get_test_environment()
     settings = get_settings()
     original_token = (
-        original_test_env.e2e_test_api_token.get_secret_value() if original_test_env.e2e_test_api_token and hasattr(original_test_env.e2e_test_api_token, 'get_secret_value') else original_test_env.e2e_test_api_token
+        original_test_env.e2e_test_api_token.get_secret_value()
+        if original_test_env.e2e_test_api_token and hasattr(original_test_env.e2e_test_api_token, "get_secret_value")
+        else original_test_env.e2e_test_api_token
     )
-    original_secret = (
-        settings.slack_signing_secret.get_secret_value() if settings.slack_signing_secret else None
-    )
+    original_secret = settings.slack_signing_secret.get_secret_value() if settings.slack_signing_secret else None
 
     # Set fake values for testing by creating a new settings instance
     fake_token = "xoxb-fake-token-for-testing"
     fake_secret = "fake-signing-secret"
 
     # Temporarily update settings for testing
-    from slack_mcp.settings import get_settings
     from test.settings import get_test_environment
+
+    from slack_mcp.settings import get_settings
 
     settings = get_settings(force_reload=True, slack_signing_secret=fake_secret)
 
