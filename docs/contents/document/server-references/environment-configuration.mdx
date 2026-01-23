@@ -158,6 +158,38 @@ CORS_ALLOW_HEADERS="*"  # Default: allow all headers
 - **Methods**: Limit to only the HTTP methods your application actually uses
 - **Headers**: Restrict to only the headers your application requires
 
+## Environment File Structure
+
+The Slack MCP Server uses **separate environment files** for different purposes to maintain clear separation between production and testing configurations:
+
+### 📁 Production Environment Configuration
+
+**File:** `.env.example` → `.env` (root directory)
+
+- **Purpose:** Production server configuration
+- **Usage:** MCP server, webhook server, and integrated server
+- **Contains:** All production environment variables with detailed documentation
+
+```bash
+# Copy the production template
+cp .env.example .env
+# Edit .env with your actual production values
+```
+
+### 🧪 Test Environment Configuration  
+
+**File:** `test/.env.test.example` → `test/.env.test` (test directory)
+
+- **Purpose:** Test execution configuration only
+- **Usage:** Unit tests, integration tests, and E2E tests
+- **Contains:** Test-specific variables and test environment controls
+
+```bash
+# Copy the test template
+cp test/.env.test.example test/.env.test
+# Edit test/.env.test with your test values
+```
+
 ## Environment File Loading Options
 
 Both the MCP server and webhook server support flexible environment file loading:
@@ -193,6 +225,17 @@ slack-mcp-server --no-env-file --slack-token xoxb-your-token
 
 # Webhook server without .env file
 slack-events-server --no-env-file --slack-token xoxb-your-token
+```
+
+### Test Environment Loading
+During test execution, the test framework automatically loads from `test/.env.test`:
+
+```bash
+# Tests automatically use test/.env.test
+uv run pytest
+
+# Tests can be controlled with MCP_NO_ENV_FILE
+MCP_NO_ENV_FILE=true uv run pytest  # Skip main .env file loading
 ```
 
 ## Environment File Examples
@@ -269,15 +312,45 @@ slack-events-server --no-env-file --slack-token xoxb-your-token
   </TabItem>
 </Tabs>
 
-### Testing Environment (.env.test)
+### Testing Environment (test/.env.test)
+
+The test environment uses a **separate configuration file** to avoid conflicts with production settings:
 
 ```bash
-# Testing configuration
-SLACK_BOT_TOKEN="xoxb-your-test-token"
+# Test-specific configuration (test/.env.test)
+E2E_TEST_API_TOKEN="xoxb-your-test-slack-bot-token"
 SLACK_TEST_CHANNEL="#automated-testing"
 SLACK_TEST_CHANNEL_ID="C9876543210"
+MCP_NO_ENV_FILE=true
 QUEUE_BACKEND="memory"
 ```
+
+**Key Test Environment Variables:**
+- `E2E_TEST_API_TOKEN`: Bot token for end-to-end tests
+- `SLACK_TEST_CHANNEL`: Test channel name (with # prefix)
+- `SLACK_TEST_CHANNEL_ID`: Test channel ID (recommended over name)
+- `MCP_NO_ENV_FILE=true`: Prevents loading main .env file during tests
+- `QUEUE_BACKEND="memory"`: Uses in-memory queue for test isolation
+
+**Test Environment Setup:**
+```bash
+# Copy test environment template
+cp test/.env.test.example test/.env.test
+
+# Edit with your test values
+nano test/.env.test
+
+# Run tests (automatically uses test/.env.test)
+uv run pytest
+```
+
+:::tip Test Environment Isolation
+The test environment is designed to be completely isolated from production:
+- Uses `test/.env.test` instead of `.env`
+- `MCP_NO_ENV_FILE=true` prevents loading production settings
+- `QUEUE_BACKEND="memory"` ensures test isolation
+- Separate test channels avoid production data contamination
+:::
 
 ## Docker Environment Configuration
 
@@ -354,16 +427,23 @@ Both servers perform automatic validation of environment variables on startup:
 
 ### Example .gitignore
 ```gitignore
-# Environment files
+# Production environment files
 .env
 .env.local
 .env.development
 .env.production
-.env.test
+
+# Test environment files
+test/.env.test
+test/.env.test.local
 
 # Backup env files
 *.env.backup
 ```
+
+:::warning Security Note
+Both production (`.env`) and test (`test/.env.test`) environment files contain sensitive credentials and should **never** be committed to version control. Always add both to your `.gitignore` file.
+:::
 
 ## Troubleshooting Environment Issues
 
