@@ -12,7 +12,7 @@ repos:
       - id: detect-private-key
 
   - repo: https://github.com/PyCQA/isort
-    rev: 8.0.0
+    rev: 8.0.1
     hooks:
       - id: isort
         args: # arguments to configure black
@@ -59,6 +59,6 @@ repos:
 
   - repo: https://github.com/astral-sh/uv-pre-commit
     # uv version.
-    rev: 0.10.4
+    rev: 0.10.7
     hooks:
       - id: uv-lock
