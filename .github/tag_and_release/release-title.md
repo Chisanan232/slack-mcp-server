@@ -1,1 +1,1 @@
-v0.1.0 - Rule and manage by *abstract-backend* for the message queue component 🗃️
+v0.2.0 - Enhanced MCP server with structured outputs and resource management 🎯
