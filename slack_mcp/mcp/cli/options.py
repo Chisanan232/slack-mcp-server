@@ -85,6 +85,11 @@ def _parse_args(argv: list[str] | None = None) -> MCPServerCliOptions:
         help="Slack bot token (fallback if not set in .env file or SLACK_BOT_TOKEN environment variable)",
     )
     parser.add_argument(
+        "--app-token",
+        default=None,
+        help="Slack app token for Socket Mode (fallback if not set in .env file or SLACK_APP_TOKEN environment variable)",
+    )
+    parser.add_argument(
         "--integrated",
         action="store_true",
         help="Run MCP server integrated with webhook server in a single FastAPI application",

@@ -76,6 +76,8 @@ class MCPServerCliOptions(BaseModel):
         Disable loading .env file when True
     slack_token : str | None
         Slack bot token fallback (overridden by .env or environment)
+    app_token : str | None
+        Slack app token fallback for Socket Mode (overridden by .env or environment)
     integrated : bool
         Run in integrated mode with webhook server
     retry : int
@@ -104,6 +106,7 @@ class MCPServerCliOptions(BaseModel):
     env_file: str = ".env"
     no_env_file: bool = False
     slack_token: str | None = None
+    app_token: str | None = None
     integrated: bool = False
     retry: int = Field(3, ge=0)
 
