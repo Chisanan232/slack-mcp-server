@@ -127,9 +127,17 @@ class SocketModeHandler:
         connection and routes them to appropriate handlers.
         """
         _LOG.info("Processing WebSocket events")
-        # TODO: Implement event processing logic
-        # This will be implemented in subsequent commits
-        pass
+        try:
+            # Start the Socket Mode handler
+            if self._websocket:
+                await self._websocket.start_async()
+                _LOG.info("WebSocket event processing started successfully")
+            else:
+                _LOG.error("WebSocket handler not initialized")
+                raise RuntimeError("WebSocket handler not initialized")
+        except Exception as e:
+            _LOG.error(f"Error processing WebSocket events: {e}")
+            raise
 
     async def _close_websocket(self) -> None:
         """Close the WebSocket connection gracefully.
@@ -137,6 +145,13 @@ class SocketModeHandler:
         This method ensures proper cleanup of WebSocket resources.
         """
         _LOG.info("Closing WebSocket connection")
-        # TODO: Implement WebSocket cleanup
-        # This will be implemented in subsequent commits
-        pass
+        try:
+            if self._websocket:
+                # Stop the Socket Mode handler
+                await self._websocket.close_async()
+                _LOG.info("WebSocket connection closed successfully")
+            else:
+                _LOG.warning("WebSocket handler not initialized, nothing to close")
+        except Exception as e:
+            _LOG.error(f"Error closing WebSocket connection: {e}")
+            raise
