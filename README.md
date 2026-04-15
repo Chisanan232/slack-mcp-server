@@ -121,6 +121,9 @@ export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
 
 # Optional: For webhook server
 export SLACK_SIGNING_SECRET="your-signing-secret"
+
+# Optional: For Socket Mode transport
+export SLACK_APP_TOKEN="xapp-your-app-token-here"
 ```
 
 **For Testing:**
@@ -141,6 +144,9 @@ slack-mcp-server
 
 # Start with SSE transport for web clients
 slack-mcp-server --transport sse --host 0.0.0.0 --port 3001
+
+# Start with Socket Mode transport for WebSocket connections
+slack-mcp-server --transport socket-mode --app-token xapp-your-app-token
 ```
 
 #### 3. Start Webhook Server (Standalone)
