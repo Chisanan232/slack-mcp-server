@@ -321,8 +321,7 @@ def main(argv: Optional[list[str]] = None) -> None:
 
             # Create Socket Mode handler with tokens
             handler = SocketModeHandler(
-                app_token=settings.slack_app_token,  # Already validated
-                bot_token=settings.slack_bot_token
+                app_token=settings.slack_app_token, bot_token=settings.slack_bot_token  # Already validated
             )
 
             # Run the Socket Mode handler (this blocks)

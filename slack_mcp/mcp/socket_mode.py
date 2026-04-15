@@ -12,11 +12,9 @@ which is particularly useful for:
 
 import asyncio
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from pydantic import SecretStr
-
-from slack_mcp.settings import get_settings
 
 _LOG = logging.getLogger(__name__)
 
@@ -88,7 +86,9 @@ class SocketModeHandler:
                 self._reconnect_attempts += 1
                 if self._is_running:
                     backoff_time = min(2**self._reconnect_attempts, 60)
-                    _LOG.info(f"Reconnecting in {backoff_time} seconds (attempt {self._reconnect_attempts}/{self._max_reconnect_attempts})")
+                    _LOG.info(
+                        f"Reconnecting in {backoff_time} seconds (attempt {self._reconnect_attempts}/{self._max_reconnect_attempts})"
+                    )
                     await asyncio.sleep(backoff_time)
 
         if self._reconnect_attempts >= self._max_reconnect_attempts:
