@@ -40,11 +40,13 @@ class MCPTransportType(str, Enum):
     - ``stdio``: Standard input/output transport
     - ``sse``: Server-Sent Events HTTP transport
     - ``streamable-http``: Streaming HTTP transport
+    - ``socket-mode``: WebSocket-based Socket Mode transport
     """
 
     STUDIO = "stdio"
     SSE = "sse"
     STREAMABLE_HTTP = "streamable-http"
+    SOCKET_MODE = "socket-mode"
 
 
 class MCPServerCliOptions(BaseModel):
