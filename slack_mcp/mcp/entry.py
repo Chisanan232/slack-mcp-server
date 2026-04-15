@@ -314,7 +314,23 @@ def main(argv: Optional[list[str]] = None) -> None:
 
         _LOG.info("Starting Slack MCP server: transport=%s", args.transport)
 
-        if args.transport in ["sse", "streamable-http"]:
+        if args.transport == "socket-mode":
+            # Socket Mode transport
+            _LOG.info("Starting Socket Mode transport")
+            from slack_mcp.mcp.socket_mode import SocketModeHandler
+
+            # Create Socket Mode handler with tokens
+            handler = SocketModeHandler(
+                app_token=settings.slack_app_token,  # Already validated
+                bot_token=settings.slack_bot_token
+            )
+
+            # Run the Socket Mode handler (this blocks)
+            import asyncio
+
+            asyncio.run(handler.start())
+
+        elif args.transport in ["sse", "streamable-http"]:
             # For HTTP-based transports, get the appropriate app using the transport-specific method
             _LOG.info(f"Running FastAPI server on {args.host}:{args.port}")
 
