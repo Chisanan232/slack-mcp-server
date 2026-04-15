@@ -435,3 +435,111 @@ def test_entry_dotenv_priority_over_cli(_patch_entry, monkeypatch: pytest.Monkey
     # Verify that get_settings was called with CLI token as kwargs
     # but the .env file (simulated in mock) would take priority
     # This tests the priority mechanism in pydantic-settings
+
+
+def test_entry_socket_mode_app_token_validation_success(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test Socket Mode configuration validation with valid app token."""
+    entry = _patch_entry.entry
+
+    # Mock get_settings to return valid app token
+    with mock.patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
+        mock_settings = mock.MagicMock()
+        mock_settings.slack_app_token.get_secret_value.return_value = "xapp-valid-token-123456"
+        mock_get_settings.return_value = mock_settings
+
+        # Test valid Socket Mode configuration
+        argv = ["--transport", "socket-mode", "--app-token", "xapp-valid-token-123456", "--no-env-file"]
+
+        def run_with_timeout() -> None:
+            entry.main(argv)
+
+        thread = threading.Thread(target=run_with_timeout)
+        thread.start()
+        thread.join(timeout=1)
+
+        # Verify get_settings was called with app_token
+        mock_get_settings.assert_called_with(
+            env_file=".env", no_env_file=True, force_reload=True, slack_app_token="xapp-valid-token-123456"
+        )
+
+
+def test_entry_socket_mode_missing_app_token(_patch_entry, monkeypatch: pytest.MonkeyPatch, caplog) -> None:
+    """Test Socket Mode configuration validation fails when app token is missing."""
+    entry = _patch_entry.entry
+
+    # Mock get_settings to return None for app token
+    with mock.patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
+        mock_settings = mock.MagicMock()
+        mock_settings.slack_app_token = None
+        mock_get_settings.return_value = mock_settings
+
+        # Capture logs
+        caplog.set_level(logging.ERROR)
+
+        # Test Socket Mode without app token
+        argv = ["--transport", "socket-mode", "--no-env-file"]
+
+        def run_with_timeout() -> None:
+            entry.main(argv)
+
+        thread = threading.Thread(target=run_with_timeout)
+        thread.start()
+        thread.join(timeout=1)
+
+        # Verify error log was emitted about missing app token
+        assert "SLACK_APP_TOKEN is required for Socket Mode transport" in caplog.text
+
+
+def test_entry_socket_mode_invalid_app_token_format(_patch_entry, monkeypatch: pytest.MonkeyPatch, caplog) -> None:
+    """Test Socket Mode configuration validation fails with invalid app token format."""
+    entry = _patch_entry.entry
+
+    # Mock get_settings to return invalid app token format
+    with mock.patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
+        mock_settings = mock.MagicMock()
+        mock_settings.slack_app_token.get_secret_value.return_value = "xoxb-invalid-bot-token"
+        mock_get_settings.return_value = mock_settings
+
+        # Capture logs
+        caplog.set_level(logging.ERROR)
+
+        # Test Socket Mode with invalid app token format
+        argv = ["--transport", "socket-mode", "--app-token", "xoxb-invalid-bot-token", "--no-env-file"]
+
+        def run_with_timeout() -> None:
+            entry.main(argv)
+
+        thread = threading.Thread(target=run_with_timeout)
+        thread.start()
+        thread.join(timeout=1)
+
+        # Verify error log was emitted about invalid token format
+        assert "Invalid SLACK_APP_TOKEN format" in caplog.text
+        assert "must start with 'xapp-'" in caplog.text
+
+
+def test_entry_app_token_from_cli(_patch_entry, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test setting app token from command line argument."""
+    entry = _patch_entry.entry
+
+    # Mock get_settings to track how it's called
+    with mock.patch("slack_mcp.mcp.entry.get_settings") as mock_get_settings:
+        mock_settings = mock.MagicMock()
+        mock_settings.slack_app_token.get_secret_value.return_value = "xapp-test-token-123456"
+        mock_get_settings.return_value = mock_settings
+
+        # Test app token provided via command line
+        test_app_token = "xapp-test-token-123456"
+        argv = ["--app-token", test_app_token, "--no-env-file"]
+
+        def run_with_timeout() -> None:
+            entry.main(argv)
+
+        thread = threading.Thread(target=run_with_timeout)
+        thread.start()
+        thread.join(timeout=1)
+
+        # Verify get_settings was called with the CLI app token as kwargs
+        mock_get_settings.assert_called_with(
+            env_file=".env", no_env_file=True, force_reload=True, slack_app_token=test_app_token
+        )
