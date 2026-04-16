@@ -647,6 +647,7 @@ class TestMCPServerFactorySocketMode:
                     nonlocal captured_handler
                     captured_handler = func
                     return func
+
                 return decorator
 
             mock_app.event = mock.MagicMock(side_effect=event_decorator)
@@ -693,6 +694,7 @@ class TestMCPServerFactorySocketMode:
                     nonlocal captured_handler
                     captured_handler = func
                     return func
+
                 return decorator
 
             mock_app.event = mock.MagicMock(side_effect=event_decorator)
