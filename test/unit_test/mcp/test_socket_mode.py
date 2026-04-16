@@ -582,3 +582,176 @@ class TestMCPServerFactorySocketMode:
         # Should raise AssertionError
         with pytest.raises(AssertionError, match="Please create a FastMCP instance first"):
             MCPServerFactory.socket_mode_handler(app_token="xapp-test-token-123456", bot_token="xoxb-test-token-123456")
+
+    @pytest.mark.asyncio
+    async def test_stop_with_websocket_initialized(self) -> None:
+        """Test stop() method closes websocket when initialized."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock WebSocket
+        mock_websocket = mock.MagicMock()
+        mock_websocket.close_async = mock.AsyncMock()
+        handler._websocket = mock_websocket
+
+        # Stop the handler
+        await handler.stop()
+
+        # Verify websocket was closed
+        mock_websocket.close_async.assert_called_once()
+        assert handler._is_running is False
+
+    @pytest.mark.asyncio
+    async def test_stop_without_websocket_initialized(self) -> None:
+        """Test stop() method when websocket is not initialized."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._websocket = None
+
+        # Stop the handler (should not raise error)
+        await handler.stop()
+
+        assert handler._is_running is False
+
+    @pytest.mark.asyncio
+    async def test_bolt_listener_handler_event_publishing(self) -> None:
+        """Test actual event publishing in Bolt listener handler."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock queue backend
+        mock_backend = mock.MagicMock()
+        mock_backend.publish = mock.AsyncMock()
+        handler._queue_backend = mock_backend
+
+        # Mock settings
+        with mock.patch("slack_mcp.mcp.socket_mode.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_events_topic = "test_topic"
+            mock_get_settings.return_value = mock_settings
+
+            # Create mock app with event decorator
+            mock_app = mock.MagicMock()
+
+            # Capture the handler function
+            captured_handler = None
+
+            def event_decorator(event_type):
+                def decorator(func):
+                    nonlocal captured_handler
+                    captured_handler = func
+                    return func
+                return decorator
+
+            mock_app.event = mock.MagicMock(side_effect=event_decorator)
+
+            # Register Bolt listeners
+            handler._register_bolt_listeners(mock_app)
+
+            # Verify the handler was captured
+            assert captured_handler is not None
+
+            # Call the handler with a test event
+            test_event = {"type": "message", "text": "test message"}
+            await captured_handler(test_event)
+
+            # Verify publish was called
+            mock_backend.publish.assert_called_once_with("test_topic", test_event)
+
+    @pytest.mark.asyncio
+    async def test_bolt_listener_handler_publish_error(self) -> None:
+        """Test Bolt listener handler error handling during publish."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock queue backend that raises error
+        mock_backend = mock.MagicMock()
+        mock_backend.publish = mock.AsyncMock(side_effect=Exception("Publish error"))
+        handler._queue_backend = mock_backend
+
+        # Mock settings
+        with mock.patch("slack_mcp.mcp.socket_mode.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_events_topic = "test_topic"
+            mock_get_settings.return_value = mock_settings
+
+            # Create mock app with event decorator
+            mock_app = mock.MagicMock()
+
+            captured_handler = None
+
+            def event_decorator(event_type):
+                def decorator(func):
+                    nonlocal captured_handler
+                    captured_handler = func
+                    return func
+                return decorator
+
+            mock_app.event = mock.MagicMock(side_effect=event_decorator)
+
+            # Register Bolt listeners
+            handler._register_bolt_listeners(mock_app)
+
+            # Call the handler with a test event (should not raise, just log error)
+            test_event = {"type": "message", "text": "test message"}
+            await captured_handler(test_event)
+
+            # Verify publish was attempted
+            mock_backend.publish.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_process_events_success(self) -> None:
+        """Test _process_events successful execution."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock WebSocket
+        mock_websocket = mock.MagicMock()
+        mock_websocket.start_async = mock.AsyncMock()
+        handler._websocket = mock_websocket
+
+        # Run process events (will complete immediately)
+        await handler._process_events()
+
+        # Verify start_async was called
+        mock_websocket.start_async.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_process_events_websocket_not_initialized(self) -> None:
+        """Test _process_events when websocket not initialized."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._websocket = None
+
+        # Should raise RuntimeError
+        with pytest.raises(RuntimeError, match="WebSocket handler not initialized"):
+            await handler._process_events()
+
+    @pytest.mark.asyncio
+    async def test_process_events_start_async_error(self) -> None:
+        """Test _process_events when start_async raises error."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock WebSocket with error
+        mock_websocket = mock.MagicMock()
+        mock_websocket.start_async = mock.AsyncMock(side_effect=Exception("Start error"))
+        handler._websocket = mock_websocket
+
+        # Should raise the error
+        with pytest.raises(Exception, match="Start error"):
+            await handler._process_events()
