@@ -286,7 +286,7 @@ class SocketModeHandler:
         try:
             # Start the Socket Mode handler
             if self._websocket:
-                await self._websocket.start_async()
+                await self._websocket.connect()
                 _LOG.info("WebSocket event processing started successfully")
             else:
                 _LOG.error("WebSocket handler not initialized")
@@ -386,7 +386,7 @@ class SocketModeHandler:
         try:
             if self._websocket:
                 # Stop the Socket Mode handler
-                await self._websocket.close_async()
+                await self._websocket.disconnect()
                 _LOG.info("WebSocket connection closed successfully")
             else:
                 _LOG.warning("WebSocket handler not initialized, nothing to close")

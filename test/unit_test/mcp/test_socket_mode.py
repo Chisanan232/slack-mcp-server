@@ -111,12 +111,12 @@ class TestSocketModeHandler:
 
         # Set up a mock WebSocket
         mock_websocket = mock.MagicMock()
-        mock_websocket.close_async = mock.AsyncMock()
+        mock_websocket.disconnect = mock.AsyncMock()
         handler._websocket = mock_websocket
 
         await handler._close_websocket()
 
-        mock_websocket.close_async.assert_called_once()
+        mock_websocket.disconnect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_websocket_cleanup_without_websocket(self) -> None:
@@ -319,14 +319,14 @@ class TestSocketModeHandler:
 
         handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
 
-        # Set up a mock WebSocket with close_async method
+        # Set up a mock WebSocket with disconnect method
         mock_websocket = mock.MagicMock()
-        mock_websocket.close_async = mock.AsyncMock()
+        mock_websocket.disconnect = mock.AsyncMock()
         handler._websocket = mock_websocket
 
         await handler._close_websocket()
 
-        mock_websocket.close_async.assert_called_once()
+        mock_websocket.disconnect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_bolt_listener_handler_execution(self) -> None:
@@ -478,7 +478,7 @@ class TestSocketModeHandler:
 
         # Set up a mock WebSocket that raises exception on close
         mock_websocket = mock.MagicMock()
-        mock_websocket.close_async = mock.AsyncMock(side_effect=Exception("Close error"))
+        mock_websocket.disconnect = mock.AsyncMock(side_effect=Exception("Close error"))
         handler._websocket = mock_websocket
 
         # Should raise the exception
@@ -587,14 +587,14 @@ class TestMCPServerFactorySocketMode:
 
         # Mock WebSocket
         mock_websocket = mock.MagicMock()
-        mock_websocket.close_async = mock.AsyncMock()
+        mock_websocket.disconnect = mock.AsyncMock()
         handler._websocket = mock_websocket
 
         # Stop the handler
         await handler.stop()
 
         # Verify websocket was closed
-        mock_websocket.close_async.assert_called_once()
+        mock_websocket.disconnect.assert_called_once()
         assert handler._is_running is False
 
     @pytest.mark.asyncio
@@ -722,14 +722,14 @@ class TestMCPServerFactorySocketMode:
 
         # Mock WebSocket
         mock_websocket = mock.MagicMock()
-        mock_websocket.start_async = mock.AsyncMock()
+        mock_websocket.connect = mock.AsyncMock()
         handler._websocket = mock_websocket
 
         # Run process events (will complete immediately)
         await handler._process_events()
 
-        # Verify start_async was called
-        mock_websocket.start_async.assert_called_once()
+        # Verify connect was called
+        mock_websocket.connect.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_process_events_websocket_not_initialized(self) -> None:
@@ -745,8 +745,8 @@ class TestMCPServerFactorySocketMode:
             await handler._process_events()
 
     @pytest.mark.asyncio
-    async def test_process_events_start_async_error(self) -> None:
-        """Test _process_events when start_async raises error."""
+    async def test_process_events_connect_error(self) -> None:
+        """Test _process_events when connect raises error."""
         app_token = SecretStr("xapp-test-token-123456")
         bot_token = SecretStr("xoxb-test-token-123456")
 
@@ -754,7 +754,7 @@ class TestMCPServerFactorySocketMode:
 
         # Mock WebSocket with error
         mock_websocket = mock.MagicMock()
-        mock_websocket.start_async = mock.AsyncMock(side_effect=Exception("Start error"))
+        mock_websocket.connect = mock.AsyncMock(side_effect=Exception("Start error"))
         handler._websocket = mock_websocket
 
         # Should raise the error
