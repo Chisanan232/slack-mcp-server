@@ -100,24 +100,28 @@ class SocketModeHandler:
         This method establishes the WebSocket connection using the app token
         and prepares for event processing.
         """
-        _LOG.info("Initializing WebSocket connection")
+        _LOG.info("Initializing WebSocket connection to Slack Socket Mode API")
         try:
             from slack_bolt.app.async_app import AsyncApp
             from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
 
             # Create AsyncApp with bot token
+            _LOG.debug("Creating AsyncApp with bot token")
             app = AsyncApp(token=self._bot_token.get_secret_value())
 
             # Create Socket Mode handler with app token
+            _LOG.debug("Creating AsyncSocketModeHandler with app token")
             self._websocket = AsyncSocketModeHandler(app, self._app_token.get_secret_value())
 
             _LOG.info("WebSocket connection initialized successfully")
         except ImportError as e:
             _LOG.error(f"Failed to import Slack Bolt library: {e}")
             _LOG.error("Please ensure slack-bolt is installed: pip install slack-bolt")
+            _LOG.error("Socket Mode requires slack-bolt>=1.20.0 for AsyncSocketModeHandler")
             raise
         except Exception as e:
-            _LOG.error(f"Failed to initialize WebSocket connection: {e}")
+            _LOG.error(f"Failed to initialize WebSocket connection: {e}", exc_info=True)
+            _LOG.error("Please check your app token and bot token are valid")
             raise
 
     async def _process_events(self) -> None:
