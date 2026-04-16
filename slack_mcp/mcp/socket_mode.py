@@ -187,8 +187,23 @@ class SocketModeHandler:
             The message event payload
         """
         _LOG.debug(f"Handling message event: {event_data.get('event', {}).get('type')}")
-        # Message events are handled by SlackEventConsumer
-        # This is a fallback if consumer is not initialized
+        # Extract message event details
+        event = event_data.get("event", {})
+        message_type = event.get("type")
+        subtype = event.get("subtype")
+
+        # Handle different message types
+        if message_type == "message":
+            if subtype == "message_changed":
+                _LOG.debug("Message edited event detected")
+            elif subtype == "message_deleted":
+                _LOG.debug("Message deleted event detected")
+            elif subtype == "bot_message":
+                _LOG.debug("Bot message event detected")
+            else:
+                _LOG.debug("New message event detected")
+        else:
+            _LOG.warning(f"Unknown message event type: {message_type}")
 
     def _handle_reaction_event(self, event_data: dict[str, Any]) -> None:
         """Handle reaction events from WebSocket.
