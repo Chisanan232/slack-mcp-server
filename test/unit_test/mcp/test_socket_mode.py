@@ -76,7 +76,9 @@ class TestSocketModeHandler:
         handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
 
         # Mock the _initialize_websocket to raise ImportError
-        with mock.patch.object(handler, "_initialize_websocket", side_effect=ImportError("No module named 'slack_bolt'")):
+        with mock.patch.object(
+            handler, "_initialize_websocket", side_effect=ImportError("No module named 'slack_bolt'")
+        ):
             with pytest.raises(ImportError):
                 await handler._initialize_websocket()
 
