@@ -40,11 +40,13 @@ class MCPTransportType(str, Enum):
     - ``stdio``: Standard input/output transport
     - ``sse``: Server-Sent Events HTTP transport
     - ``streamable-http``: Streaming HTTP transport
+    - ``socket-mode``: WebSocket-based Socket Mode transport
     """
 
     STUDIO = "stdio"
     SSE = "sse"
     STREAMABLE_HTTP = "streamable-http"
+    SOCKET_MODE = "socket-mode"
 
 
 class MCPServerCliOptions(BaseModel):
@@ -74,6 +76,8 @@ class MCPServerCliOptions(BaseModel):
         Disable loading .env file when True
     slack_token : str | None
         Slack bot token fallback (overridden by .env or environment)
+    app_token : str | None
+        Slack app token fallback for Socket Mode (overridden by .env or environment)
     integrated : bool
         Run in integrated mode with webhook server
     retry : int
@@ -102,6 +106,7 @@ class MCPServerCliOptions(BaseModel):
     env_file: str = ".env"
     no_env_file: bool = False
     slack_token: str | None = None
+    app_token: str | None = None
     integrated: bool = False
     retry: int = Field(3, ge=0)
 

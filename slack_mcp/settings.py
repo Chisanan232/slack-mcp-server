@@ -48,6 +48,9 @@ class SettingModel(BaseSettings):
         default=None, validation_alias=AliasChoices("SLACK_BOT_TOKEN", "SLACK_TOKEN", "E2E_TEST_API_TOKEN")
     )
     slack_user_token: Optional[SecretStr] = Field(default=None)
+    slack_app_token: Optional[SecretStr] = Field(
+        default=None, validation_alias=AliasChoices("SLACK_APP_TOKEN", "E2E_TEST_APP_TOKEN")
+    )
     slack_signing_secret: Optional[SecretStr] = Field(default=None)
 
     # Message queue backend settings
