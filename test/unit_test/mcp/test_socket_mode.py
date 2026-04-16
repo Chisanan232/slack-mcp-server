@@ -664,6 +664,7 @@ class TestMCPServerFactorySocketMode:
 
             # Wait a moment for the background task to complete
             import asyncio
+
             await asyncio.sleep(0.1)
 
             # Verify publish was called
@@ -715,6 +716,7 @@ class TestMCPServerFactorySocketMode:
 
             # Wait a moment for the background task to complete
             import asyncio
+
             await asyncio.sleep(0.1)
 
             # Verify publish was attempted
