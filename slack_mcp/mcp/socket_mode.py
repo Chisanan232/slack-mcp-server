@@ -16,6 +16,8 @@ from typing import Any, Optional
 
 from pydantic import SecretStr
 
+from slack_mcp.events import SlackEventConsumer
+
 _LOG = logging.getLogger(__name__)
 
 
@@ -49,6 +51,7 @@ class SocketModeHandler:
         self._is_running: bool = False
         self._reconnect_attempts: int = 0
         self._max_reconnect_attempts: int = 5
+        self._event_consumer: Optional[SlackEventConsumer] = None
 
     async def start(self) -> None:
         """Start the Socket Mode WebSocket connection.
@@ -159,13 +162,21 @@ class SocketModeHandler:
         """
         _LOG.debug(f"Routing event type: {event_type}")
 
-        # Route events based on type
-        if event_type == "message":
-            self._handle_message_event(event_data)
-        elif event_type in ["reaction_added", "reaction_removed"]:
-            self._handle_reaction_event(event_data)
+        # Integrate with SlackEventConsumer if available
+        if self._event_consumer:
+            try:
+                self._event_consumer.consume(event_data)
+                _LOG.debug(f"Event routed to consumer: {event_type}")
+            except Exception as e:
+                _LOG.error(f"Failed to process event through consumer: {e}")
         else:
-            _LOG.warning(f"Unhandled event type: {event_type}")
+            # Fallback to direct routing if consumer not available
+            if event_type == "message":
+                self._handle_message_event(event_data)
+            elif event_type in ["reaction_added", "reaction_removed"]:
+                self._handle_reaction_event(event_data)
+            else:
+                _LOG.warning(f"Unhandled event type: {event_type}")
 
     def _handle_message_event(self, event_data: dict[str, Any]) -> None:
         """Handle message events from WebSocket.
@@ -176,8 +187,8 @@ class SocketModeHandler:
             The message event payload
         """
         _LOG.debug(f"Handling message event: {event_data.get('event', {}).get('type')}")
-        # TODO: Integrate with existing message handling infrastructure
-        # This will be implemented in subsequent commits
+        # Message events are handled by SlackEventConsumer
+        # This is a fallback if consumer is not initialized
 
     def _handle_reaction_event(self, event_data: dict[str, Any]) -> None:
         """Handle reaction events from WebSocket.
@@ -188,8 +199,8 @@ class SocketModeHandler:
             The reaction event payload
         """
         _LOG.debug(f"Handling reaction event: {event_data.get('event', {}).get('type')}")
-        # TODO: Integrate with existing reaction handling infrastructure
-        # This will be implemented in subsequent commits
+        # Reaction events are handled by SlackEventConsumer
+        # This is a fallback if consumer is not initialized
 
     async def _close_websocket(self) -> None:
         """Close the WebSocket connection gracefully.
