@@ -113,8 +113,16 @@ class SocketModeHandler:
                     # Publish event to queue backend
                     import asyncio
 
-                    asyncio.create_task(self._queue_backend.publish(slack_events_topic, event))
-                    _LOG.debug(f"Published event to queue topic: {slack_events_topic}")
+                    async def publish_with_error_handling() -> None:
+                        """Publish event with proper error handling."""
+                        try:
+                            if self._queue_backend:
+                                await self._queue_backend.publish(slack_events_topic, event)
+                                _LOG.debug(f"Published event to queue topic: {slack_events_topic}")
+                        except Exception as e:
+                            _LOG.error(f"Error publishing event to queue: {e}")
+
+                    asyncio.create_task(publish_with_error_handling())
             except Exception as e:
                 _LOG.error(f"Error publishing event to queue: {e}")
 

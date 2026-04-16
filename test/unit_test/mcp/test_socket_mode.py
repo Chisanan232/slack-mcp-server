@@ -662,6 +662,10 @@ class TestMCPServerFactorySocketMode:
             test_event = {"type": "message", "text": "test message"}
             await captured_handler(test_event)
 
+            # Wait a moment for the background task to complete
+            import asyncio
+            await asyncio.sleep(0.1)
+
             # Verify publish was called
             mock_backend.publish.assert_called_once_with("test_topic", test_event)
 
@@ -708,6 +712,10 @@ class TestMCPServerFactorySocketMode:
             # Call the handler with a test event (should not raise, just log error)
             test_event = {"type": "message", "text": "test message"}
             await captured_handler(test_event)
+
+            # Wait a moment for the background task to complete
+            import asyncio
+            await asyncio.sleep(0.1)
 
             # Verify publish was attempted
             mock_backend.publish.assert_called_once()
