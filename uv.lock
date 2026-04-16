@@ -1189,6 +1189,7 @@ all = [
     { name = "mcp", extra = ["cli"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "slack-bolt" },
     { name = "slack-sdk" },
     { name = "uvicorn" },
 ]
@@ -1236,6 +1237,7 @@ requires-dist = [
     { name = "pydantic-settings", marker = "extra == 'all'", specifier = ">=2.7.1" },
     { name = "pydantic-settings", marker = "extra == 'mcp'", specifier = ">=2.7.1" },
     { name = "pydantic-settings", marker = "extra == 'webhook'", specifier = ">=2.7.1" },
+    { name = "slack-bolt", marker = "extra == 'all'", specifier = ">=1.28.0" },
     { name = "slack-bolt", marker = "extra == 'mcp'", specifier = ">=1.28.0" },
     { name = "slack-sdk", marker = "extra == 'all'", specifier = ">=3.36.0" },
     { name = "slack-sdk", marker = "extra == 'mcp'", specifier = ">=3.36.0" },
