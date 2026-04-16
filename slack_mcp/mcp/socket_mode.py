@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 from pydantic import SecretStr
 
-from slack_mcp.events import SlackEventConsumer
+from slack_mcp.webhook.event.consumer import SlackEventConsumer
 
 _LOG = logging.getLogger(__name__)
 
