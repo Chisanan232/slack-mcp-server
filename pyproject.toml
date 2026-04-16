@@ -50,6 +50,7 @@ slack-webhook-server = "slack_mcp.webhook.entry:main"
 mcp = [
     "mcp[cli]>=1.10.1",
     "slack-sdk>=3.36.0",
+    "slack-bolt>=1.28.0",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.7.1",
 ]
@@ -66,6 +67,7 @@ webhook = [
 all = [
     "mcp[cli]>=1.10.1",
     "slack-sdk>=3.36.0",
+    "slack-bolt>=1.28.0",
     "pydantic>=2.11.7",
     "pydantic-settings>=2.7.1",
     "fastapi>=0.116.1",
