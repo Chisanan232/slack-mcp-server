@@ -82,17 +82,18 @@ class SocketModeHandler:
                 self._reconnect_attempts = 0
                 await self._process_events()
             except Exception as e:
-                _LOG.error(f"WebSocket connection failed: {e}")
+                _LOG.error(f"WebSocket connection failed: {e}", exc_info=True)
                 self._reconnect_attempts += 1
                 if self._is_running:
                     backoff_time = min(2**self._reconnect_attempts, 60)
-                    _LOG.info(
+                    _LOG.warning(
                         f"Reconnecting in {backoff_time} seconds (attempt {self._reconnect_attempts}/{self._max_reconnect_attempts})"
                     )
                     await asyncio.sleep(backoff_time)
 
         if self._reconnect_attempts >= self._max_reconnect_attempts:
             _LOG.error("Max reconnection attempts reached. Socket Mode handler stopped.")
+            _LOG.error("Please check your network connection and token validity")
 
     async def _initialize_websocket(self) -> None:
         """Initialize WebSocket connection to Slack Socket Mode API.
