@@ -349,18 +349,20 @@ class TestSocketModeHandler:
             # Create a mock app with event decorator
             mock_app = mock.MagicMock()
 
+            # Make event decorator return the function it wraps
             def event_decorator(event_type):
                 def decorator(func):
                     return func
                 return decorator
 
-            mock_app.event = event_decorator
+            mock_app.event = mock.MagicMock(side_effect=event_decorator)
 
             # Register Bolt listeners
             handler._register_bolt_listeners(mock_app)
 
             # The handler should have been registered
             assert mock_app.event.called
+            mock_app.event.assert_called_with({})
 
     @pytest.mark.asyncio
     async def test_route_event_to_consumer_success(self) -> None:
