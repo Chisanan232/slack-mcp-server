@@ -214,8 +214,20 @@ class SocketModeHandler:
             The reaction event payload
         """
         _LOG.debug(f"Handling reaction event: {event_data.get('event', {}).get('type')}")
-        # Reaction events are handled by SlackEventConsumer
-        # This is a fallback if consumer is not initialized
+        # Extract reaction event details
+        event = event_data.get("event", {})
+        reaction_type = event.get("type")
+        reaction = event.get("reaction")
+        user = event.get("user")
+        item = event.get("item")
+
+        # Handle different reaction types
+        if reaction_type == "reaction_added":
+            _LOG.debug(f"Reaction added: {reaction} by user {user} to item {item}")
+        elif reaction_type == "reaction_removed":
+            _LOG.debug(f"Reaction removed: {reaction} by user {user} from item {item}")
+        else:
+            _LOG.warning(f"Unknown reaction event type: {reaction_type}")
 
     async def _close_websocket(self) -> None:
         """Close the WebSocket connection gracefully.
