@@ -268,22 +268,22 @@ def main(argv: Optional[list[str]] = None) -> None:
         settings = get_settings(
             env_file=args.env_file, no_env_file=args.no_env_file, force_reload=True, **settings_kwargs
         )
-
-        # Validate Socket Mode configuration
-        if args.transport == "socket-mode":
-            app_token = settings.slack_app_token
-            if not app_token:
-                _LOG.error("SLACK_APP_TOKEN is required for Socket Mode transport")
-                _LOG.error("Set it via environment variable, .env file, or --app-token CLI argument")
-                return
-            token_value = app_token.get_secret_value()
-            if not token_value.startswith("xapp-"):
-                _LOG.error(f"Invalid SLACK_APP_TOKEN format: {token_value[:8]}... (must start with 'xapp-')")
-                return
-            _LOG.info("Socket Mode configuration validated successfully")
     except Exception as e:
         _LOG.error(f"Failed to load configuration: {e}")
         return
+
+    # Validate Socket Mode configuration
+    if args.transport == "socket-mode":
+        app_token = settings.slack_app_token
+        if not app_token:
+            _LOG.error("SLACK_APP_TOKEN is required for Socket Mode transport")
+            _LOG.error("Set it via environment variable, .env file, or --app-token CLI argument")
+            return
+        token_value = app_token.get_secret_value()
+        if not token_value.startswith("xapp-"):
+            _LOG.error(f"Invalid SLACK_APP_TOKEN format: {token_value[:8]}... (must start with 'xapp-')")
+            return
+        _LOG.info("Socket Mode configuration validated successfully")
 
     # Determine if we should run the integrated server
     if args.integrated:
@@ -321,8 +321,7 @@ def main(argv: Optional[list[str]] = None) -> None:
 
             # Create Socket Mode handler with tokens
             handler = SocketModeHandler(
-                app_token=settings.slack_app_token,  # Already validated
-                bot_token=settings.slack_bot_token
+                app_token=settings.slack_app_token, bot_token=settings.slack_bot_token  # Already validated
             )
 
             # Run the Socket Mode handler (this blocks)
