@@ -103,29 +103,32 @@ class SocketModeHandler:
         slack_events_topic = get_settings().slack_events_topic
         _LOG.info(f"Registering catch-all Bolt listener for queue topic: {slack_events_topic}")
 
-        # Use app.message to catch all message events as a catch-all approach
-        @app.message
-        async def handle_all_events(event: dict[str, Any]) -> None:
-            """Handle all events from Socket Mode and publish to queue."""
-            event_type = event.get("type", "unknown")
-            _LOG.debug(f"Received event via Socket Mode: {event_type}")
-            try:
-                if self._queue_backend:
-                    # Publish event to queue backend
-                    import asyncio
+        # Use middleware to intercept all events
+        @app.middleware
+        async def catch_all_middleware(next_):
+            """Catch all events and publish to queue before processing."""
+            context = next_()
+            if "payload" in context:
+                event = context["payload"]
+                event_type = event.get("type", "unknown")
+                _LOG.debug(f"Received event via Socket Mode: {event_type}")
+                try:
+                    if self._queue_backend:
+                        # Publish event to queue backend
+                        import asyncio
 
-                    async def publish_with_error_handling() -> None:
-                        """Publish event with proper error handling."""
-                        try:
-                            if self._queue_backend:
-                                await self._queue_backend.publish(slack_events_topic, event)
-                                _LOG.debug(f"Published event to queue topic: {slack_events_topic}")
-                        except Exception as e:
-                            _LOG.error(f"Error publishing event to queue: {e}")
+                        async def publish_with_error_handling() -> None:
+                            """Publish event with proper error handling."""
+                            try:
+                                if self._queue_backend:
+                                    await self._queue_backend.publish(slack_events_topic, event)
+                                    _LOG.debug(f"Published event to queue topic: {slack_events_topic}")
+                            except Exception as e:
+                                _LOG.error(f"Error publishing event to queue: {e}")
 
-                    asyncio.create_task(publish_with_error_handling())
-            except Exception as e:
-                _LOG.error(f"Error publishing event to queue: {e}")
+                        asyncio.create_task(publish_with_error_handling())
+                except Exception as e:
+                    _LOG.error(f"Error publishing event to queue: {e}")
 
         _LOG.info("Catch-all Bolt listener registered successfully")
 
