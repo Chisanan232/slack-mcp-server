@@ -98,6 +98,7 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: unit-test
+      source_folder: slack_mcp
 
   integration-test_codecov:
 #    name: For unit test, organize and generate the testing report and upload it to Codecov
@@ -109,6 +110,7 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: integration-test
+      source_folder: slack_mcp
 
   one_e2e-test_codecov:
 #    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
@@ -120,6 +122,7 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: e2e-test
+      source_folder: slack_mcp
 
   e2e-test_codecov:
 #    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
@@ -131,6 +134,7 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: e2e-test
+      source_folder: slack_mcp
 
   contract-test_codecov:
 #    name: For end-to-end test, organize and generate the testing report and upload it to Codecov
@@ -142,6 +146,7 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: contract-test
+      source_folder: slack_mcp
 
   all_test_codecov:
 #    name: Organize and generate the testing report and upload it to Codecov
@@ -153,3 +158,4 @@ jobs:
     uses: Chisanan232/GitHub-Action_Reusable_Workflows-Python/.github/workflows/rw_organize_test_cov_reports.yaml@master
     with:
       test_type: all-test
+      source_folder: slack_mcp
