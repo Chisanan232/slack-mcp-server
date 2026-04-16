@@ -139,6 +139,53 @@ class SocketModeHandler:
             _LOG.error(f"Error processing WebSocket events: {e}")
             raise
 
+    def _route_event_to_handler(self, event_type: str, event_data: dict[str, Any]) -> None:
+        """Route WebSocket events to appropriate handlers.
+
+        This method determines the type of event and routes it to the
+        appropriate handler for processing.
+
+        Parameters
+        ----------
+        event_type : str
+            The type of Slack event (e.g., "message", "reaction_added")
+        event_data : dict[str, Any]
+            The event payload data
+        """
+        _LOG.debug(f"Routing event type: {event_type}")
+
+        # Route events based on type
+        if event_type == "message":
+            self._handle_message_event(event_data)
+        elif event_type in ["reaction_added", "reaction_removed"]:
+            self._handle_reaction_event(event_data)
+        else:
+            _LOG.warning(f"Unhandled event type: {event_type}")
+
+    def _handle_message_event(self, event_data: dict[str, Any]) -> None:
+        """Handle message events from WebSocket.
+
+        Parameters
+        ----------
+        event_data : dict[str, Any]
+            The message event payload
+        """
+        _LOG.debug(f"Handling message event: {event_data.get('event', {}).get('type')}")
+        # TODO: Integrate with existing message handling infrastructure
+        # This will be implemented in subsequent commits
+
+    def _handle_reaction_event(self, event_data: dict[str, Any]) -> None:
+        """Handle reaction events from WebSocket.
+
+        Parameters
+        ----------
+        event_data : dict[str, Any]
+            The reaction event payload
+        """
+        _LOG.debug(f"Handling reaction event: {event_data.get('event', {}).get('type')}")
+        # TODO: Integrate with existing reaction handling infrastructure
+        # This will be implemented in subsequent commits
+
     async def _close_websocket(self) -> None:
         """Close the WebSocket connection gracefully.
 
