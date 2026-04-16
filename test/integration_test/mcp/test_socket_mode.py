@@ -34,7 +34,7 @@ async def test_initialize_websocket_with_real_bolt_library(mock_queue_backend: G
     """Test _initialize_websocket covering lines 240-253 with real slack-bolt library."""
     try:
         from slack_bolt.app.async_app import AsyncApp
-        from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+        from slack_sdk.socket_mode import SocketModeClient
     except (ImportError, ModuleNotFoundError):
         pytest.skip("slack-bolt library not installed - integration test requires slack-bolt")
 
@@ -72,7 +72,7 @@ async def test_connect_with_retry_success_path(mock_queue_backend: Generator) ->
     """Test _connect_with_retry success path covering lines 212-213."""
     try:
         from slack_bolt.app.async_app import AsyncApp
-        from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+        from slack_sdk.socket_mode import SocketModeClient
     except (ImportError, ModuleNotFoundError):
         pytest.skip("slack-bolt library not installed - integration test requires slack-bolt")
 
@@ -118,7 +118,7 @@ async def test_initialize_websocket_exception_handling(mock_queue_backend: Gener
     """Test _initialize_websocket exception handling covering lines 259-262."""
     try:
         from slack_bolt.app.async_app import AsyncApp
-        from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+        from slack_sdk.socket_mode import SocketModeClient
     except (ImportError, ModuleNotFoundError):
         pytest.skip("slack-bolt library not installed - integration test requires slack-bolt")
 

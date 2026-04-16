@@ -103,7 +103,8 @@ class SocketModeHandler:
         slack_events_topic = get_settings().slack_events_topic
         _LOG.info(f"Registering catch-all Bolt listener for queue topic: {slack_events_topic}")
 
-        @app.event({})
+        # Use app.message to catch all message events as a catch-all approach
+        @app.message
         async def handle_all_events(event: dict[str, Any]) -> None:
             """Handle all events from Socket Mode and publish to queue."""
             event_type = event.get("type", "unknown")
@@ -242,7 +243,7 @@ class SocketModeHandler:
         _LOG.info("Initializing WebSocket connection to Slack Socket Mode API")
         try:
             from slack_bolt.app.async_app import AsyncApp
-            from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+            from slack_sdk.socket_mode import SocketModeClient
 
             # Create AsyncApp with bot token
             _LOG.debug("Creating AsyncApp with bot token")
@@ -253,15 +254,15 @@ class SocketModeHandler:
                 _LOG.info("Registering Bolt listeners for queue publishing")
                 self._register_bolt_listeners(app)
 
-            # Create Socket Mode handler with app token
-            _LOG.debug("Creating AsyncSocketModeHandler with app token")
-            self._websocket = AsyncSocketModeHandler(app, self._app_token.get_secret_value())
+            # Create Socket Mode client with app token
+            _LOG.debug("Creating SocketModeClient with app token")
+            self._websocket = SocketModeClient(app_token=self._app_token.get_secret_value())
 
             _LOG.info("WebSocket connection initialized successfully")
         except ImportError as e:
             _LOG.error(f"Failed to import Slack Bolt library: {e}")
             _LOG.error("Please ensure slack-bolt is installed: pip install slack-bolt")
-            _LOG.error("Socket Mode requires slack-bolt>=1.20.0 for AsyncSocketModeHandler")
+            _LOG.error("Socket Mode requires slack-bolt>=1.28.0 and slack-sdk")
             raise
         except Exception as e:
             _LOG.error(f"Failed to initialize WebSocket connection: {e}", exc_info=True)
