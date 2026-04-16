@@ -121,6 +121,39 @@ class SocketModeHandler:
         # For now, return a placeholder response
         return {"status": "success", "message": f"Tool {tool_name} invoked (placeholder)"}
 
+    async def send_message(self, channel: str, text: str) -> dict[str, Any]:
+        """Send a message through the WebSocket connection.
+
+        This method enables bidirectional communication by allowing the
+        Socket Mode handler to send messages back to Slack channels.
+
+        Parameters
+        ----------
+        channel : str
+            The channel ID to send the message to
+        text : str
+            The message text to send
+
+        Returns
+        -------
+        dict[str, Any]
+            Response from Slack API
+
+        Raises
+        ------
+        RuntimeError
+            If WebSocket is not connected
+        """
+        if not self._websocket:
+            _LOG.error("Cannot send message: WebSocket not connected")
+            raise RuntimeError("WebSocket not connected")
+
+        _LOG.debug(f"Sending message to channel {channel}: {text[:50]}...")
+        # TODO: Implement actual message sending via Slack Bolt app
+        # This will use the AsyncApp's client to send messages
+        # For now, return a placeholder response
+        return {"status": "success", "channel": channel, "message": "Message sent (placeholder)"}
+
     async def _connect_with_retry(self) -> None:
         """Establish WebSocket connection with automatic retry logic.
 
