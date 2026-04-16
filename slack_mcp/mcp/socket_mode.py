@@ -14,10 +14,10 @@ import asyncio
 import logging
 from typing import Any, Optional
 
-from pydantic import SecretStr
-
 from abe.backends.message_queue.base.protocol import MessageQueueBackend
 from abe.backends.message_queue.loader import load_backend
+from pydantic import SecretStr
+
 from slack_mcp.settings import get_settings
 from slack_mcp.webhook.event.consumer import SlackEventConsumer
 
