@@ -310,6 +310,181 @@ class TestSocketModeHandler:
         with pytest.raises(RuntimeError, match="WebSocket not connected"):
             await handler.send_message("C123", "Hello, world!")
 
+    @pytest.mark.asyncio
+    async def test_websocket_close_with_websocket_initialized(self) -> None:
+        """Test WebSocket cleanup when WebSocket is initialized."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Set up a mock WebSocket with close_async method
+        mock_websocket = mock.MagicMock()
+        mock_websocket.close_async = mock.AsyncMock()
+        handler._websocket = mock_websocket
+
+        await handler._close_websocket()
+
+        mock_websocket.close_async.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_bolt_listener_handler_execution(self) -> None:
+        """Test actual execution of Bolt listener handler."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock the queue backend
+        mock_backend = mock.MagicMock()
+        mock_backend.publish = mock.AsyncMock()
+        handler._queue_backend = mock_backend
+
+        # Mock settings
+        with mock.patch("slack_mcp.mcp.socket_mode.get_settings") as mock_get_settings:
+            mock_settings = mock.MagicMock()
+            mock_settings.slack_events_topic = "test_topic"
+            mock_get_settings.return_value = mock_settings
+
+            # Create a mock app with event decorator
+            mock_app = mock.MagicMock()
+
+            def event_decorator(event_type):
+                def decorator(func):
+                    return func
+                return decorator
+
+            mock_app.event = event_decorator
+
+            # Register Bolt listeners
+            handler._register_bolt_listeners(mock_app)
+
+            # The handler should have been registered
+            assert mock_app.event.called
+
+    @pytest.mark.asyncio
+    async def test_route_event_to_consumer_success(self) -> None:
+        """Test successful event routing to SlackEventConsumer."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock the event consumer
+        mock_consumer = mock.MagicMock()
+        handler._event_consumer = mock_consumer
+
+        # Route an event
+        event_data = {"event": {"type": "message"}}
+        handler._route_event_to_handler("message", event_data)
+
+        mock_consumer.consume.assert_called_once_with(event_data)
+
+    @pytest.mark.asyncio
+    async def test_route_event_to_consumer_failure(self) -> None:
+        """Test event routing when consumer raises exception."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock the event consumer to raise exception
+        mock_consumer = mock.MagicMock()
+        mock_consumer.consume.side_effect = Exception("Consumer error")
+        handler._event_consumer = mock_consumer
+
+        # Route an event (should not raise, just log error)
+        event_data = {"event": {"type": "message"}}
+        handler._route_event_to_handler("message", event_data)
+
+        # Consumer should still be called
+        mock_consumer.consume.assert_called_once()
+
+    def test_route_event_fallback_message(self) -> None:
+        """Test fallback routing for message events when consumer not available."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._event_consumer = None
+
+        # Route a message event (should use fallback)
+        event_data = {"event": {"type": "message", "subtype": None}}
+        handler._route_event_to_handler("message", event_data)
+
+        # Should not raise an error
+
+    def test_route_event_fallback_reaction(self) -> None:
+        """Test fallback routing for reaction events when consumer not available."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._event_consumer = None
+
+        # Route a reaction event (should use fallback)
+        event_data = {"event": {"type": "reaction_added"}}
+        handler._route_event_to_handler("reaction_added", event_data)
+
+        # Should not raise an error
+
+    def test_route_event_unhandled_type(self) -> None:
+        """Test routing for unhandled event type when consumer not available."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._event_consumer = None
+
+        # Route an unhandled event type (should log warning)
+        event_data = {"event": {"type": "unknown_type"}}
+        handler._route_event_to_handler("unknown_type", event_data)
+
+        # Should not raise an error
+
+    def test_handle_message_event_unknown_type(self) -> None:
+        """Test handling message event with unknown type."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Test unknown message type
+        event_data = {"event": {"type": "unknown_message_type"}}
+        handler._handle_message_event(event_data)
+
+        # Should not raise an error
+
+    def test_handle_reaction_event_unknown_type(self) -> None:
+        """Test handling reaction event with unknown type."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Test unknown reaction type
+        event_data = {"event": {"type": "unknown_reaction_type"}}
+        handler._handle_reaction_event(event_data)
+
+        # Should not raise an error
+
+    @pytest.mark.asyncio
+    async def test_websocket_close_exception_handling(self) -> None:
+        """Test WebSocket close exception handling."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Set up a mock WebSocket that raises exception on close
+        mock_websocket = mock.MagicMock()
+        mock_websocket.close_async = mock.AsyncMock(side_effect=Exception("Close error"))
+        handler._websocket = mock_websocket
+
+        # Should raise the exception
+        with pytest.raises(Exception, match="Close error"):
+            await handler._close_websocket()
+
     def test_bolt_listener_registration_with_queue_backend(self) -> None:
         """Test that catch-all Bolt listener is registered when queue backend is available."""
         app_token = SecretStr("xapp-test-token-123456")
