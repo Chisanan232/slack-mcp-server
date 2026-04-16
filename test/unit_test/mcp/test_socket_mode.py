@@ -354,6 +354,7 @@ class TestSocketModeHandler:
             def event_decorator(event_type):
                 def decorator(func):
                     return func
+
                 return decorator
 
             mock_app.event = mock.MagicMock(side_effect=event_decorator)
@@ -580,6 +581,4 @@ class TestMCPServerFactorySocketMode:
 
         # Should raise AssertionError
         with pytest.raises(AssertionError, match="Please create a FastMCP instance first"):
-            MCPServerFactory.socket_mode_handler(
-                app_token="xapp-test-token-123456", bot_token="xoxb-test-token-123456"
-            )
+            MCPServerFactory.socket_mode_handler(app_token="xapp-test-token-123456", bot_token="xoxb-test-token-123456")
