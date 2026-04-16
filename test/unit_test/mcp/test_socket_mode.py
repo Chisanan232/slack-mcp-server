@@ -309,3 +309,68 @@ class TestSocketModeHandler:
         # Should raise RuntimeError
         with pytest.raises(RuntimeError, match="WebSocket not connected"):
             await handler.send_message("C123", "Hello, world!")
+
+    def test_bolt_listener_registration_with_queue_backend(self) -> None:
+        """Test that Bolt listeners are registered when queue backend is available."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock the queue backend
+        mock_backend = mock.MagicMock()
+        handler._queue_backend = mock_backend
+
+        # Create a mock AsyncApp
+        mock_app = mock.MagicMock()
+
+        # Register Bolt listeners
+        handler._register_bolt_listeners(mock_app)
+
+        # Verify that event decorators were called
+        assert mock_app.event.call_count == 3  # message, reaction_added, reaction_removed
+        event_calls = [call[0][0] for call in mock_app.event.call_args_list]
+        assert "message" in event_calls
+        assert "reaction_added" in event_calls
+        assert "reaction_removed" in event_calls
+
+    def test_bolt_listener_registration_without_queue_backend(self) -> None:
+        """Test that Bolt listeners are not registered when queue backend is unavailable."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._queue_backend = None  # No queue backend
+
+        # Create a mock AsyncApp
+        mock_app = mock.MagicMock()
+
+        # Register Bolt listeners
+        handler._register_bolt_listeners(mock_app)
+
+        # Verify that event decorators were not called
+        mock_app.event.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_queue_backend_initialization_on_start(self) -> None:
+        """Test that queue backend is initialized when handler starts."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock load_backend to avoid actual queue initialization
+        with mock.patch("slack_mcp.mcp.socket_mode.load_backend") as mock_load_backend:
+            mock_backend = mock.MagicMock()
+            mock_load_backend.return_value = mock_backend
+
+            # Mock _connect_with_retry to avoid actual WebSocket connection
+            with mock.patch.object(handler, "_connect_with_retry", mock.AsyncMock()):
+                await handler.start()
+
+                # Verify queue backend was loaded
+                mock_load_backend.assert_called_once()
+                assert handler._queue_backend == mock_backend
+
+                # Clean up
+                await handler.stop()
