@@ -105,9 +105,8 @@ class SocketModeHandler:
 
         # Use middleware to intercept all events
         @app.middleware
-        async def catch_all_middleware(next_):
+        async def catch_all_middleware(context):
             """Catch all events and publish to queue before processing."""
-            context = next_()
             if "payload" in context:
                 event = context["payload"]
                 event_type = event.get("type", "unknown")
@@ -129,6 +128,11 @@ class SocketModeHandler:
                         asyncio.create_task(publish_with_error_handling())
                 except Exception as e:
                     _LOG.error(f"Error publishing event to queue: {e}")
+            # Call next middleware in chain if it exists
+            if hasattr(context, "next") and callable(context.next):
+                await context.next()
+            elif isinstance(context, dict) and "next" in context and callable(context["next"]):
+                await context["next"]()
 
         _LOG.info("Catch-all Bolt listener registered successfully")
 

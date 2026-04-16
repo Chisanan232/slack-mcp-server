@@ -347,24 +347,20 @@ class TestSocketModeHandler:
             mock_settings.slack_events_topic = "test_topic"
             mock_get_settings.return_value = mock_settings
 
-            # Create a mock app with event decorator
+            # Create a mock app with middleware decorator
             mock_app = mock.MagicMock()
 
-            # Make event decorator return the function it wraps
-            def event_decorator(event_type):
-                def decorator(func):
-                    return func
+            # Make middleware decorator return the function it wraps
+            def middleware_decorator(func):
+                return func
 
-                return decorator
-
-            mock_app.event = mock.MagicMock(side_effect=event_decorator)
+            mock_app.middleware = mock.MagicMock(side_effect=middleware_decorator)
 
             # Register Bolt listeners
             handler._register_bolt_listeners(mock_app)
 
             # The handler should have been registered
-            assert mock_app.event.called
-            mock_app.event.assert_called_with({})
+            assert mock_app.middleware.called
 
     @pytest.mark.asyncio
     async def test_route_event_to_consumer_success(self) -> None:
@@ -506,10 +502,8 @@ class TestSocketModeHandler:
         # Register Bolt listeners
         handler._register_bolt_listeners(mock_app)
 
-        # Verify that event decorator was called once for catch-all listener
-        assert mock_app.event.call_count == 1  # catch-all listener
-        # Verify it was called with empty dict for catch-all
-        mock_app.event.assert_called_with({})
+        # Verify that middleware decorator was called once for catch-all listener
+        assert mock_app.middleware.call_count == 1  # catch-all listener
 
     def test_bolt_listener_registration_without_queue_backend(self) -> None:
         """Test that Bolt listeners are not registered when queue backend is unavailable."""
@@ -525,8 +519,8 @@ class TestSocketModeHandler:
         # Register Bolt listeners
         handler._register_bolt_listeners(mock_app)
 
-        # Verify that event decorators were not called
-        mock_app.event.assert_not_called()
+        # Verify that middleware decorator was not called
+        mock_app.middleware.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_queue_backend_initialization_on_start(self) -> None:
@@ -636,21 +630,18 @@ class TestMCPServerFactorySocketMode:
             mock_settings.slack_events_topic = "test_topic"
             mock_get_settings.return_value = mock_settings
 
-            # Create mock app with event decorator
+            # Create mock app with middleware decorator
             mock_app = mock.MagicMock()
 
             # Capture the handler function
             captured_handler = None
 
-            def event_decorator(event_type):
-                def decorator(func):
-                    nonlocal captured_handler
-                    captured_handler = func
-                    return func
+            def middleware_decorator(func):
+                nonlocal captured_handler
+                captured_handler = func
+                return func
 
-                return decorator
-
-            mock_app.event = mock.MagicMock(side_effect=event_decorator)
+            mock_app.middleware = mock.MagicMock(side_effect=middleware_decorator)
 
             # Register Bolt listeners
             handler._register_bolt_listeners(mock_app)
@@ -659,8 +650,9 @@ class TestMCPServerFactorySocketMode:
             assert captured_handler is not None
 
             # Call the handler with a test event
-            test_event = {"type": "message", "text": "test message"}
-            await captured_handler(test_event)
+            test_context = {"payload": {"type": "message", "text": "test message"}}
+            test_context["next"] = mock.AsyncMock()
+            await captured_handler(test_context)
 
             # Wait a moment for the background task to complete
             import asyncio
@@ -668,7 +660,7 @@ class TestMCPServerFactorySocketMode:
             await asyncio.sleep(0.1)
 
             # Verify publish was called
-            mock_backend.publish.assert_called_once_with("test_topic", test_event)
+            mock_backend.publish.assert_called_once_with("test_topic", test_context["payload"])
 
     @pytest.mark.asyncio
     async def test_bolt_listener_handler_publish_error(self) -> None:
@@ -689,20 +681,17 @@ class TestMCPServerFactorySocketMode:
             mock_settings.slack_events_topic = "test_topic"
             mock_get_settings.return_value = mock_settings
 
-            # Create mock app with event decorator
+            # Create mock app with middleware decorator
             mock_app = mock.MagicMock()
 
             captured_handler = None
 
-            def event_decorator(event_type):
-                def decorator(func):
-                    nonlocal captured_handler
-                    captured_handler = func
-                    return func
+            def middleware_decorator(func):
+                nonlocal captured_handler
+                captured_handler = func
+                return func
 
-                return decorator
-
-            mock_app.event = mock.MagicMock(side_effect=event_decorator)
+            mock_app.middleware = mock.MagicMock(side_effect=middleware_decorator)
 
             # Register Bolt listeners
             handler._register_bolt_listeners(mock_app)
@@ -711,8 +700,9 @@ class TestMCPServerFactorySocketMode:
             assert captured_handler is not None
 
             # Call the handler with a test event (should not raise, just log error)
-            test_event = {"type": "message", "text": "test message"}
-            await captured_handler(test_event)
+            test_context = {"payload": {"type": "message", "text": "test message"}}
+            test_context["next"] = mock.AsyncMock()
+            await captured_handler(test_context)
 
             # Wait a moment for the background task to complete
             import asyncio
