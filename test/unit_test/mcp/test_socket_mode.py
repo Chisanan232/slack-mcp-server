@@ -702,6 +702,9 @@ class TestMCPServerFactorySocketMode:
             # Register Bolt listeners
             handler._register_bolt_listeners(mock_app)
 
+            # Verify the handler was captured
+            assert captured_handler is not None
+
             # Call the handler with a test event (should not raise, just log error)
             test_event = {"type": "message", "text": "test message"}
             await captured_handler(test_event)
