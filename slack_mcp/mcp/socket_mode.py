@@ -232,7 +232,7 @@ class SocketModeHandler:
                 self._reconnect_attempts += 1
                 if self._is_running:
                     backoff_time = min(2**self._reconnect_attempts, 60)
-                    _LOG.warning(
+                    _LOG.info(
                         f"Reconnecting in {backoff_time} seconds (attempt {self._reconnect_attempts}/{self._max_reconnect_attempts})"
                     )
                     await asyncio.sleep(backoff_time)
