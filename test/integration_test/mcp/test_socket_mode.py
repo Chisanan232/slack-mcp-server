@@ -6,8 +6,8 @@ from typing import Generator
 import pytest
 from pydantic import SecretStr
 
-from slack_mcp.mcp.socket_mode import SocketModeHandler
 from slack_mcp.mcp.app import MCPServerFactory
+from slack_mcp.mcp.socket_mode import SocketModeHandler
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +22,7 @@ def reset_factory() -> Generator:
 def mock_queue_backend() -> Generator:
     """Create a mock queue backend for testing."""
     from unittest import mock
-    
+
     backend = mock.MagicMock()
     backend.publish = mock.AsyncMock()
     yield backend
@@ -33,11 +33,10 @@ def mock_queue_backend() -> Generator:
 async def test_initialize_websocket_with_real_bolt_library(mock_queue_backend: Generator) -> None:
     """Test _initialize_websocket covering lines 240-253 with real slack-bolt library."""
     try:
-        from slack_bolt.app.async_app import AsyncApp
-        from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+        pass
     except ImportError:
         pytest.skip("slack-bolt library not installed - integration test requires slack-bolt")
-    
+
     app_token = SecretStr("xapp-test-token-123456")
     bot_token = SecretStr("xoxb-test-token-123456")
 
@@ -52,7 +51,7 @@ async def test_initialize_websocket_with_real_bolt_library(mock_queue_backend: G
     # - Lines 249-250: AsyncSocketModeHandler creation
     # - Line 250: self._websocket = AsyncSocketModeHandler(...)
     # - Line 253: _LOG.info("WebSocket connection initialized successfully")
-    
+
     try:
         await handler._initialize_websocket()
         # Verify websocket was created
@@ -71,11 +70,10 @@ async def test_initialize_websocket_with_real_bolt_library(mock_queue_backend: G
 async def test_connect_with_retry_success_path(mock_queue_backend: Generator) -> None:
     """Test _connect_with_retry success path covering lines 212-213."""
     try:
-        from slack_bolt.app.async_app import AsyncApp
-        from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+        pass
     except ImportError:
         pytest.skip("slack-bolt library not installed - integration test requires slack-bolt")
-    
+
     app_token = SecretStr("xapp-test-token-123456")
     bot_token = SecretStr("xoxb-test-token-123456")
 
@@ -87,22 +85,22 @@ async def test_connect_with_retry_success_path(mock_queue_backend: Generator) ->
     # Lines 212-213 will be covered:
     # - Line 212: self._reconnect_attempts = 0
     # - Line 213: await self._process_events()
-    
+
     try:
         # Start the connection with retry logic
         # This will attempt to initialize websocket and process events
         task = asyncio.create_task(handler._connect_with_retry())
-        
+
         # Give it a moment to attempt connection
         await asyncio.sleep(0.5)
-        
+
         # Cancel the task since we don't want it to run forever
         task.cancel()
         try:
             await task
         except asyncio.CancelledError:
             pass
-            
+
     except Exception as e:
         # Token/connection errors are expected with fake tokens
         # The code path (lines 212-213) was still executed
@@ -117,11 +115,10 @@ async def test_connect_with_retry_success_path(mock_queue_backend: Generator) ->
 async def test_initialize_websocket_exception_handling(mock_queue_backend: Generator) -> None:
     """Test _initialize_websocket exception handling covering lines 259-262."""
     try:
-        from slack_bolt.app.async_app import AsyncApp
-        from slack_bolt.socket_mode.async_handler import AsyncSocketModeHandler
+        pass
     except ImportError:
         pytest.skip("slack-bolt library not installed - integration test requires slack-bolt")
-    
+
     app_token = SecretStr("xapp-invalid-token")
     bot_token = SecretStr("xoxb-invalid-token")
 
@@ -132,7 +129,7 @@ async def test_initialize_websocket_exception_handling(mock_queue_backend: Gener
     # - Line 259: _LOG.error(f"Failed to initialize WebSocket connection: {e}", exc_info=True)
     # - Line 260: _LOG.error("Please check your app token and bot token are valid")
     # - Line 261: raise
-    
+
     try:
         await handler._initialize_websocket()
     except Exception as e:
