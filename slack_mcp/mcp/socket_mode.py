@@ -86,9 +86,9 @@ class SocketModeHandler:
     def _register_bolt_listeners(self, app: Any) -> None:
         """Register Bolt listeners to publish events to queue backend.
 
-        This method registers listeners on the AsyncApp that will publish incoming
-        Slack events to the queue backend, allowing the existing SlackEventConsumer
-        to process them.
+        This method registers a catch-all listener on the AsyncApp that will publish
+        all incoming Slack events to the queue backend, allowing the existing
+        SlackEventConsumer to process them regardless of event type.
 
         Parameters
         ----------
@@ -101,49 +101,24 @@ class SocketModeHandler:
 
         # Get the topic for Slack events from settings
         slack_events_topic = get_settings().slack_events_topic
-        _LOG.info(f"Registering Bolt listeners for queue topic: {slack_events_topic}")
+        _LOG.info(f"Registering catch-all Bolt listener for queue topic: {slack_events_topic}")
 
-        @app.event("message")
-        async def handle_message(event: dict[str, Any]) -> None:
-            """Handle message events from Socket Mode and publish to queue."""
-            _LOG.debug(f"Received message event via Socket Mode: {event.get('type')}")
+        @app.event({})
+        async def handle_all_events(event: dict[str, Any]) -> None:
+            """Handle all events from Socket Mode and publish to queue."""
+            event_type = event.get("type", "unknown")
+            _LOG.debug(f"Received event via Socket Mode: {event_type}")
             try:
                 if self._queue_backend:
                     # Publish event to queue backend
                     import asyncio
 
                     asyncio.create_task(self._queue_backend.publish(slack_events_topic, event))
-                    _LOG.debug(f"Published message event to queue topic: {slack_events_topic}")
+                    _LOG.debug(f"Published event to queue topic: {slack_events_topic}")
             except Exception as e:
-                _LOG.error(f"Error publishing message event to queue: {e}")
+                _LOG.error(f"Error publishing event to queue: {e}")
 
-        @app.event("reaction_added")
-        async def handle_reaction_added(event: dict[str, Any]) -> None:
-            """Handle reaction_added events from Socket Mode and publish to queue."""
-            _LOG.debug(f"Received reaction_added event via Socket Mode")
-            try:
-                if self._queue_backend:
-                    import asyncio
-
-                    asyncio.create_task(self._queue_backend.publish(slack_events_topic, event))
-                    _LOG.debug(f"Published reaction_added event to queue topic: {slack_events_topic}")
-            except Exception as e:
-                _LOG.error(f"Error publishing reaction_added event to queue: {e}")
-
-        @app.event("reaction_removed")
-        async def handle_reaction_removed(event: dict[str, Any]) -> None:
-            """Handle reaction_removed events from Socket Mode and publish to queue."""
-            _LOG.debug(f"Received reaction_removed event via Socket Mode")
-            try:
-                if self._queue_backend:
-                    import asyncio
-
-                    asyncio.create_task(self._queue_backend.publish(slack_events_topic, event))
-                    _LOG.debug(f"Published reaction_removed event to queue topic: {slack_events_topic}")
-            except Exception as e:
-                _LOG.error(f"Error publishing reaction_removed event to queue: {e}")
-
-        _LOG.info("Bolt listeners registered successfully")
+        _LOG.info("Catch-all Bolt listener registered successfully")
 
     def set_mcp_tools_available(self, available: bool) -> None:
         """Set whether MCP tools are available for invocation.

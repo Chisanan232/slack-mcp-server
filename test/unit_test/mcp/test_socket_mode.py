@@ -311,7 +311,7 @@ class TestSocketModeHandler:
             await handler.send_message("C123", "Hello, world!")
 
     def test_bolt_listener_registration_with_queue_backend(self) -> None:
-        """Test that Bolt listeners are registered when queue backend is available."""
+        """Test that catch-all Bolt listener is registered when queue backend is available."""
         app_token = SecretStr("xapp-test-token-123456")
         bot_token = SecretStr("xoxb-test-token-123456")
 
@@ -327,12 +327,10 @@ class TestSocketModeHandler:
         # Register Bolt listeners
         handler._register_bolt_listeners(mock_app)
 
-        # Verify that event decorators were called
-        assert mock_app.event.call_count == 3  # message, reaction_added, reaction_removed
-        event_calls = [call[0][0] for call in mock_app.event.call_args_list]
-        assert "message" in event_calls
-        assert "reaction_added" in event_calls
-        assert "reaction_removed" in event_calls
+        # Verify that event decorator was called once for catch-all listener
+        assert mock_app.event.call_count == 1  # catch-all listener
+        # Verify it was called with empty dict for catch-all
+        mock_app.event.assert_called_with({})
 
     def test_bolt_listener_registration_without_queue_backend(self) -> None:
         """Test that Bolt listeners are not registered when queue backend is unavailable."""
