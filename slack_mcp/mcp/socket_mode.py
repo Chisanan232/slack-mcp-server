@@ -52,6 +52,7 @@ class SocketModeHandler:
         self._reconnect_attempts: int = 0
         self._max_reconnect_attempts: int = 5
         self._event_consumer: Optional[SlackEventConsumer] = None
+        self._mcp_tools_available: bool = False
 
     async def start(self) -> None:
         """Start the Socket Mode WebSocket connection.
@@ -72,6 +73,53 @@ class SocketModeHandler:
         self._is_running = False
         if self._websocket:
             await self._close_websocket()
+
+    def set_mcp_tools_available(self, available: bool) -> None:
+        """Set whether MCP tools are available for invocation.
+
+        This method should be called when MCP tools are registered or unregistered
+        to ensure the Socket Mode handler can invoke them when processing events.
+
+        Parameters
+        ----------
+        available : bool
+            True if MCP tools are available, False otherwise
+        """
+        self._mcp_tools_available = available
+        _LOG.info(f"MCP tools availability set to: {available}")
+
+    async def invoke_mcp_tool(self, tool_name: str, tool_params: dict[str, Any]) -> dict[str, Any]:
+        """Invoke an MCP tool from Socket Mode event handler.
+
+        This method allows Socket Mode events to trigger MCP tool invocations
+        for bidirectional communication between Slack and MCP clients.
+
+        Parameters
+        ----------
+        tool_name : str
+            Name of the MCP tool to invoke
+        tool_params : dict[str, Any]
+            Parameters for the MCP tool
+
+        Returns
+        -------
+        dict[str, Any]
+            Result from the MCP tool invocation
+
+        Raises
+        ------
+        RuntimeError
+            If MCP tools are not available
+        """
+        if not self._mcp_tools_available:
+            _LOG.warning(f"MCP tool {tool_name} invoked but tools are not available")
+            raise RuntimeError("MCP tools are not available")
+
+        _LOG.debug(f"Invoking MCP tool: {tool_name} with params: {tool_params}")
+        # TODO: Implement actual MCP tool invocation
+        # This will connect to the MCP server's tool registry
+        # For now, return a placeholder response
+        return {"status": "success", "message": f"Tool {tool_name} invoked (placeholder)"}
 
     async def _connect_with_retry(self) -> None:
         """Establish WebSocket connection with automatic retry logic.
