@@ -148,3 +148,164 @@ class TestSocketModeHandler:
 
         # Should have reached max attempts
         assert handler._reconnect_attempts == 2
+
+    def test_event_routing_to_consumer(self) -> None:
+        """Test event routing to SlackEventConsumer."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Mock the event consumer
+        mock_consumer = mock.MagicMock()
+        handler._event_consumer = mock_consumer
+
+        # Test routing a message event
+        event_data = {"event": {"type": "message", "text": "test"}}
+        handler._route_event_to_handler("message", event_data)
+
+        mock_consumer.consume.assert_called_once_with(event_data)
+
+    def test_event_routing_without_consumer(self) -> None:
+        """Test event routing when consumer is not available (fallback)."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._event_consumer = None  # No consumer
+
+        # Test routing a message event (should use fallback)
+        event_data = {"event": {"type": "message", "text": "test"}}
+        handler._route_event_to_handler("message", event_data)
+
+        # Should not raise an error, just log
+        assert handler._event_consumer is None
+
+    def test_message_event_handling(self) -> None:
+        """Test message event handling with different subtypes."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Test new message
+        event_data = {"event": {"type": "message", "subtype": None}}
+        handler._handle_message_event(event_data)
+
+        # Test edited message
+        event_data = {"event": {"type": "message", "subtype": "message_changed"}}
+        handler._handle_message_event(event_data)
+
+        # Test deleted message
+        event_data = {"event": {"type": "message", "subtype": "message_deleted"}}
+        handler._handle_message_event(event_data)
+
+        # Test bot message
+        event_data = {"event": {"type": "message", "subtype": "bot_message"}}
+        handler._handle_message_event(event_data)
+
+    def test_reaction_event_handling(self) -> None:
+        """Test reaction event handling for added and removed reactions."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Test reaction added
+        event_data = {
+            "event": {
+                "type": "reaction_added",
+                "reaction": "thumbsup",
+                "user": "U123",
+                "item": {"type": "message", "channel": "C123"},
+            }
+        }
+        handler._handle_reaction_event(event_data)
+
+        # Test reaction removed
+        event_data = {
+            "event": {
+                "type": "reaction_removed",
+                "reaction": "thumbsup",
+                "user": "U123",
+                "item": {"type": "message", "channel": "C123"},
+            }
+        }
+        handler._handle_reaction_event(event_data)
+
+    def test_mcp_tools_availability(self) -> None:
+        """Test setting and checking MCP tools availability."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Initially tools should not be available
+        assert handler._mcp_tools_available is False
+
+        # Set tools as available
+        handler.set_mcp_tools_available(True)
+        assert handler._mcp_tools_available is True
+
+        # Set tools as unavailable
+        handler.set_mcp_tools_available(False)
+        assert handler._mcp_tools_available is False
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_invocation_success(self) -> None:
+        """Test successful MCP tool invocation."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler.set_mcp_tools_available(True)
+
+        # Invoke a tool
+        result = await handler.invoke_mcp_tool("test_tool", {"param": "value"})
+
+        assert result["status"] == "success"
+        assert "Tool test_tool invoked" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_mcp_tool_invocation_failure(self) -> None:
+        """Test MCP tool invocation when tools are not available."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler.set_mcp_tools_available(False)
+
+        # Should raise RuntimeError
+        with pytest.raises(RuntimeError, match="MCP tools are not available"):
+            await handler.invoke_mcp_tool("test_tool", {"param": "value"})
+
+    @pytest.mark.asyncio
+    async def test_bidirectional_message_send(self) -> None:
+        """Test sending messages through WebSocket (bidirectional communication)."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+
+        # Set up a mock WebSocket
+        mock_websocket = mock.MagicMock()
+        handler._websocket = mock_websocket
+
+        # Send a message
+        result = await handler.send_message("C123", "Hello, world!")
+
+        assert result["status"] == "success"
+        assert result["channel"] == "C123"
+
+    @pytest.mark.asyncio
+    async def test_bidirectional_message_send_without_websocket(self) -> None:
+        """Test sending message when WebSocket is not connected."""
+        app_token = SecretStr("xapp-test-token-123456")
+        bot_token = SecretStr("xoxb-test-token-123456")
+
+        handler = SocketModeHandler(app_token=app_token, bot_token=bot_token)
+        handler._websocket = None
+
+        # Should raise RuntimeError
+        with pytest.raises(RuntimeError, match="WebSocket not connected"):
+            await handler.send_message("C123", "Hello, world!")
