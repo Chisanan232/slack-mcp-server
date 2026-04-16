@@ -290,6 +290,59 @@ class MCPServerFactory(BaseServerFactory[FastMCP]):
 
         return lifespan
 
+    @staticmethod
+    def socket_mode_handler(app_token: str, bot_token: str) -> "SocketModeHandler":
+        """Get a Socket Mode handler instance for WebSocket transport.
+
+        This method creates and returns a SocketModeHandler instance for
+        WebSocket-based Slack Socket Mode transport. This is a standalone
+        transport that doesn't use FastAPI.
+
+        Parameters
+        ----------
+        app_token : str
+            Slack app-level token for Socket Mode authentication (xapp-***)
+        bot_token : str
+            Slack bot token for API operations (xoxb-***)
+
+        Returns
+        -------
+        SocketModeHandler
+            Configured Socket Mode handler instance
+
+        Raises
+        ------
+        AssertionError
+            If the MCP server instance has not been created
+
+        Examples
+        --------
+        .. code-block:: python
+
+            from slack_mcp.mcp.app import mcp_factory
+            from pydantic import SecretStr
+
+            mcp_factory.create()
+            handler = mcp_factory.socket_mode_handler(
+                app_token="xapp-...",
+                bot_token="xoxb-..."
+            )
+            # Run the handler
+            import asyncio
+            asyncio.run(handler.start())
+        """
+        from pydantic import SecretStr
+
+        from slack_mcp.mcp.socket_mode import SocketModeHandler
+
+        try:
+            # Ensure MCP server exists for consistency
+            MCPServerFactory.get()
+        except AssertionError:
+            raise AssertionError("Please create a FastMCP instance first by calling *MCPServerFactory.create()*.")
+
+        return SocketModeHandler(app_token=SecretStr(app_token), bot_token=SecretStr(bot_token))
+
 
 # Create a default MCP server instance for backward compatibility
 mcp_factory: Final[Type[MCPServerFactory]] = MCPServerFactory
