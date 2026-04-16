@@ -8,6 +8,7 @@ from unittest import mock
 import pytest
 from pydantic import SecretStr
 
+from slack_mcp.mcp.app import MCPServerFactory
 from slack_mcp.mcp.socket_mode import SocketModeHandler
 
 
@@ -547,5 +548,38 @@ class TestSocketModeHandler:
                 mock_load_backend.assert_called_once()
                 assert handler._queue_backend == mock_backend
 
-                # Clean up
-                await handler.stop()
+
+class TestMCPServerFactorySocketMode:
+    """Test suite for MCPServerFactory.socket_mode_handler method."""
+
+    def test_socket_mode_handler_success(self) -> None:
+        """Test successful Socket Mode handler creation."""
+        # Reset to ensure clean state
+        MCPServerFactory.reset()
+
+        # Create MCP server instance first
+        MCPServerFactory.create()
+
+        # Get Socket Mode handler
+        handler = MCPServerFactory.socket_mode_handler(
+            app_token="xapp-test-token-123456", bot_token="xoxb-test-token-123456"
+        )
+
+        # Verify handler was created
+        assert handler is not None
+        assert handler._app_token.get_secret_value() == "xapp-test-token-123456"
+        assert handler._bot_token.get_secret_value() == "xoxb-test-token-123456"
+
+        # Clean up
+        MCPServerFactory.reset()
+
+    def test_socket_mode_handler_without_server_instance(self) -> None:
+        """Test Socket Mode handler creation fails when MCP server not created."""
+        # Reset to ensure no server instance exists
+        MCPServerFactory.reset()
+
+        # Should raise AssertionError
+        with pytest.raises(AssertionError, match="Please create a FastMCP instance first"):
+            MCPServerFactory.socket_mode_handler(
+                app_token="xapp-test-token-123456", bot_token="xoxb-test-token-123456"
+            )
