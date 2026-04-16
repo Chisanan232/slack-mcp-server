@@ -7,6 +7,12 @@ from unittest.mock import MagicMock, patch
 
 def test_webhook_dotenv_loading_with_valid_env_file():
     """Test that environment variables are properly loaded from a valid .env file in webhook server."""
+    # Reset MCP factory to ensure clean state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+    # Create MCP factory to satisfy the requirement
+    MCPServerFactory.create(queue_backend=None, slack_consumer=None, mcp_tools_available=True)
+    
     # Create a temporary .env file with test values
     test_bot_token = "xoxb-webhook-test-token-12345"
     test_signing_secret = "webhook-test-signing-secret-12345"
@@ -49,10 +55,18 @@ def test_webhook_dotenv_loading_with_valid_env_file():
     finally:
         # Clean up the temporary file
         os.unlink(temp_env_path)
+        # Reset factory for other tests
+        MCPServerFactory.reset()
 
 
 def test_webhook_cmd_line_token_passed_to_server():
     """Test that command line token is passed to run_slack_server function."""
+    # Reset MCP factory to ensure clean state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+    # Create MCP factory to satisfy the requirement
+    MCPServerFactory.create(queue_backend=None, slack_consumer=None, mcp_tools_available=True)
+    
     cmd_line_token = "xoxb-webhook-cmd-line-token-67890"
 
     # Run webhook.entry.main with command line token
@@ -71,10 +85,19 @@ def test_webhook_cmd_line_token_passed_to_server():
                     # Verify that run_slack_server was called with the token
                     mock_run.assert_called_once()
                     mock_server_run.assert_called_once_with(host="0.0.0.0", port=3000, token=cmd_line_token, retry=3)
+    
+    # Reset factory for other tests
+    MCPServerFactory.reset()
 
 
 def test_webhook_create_slack_app_with_initialize_client():
     """Test that create_slack_app doesn't initialize client and initialize_slack_client does."""
+    # Reset MCP factory to ensure clean state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+    # Create MCP factory to satisfy the requirement
+    MCPServerFactory.create(queue_backend=None, slack_consumer=None, mcp_tools_available=True)
+    
     # Set environment variable
     test_bot_token = "xoxb-slack-app-env-token"
 
@@ -116,10 +139,19 @@ def test_webhook_create_slack_app_with_initialize_client():
                 # Verify client was created with correct token
                 mock_manager.get_async_client.assert_called_once_with(None, False)
                 assert client is mock_client
+    
+    # Reset factory for other tests
+    MCPServerFactory.reset()
 
 
 def test_webhook_initialize_client_with_param_token():
     """Test that initialize_slack_client uses token from parameter over env var."""
+    # Reset MCP factory to ensure clean state
+    from slack_mcp.mcp.app import MCPServerFactory
+    MCPServerFactory.reset()
+    # Create MCP factory to satisfy the requirement
+    MCPServerFactory.create(queue_backend=None, slack_consumer=None, mcp_tools_available=True)
+    
     # Set environment variable
     env_token = "xoxb-slack-app-env-token"
     param_token = "xoxb-slack-app-param-token"
@@ -145,3 +177,6 @@ def test_webhook_initialize_client_with_param_token():
                 # Verify client was created with parameter token, not env var
                 mock_manager.get_async_client.assert_called_once_with(param_token, False)
                 assert client is mock_client
+    
+    # Reset factory for other tests
+    MCPServerFactory.reset()
