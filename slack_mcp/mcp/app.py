@@ -98,12 +98,15 @@ Transport Types
 
 import contextlib
 from collections.abc import Callable
-from typing import Final, Type
+from typing import TYPE_CHECKING, Final, Type
 
 from fastapi import FastAPI
 from mcp.server import FastMCP
 
 from slack_mcp._base import BaseServerFactory
+
+if TYPE_CHECKING:
+    from slack_mcp.mcp.socket_mode import SocketModeHandler
 
 SERVER_NAME: Final[str] = "SlackMCPServer"
 
