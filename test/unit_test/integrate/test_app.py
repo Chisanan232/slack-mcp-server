@@ -372,6 +372,18 @@ class TestEdgeCasesAndErrorScenarios:
             IntegratedServerFactory.create(mcp_transport=None)
 
     @patch("slack_mcp.integrate.app.create_slack_app")
+    def test_create_with_socket_mode_transport_raises_error(self, mock_create_app: Mock) -> None:
+        """Test that Socket Mode transport raises ValueError in integrated mode."""
+        with pytest.raises(
+            ValueError,
+            match="Socket Mode transport is not supported in integrated mode"
+        ):
+            IntegratedServerFactory.create(mcp_transport="socket-mode")
+
+        # Verify create_slack_app was not called
+        mock_create_app.assert_not_called()
+
+    @patch("slack_mcp.integrate.app.create_slack_app")
     def test_create_with_exception_during_creation(self, mock_create_app: Mock) -> None:
         """Test handling of exceptions during app creation."""
         # Mock create_slack_app to raise an exception
