@@ -123,6 +123,12 @@ class IntegratedServerFactory(BaseServerFactory[FastAPI]):
 
         # Validate transport type first before any other operations
         if mcp_transport not in ["sse", "streamable-http"]:
+            if mcp_transport == "socket-mode":
+                raise ValueError(
+                    "Socket Mode transport is not supported in integrated mode. "
+                    "Socket Mode is a standalone WebSocket transport. "
+                    "Use --transport socket-mode without the --integrated flag instead."
+                )
             raise ValueError(
                 f"Invalid transport type for integrated server: {mcp_transport}. " "Must be 'sse' or 'streamable-http'."
             )

@@ -40,8 +40,9 @@
 - 🤖 **MCP Server**: Provides 6 essential Slack tools for AI assistants and clients
 - 🪝 **Webhook Server**: Processes real-time Slack events with secure verification
 - 🔗 **Integrated Mode**: Combined MCP + webhook server for complete Slack platform integration
-- 🚀 **Multiple Transports**: Supports stdio, SSE, and HTTP streaming protocols
+- 🚀 **Multiple Transports**: Supports stdio, SSE, HTTP streaming, and Socket Mode protocols
 - 📦 **Easy Deployment**: Docker, Kubernetes, and cloud platform ready
+- 🔌 **Socket Mode**: WebSocket-based transport for environments without public HTTP endpoints
 
 [//]: # (- 🛡️ **Enterprise Security**: HMAC-SHA256 verification, token management, and comprehensive logging)
 
@@ -183,6 +184,48 @@ docker run -p 3000:3000 \
   -e SLACK_SIGNING_SECRET="your-secret" \
   chisanan232/slack-mcp-server:latest
 ```
+
+### Socket Mode Transport
+
+Socket Mode is a WebSocket-based transport that allows the Slack MCP server to communicate with Slack without requiring public HTTP endpoints. This is particularly useful for:
+
+- Applications behind firewalls or NAT
+- Environments without public internet access
+- Enhanced security through WebSocket tunneling
+- Development and testing without public infrastructure
+
+**Setup Requirements:**
+
+1. **Enable Socket Mode in your Slack App:**
+   - Go to https://api.slack.com/apps → Your App → Basic Information
+   - Enable Socket Mode
+   - Create an App-Level Token with `connections:write` scope
+
+2. **Configure Environment Variables:**
+```bash
+# Required for Socket Mode
+export SLACK_BOT_TOKEN="xoxb-your-bot-token-here"
+export SLACK_APP_TOKEN="xapp-your-app-token-here"
+```
+
+**Usage Examples:**
+
+```bash
+# Start with Socket Mode transport
+slack-mcp-server --transport socket-mode --app-token xapp-your-app-token
+
+# Socket Mode with app token from environment variable
+export SLACK_APP_TOKEN="xapp-your-app-token"
+slack-mcp-server --transport socket-mode
+```
+
+**Important Notes:**
+
+- Socket Mode is a standalone transport and **cannot be used with integrated mode**
+- The app token must start with `xapp-` prefix
+- Socket Mode uses WebSocket connections directly to Slack's servers
+- No public HTTP endpoints or webhooks are required
+- Automatic reconnection with exponential backoff is built-in
 
 ## Documentation
 
