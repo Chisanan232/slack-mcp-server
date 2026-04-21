@@ -2554,8 +2554,8 @@ packages:
     resolution: {integrity: sha512-HGyxoOTYUyCM6stUe6EJgnd4EoewAI7zMdfqO+kGjnlZmBDz/cR5pf8r/cR4Wq60sL/p0IkcjUEEPwS3GFrIyw==}
     engines: {node: '>=8'}
 
-  asn1js@3.0.7:
-    resolution: {integrity: sha512-uLvq6KJu04qoQM6gvBfKFjlh6Gl0vOKQuR5cJMDHQkmwfMOQeN3F3SHCv9SNYSL+CRoHvOGFfllDlVz03GQjvQ==}
+asn1js@3.0.10:
+    resolution: {integrity: sha512-S2s3aOytiKdFRdulw2qPE51MzjzVOisppcVv7jVFR+Kw0kxwvFrDcYA0h7Ndqbmj0HkMIXYWaoj7fli8kgx1eg==}
     engines: {node: '>=12.0.0'}
 
   astring@1.9.0:
@@ -4275,6 +4275,9 @@ packages:
 
   jsonfile@6.2.0:
     resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
+
+  jsonfile@6.2.1:
+    resolution: {integrity: sha512-zwOTdL3rFQ/lRdBnntKVOX6k5cKJwEc1HdilT71BWEu7J41gXIB2MRp+vxduPSwZJPWBxEzv4yH1wYLJGUHX4Q==}
 
   katex@0.16.22:
     resolution: {integrity: sha512-XCHRdUw4lf3SKBaJe4EvgqIuWwkPSo9XoeO8GjQW94Bp7TWv9hNhzZjZ+OH9yf1UmLygb7DIT5GSFQiyt16zYg==}
@@ -10404,21 +10407,21 @@ snapshots:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
       '@peculiar/asn1-x509-attr': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-csr@2.6.1':
     dependencies:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-ecc@2.6.1':
     dependencies:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-pfx@2.6.1':
@@ -10427,14 +10430,14 @@ snapshots:
       '@peculiar/asn1-pkcs8': 2.6.1
       '@peculiar/asn1-rsa': 2.6.1
       '@peculiar/asn1-schema': 2.6.0
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-pkcs8@2.6.1':
     dependencies:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-pkcs9@2.6.1':
@@ -10445,19 +10448,19 @@ snapshots:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
       '@peculiar/asn1-x509-attr': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-rsa@2.6.1':
     dependencies:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-schema@2.6.0':
     dependencies:
-      asn1js: 3.0.7
+asn1js: 3.0.10
       pvtsutils: 1.3.6
       tslib: 2.8.1
 
@@ -10465,13 +10468,13 @@ snapshots:
     dependencies:
       '@peculiar/asn1-schema': 2.6.0
       '@peculiar/asn1-x509': 2.6.1
-      asn1js: 3.0.7
+asn1js: 3.0.10
       tslib: 2.8.1
 
   '@peculiar/asn1-x509@2.6.1':
     dependencies:
       '@peculiar/asn1-schema': 2.6.0
-      asn1js: 3.0.7
+asn1js: 3.0.10
       pvtsutils: 1.3.6
       tslib: 2.8.1
 
@@ -11237,7 +11240,11 @@ snapshots:
 
   array-union@2.1.0: {}
 
+<<<<<<< HEAD
   asn1js@3.0.7:
+=======
+  asn1js@3.0.10:
+>>>>>>> bcb0e959b3f7295e1c868f7aadf3d1c8b525f058
     dependencies:
       pvtsutils: 1.3.6
       pvutils: 1.1.5
@@ -12677,7 +12684,7 @@ snapshots:
   fs-extra@11.3.4:
     dependencies:
       graceful-fs: 4.2.11
-      jsonfile: 6.2.0
+jsonfile: 6.2.1
       universalify: 2.0.1
 
   fsevents@2.3.3:
@@ -13287,6 +13294,12 @@ snapshots:
       graceful-fs: 4.2.11
 
   jsonfile@6.2.0:
+    dependencies:
+      universalify: 2.0.1
+    optionalDependencies:
+      graceful-fs: 4.2.11
+
+  jsonfile@6.2.1:
     dependencies:
       universalify: 2.0.1
     optionalDependencies:
@@ -14258,7 +14271,7 @@ snapshots:
   pkijs@3.4.0:
     dependencies:
       '@noble/hashes': 1.4.0
-      asn1js: 3.0.7
+asn1js: 3.0.10
       bytestreamjs: 2.0.1
       pvtsutils: 1.3.6
       pvutils: 1.1.5
